@@ -8,20 +8,26 @@ import { Bot, Send, Building2, Megaphone, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { streamChat } from "@/lib/ai-stream";
 import ReactMarkdown from "react-markdown";
+import { VoiceButton } from "@/components/VoiceButton";
+import { ImageUploadButton } from "@/components/ImageUploadButton";
+
+type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string; // for display purposes
 }
 
 const WELCOME: Record<string, string> = {
-  immobilier: "Bonjour ! Je suis votre expert immobilier IA. Posez-moi vos questions sur la législation, la fiscalité, l'estimation, la négociation ou la prospection. 🏡",
-  marketing: "Bonjour ! Je suis votre coach marketing immobilier IA. Demandez-moi des stratégies de communication, du copywriting, des conseils réseaux sociaux ou emailing. 📣",
+  immobilier: "Bonjour ! Je suis votre expert immobilier IA. Posez-moi vos questions sur la législation, la fiscalité, l'estimation, la négociation ou la prospection. Vous pouvez aussi m'envoyer des photos ou utiliser la dictée vocale. 🏡🎤📷",
+  marketing: "Bonjour ! Je suis votre coach marketing immobilier IA. Demandez-moi des stratégies, du copywriting, des conseils réseaux sociaux. Envoyez-moi des photos de biens ou utilisez la voix ! 📣🎤📷",
 };
 
 const AssistantIA = () => {
   const [tab, setTab] = useState<"immobilier" | "marketing">("immobilier");
   const [input, setInput] = useState("");
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [conversations, setConversations] = useState<Record<string, Message[]>>({
     immobilier: [{ role: "assistant", content: WELCOME.immobilier }],
@@ -36,16 +42,42 @@ const AssistantIA = () => {
   }, [messages]);
 
   const envoyer = async () => {
-    if (!input.trim() || isLoading) return;
-    const userMsg: Message = { role: "user", content: input };
+    if ((!input.trim() && !pendingImage) || isLoading) return;
+
+    const displayContent = input.trim() || (pendingImage ? "📷 Photo envoyée" : "");
+    const userMsg: Message = { role: "user", content: displayContent, imageUrl: pendingImage || undefined };
     const newMessages = [...messages, userMsg];
 
     setConversations(prev => ({ ...prev, [tab]: newMessages }));
     setInput("");
+    const imageToSend = pendingImage;
+    setPendingImage(null);
     setIsLoading(true);
+
+    // Build multimodal message for the API
+    let apiContent: string | ContentPart[];
+    if (imageToSend) {
+      const parts: ContentPart[] = [];
+      if (input.trim()) parts.push({ type: "text", text: input.trim() });
+      else parts.push({ type: "text", text: "Analyse cette image." });
+      parts.push({ type: "image_url", image_url: { url: imageToSend } });
+      apiContent = parts;
+    } else {
+      apiContent = input.trim();
+    }
 
     let assistantSoFar = "";
     const functionName = tab === "immobilier" ? "chat-immobilier" : "chat-marketing";
+
+    // Build API messages (exclude welcome + convert to API format)
+    const apiMessages = newMessages
+      .filter(m => m.role === "user" || m.content !== WELCOME[tab])
+      .map((m, i) => {
+        if (i === newMessages.length - 1 && m.role === "user") {
+          return { role: "user" as const, content: apiContent };
+        }
+        return { role: m.role, content: m.content };
+      });
 
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
@@ -62,13 +94,10 @@ const AssistantIA = () => {
     try {
       await streamChat({
         functionName,
-        messages: newMessages.filter(m => m.role === "user" || m.content !== WELCOME[tab]),
+        messages: apiMessages,
         onDelta: upsertAssistant,
         onDone: () => setIsLoading(false),
-        onError: (err) => {
-          toast.error(err);
-          setIsLoading(false);
-        },
+        onError: (err) => { toast.error(err); setIsLoading(false); },
       });
     } catch {
       toast.error("Erreur de connexion au service IA");
@@ -77,21 +106,19 @@ const AssistantIA = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      envoyer();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); }
   };
 
   const clearConversation = () => {
     setConversations(prev => ({ ...prev, [tab]: [{ role: "assistant", content: WELCOME[tab] }] }));
+    setPendingImage(null);
   };
 
   return (
     <AppLayout>
       <div className="page-header">
         <h1 className="page-title flex items-center gap-2"><Bot className="h-6 w-6 text-accent" /> Assistant IA</h1>
-        <p className="page-subtitle">Vos experts immobilier et marketing alimentés par l'IA</p>
+        <p className="page-subtitle">Vos experts immobilier et marketing — voix, photos et texte</p>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "immobilier" | "marketing")} className="space-y-4">
@@ -112,10 +139,11 @@ const AssistantIA = () => {
                 {conversations[key].map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
-                      m.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
+                      m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
                     }`}>
+                      {m.imageUrl && (
+                        <img src={m.imageUrl} alt="Uploaded" className="rounded-lg mb-2 max-h-48 object-cover" />
+                      )}
                       {m.role === "assistant" ? (
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <ReactMarkdown>{m.content}</ReactMarkdown>
@@ -134,7 +162,25 @@ const AssistantIA = () => {
                   </div>
                 )}
               </CardContent>
-              <div className="border-t p-4 flex gap-3">
+
+              {/* Pending image preview */}
+              {pendingImage && key === tab && (
+                <div className="border-t px-4 py-2 flex items-center gap-2">
+                  <img src={pendingImage} alt="Preview" className="h-12 w-12 rounded object-cover" />
+                  <span className="text-xs text-muted-foreground flex-1">Photo prête à envoyer</span>
+                  <Button variant="ghost" size="sm" onClick={() => setPendingImage(null)}>✕</Button>
+                </div>
+              )}
+
+              <div className="border-t p-4 flex gap-2">
+                <VoiceButton
+                  onTranscript={(text) => setInput(prev => prev ? `${prev} ${text}` : text)}
+                  disabled={isLoading}
+                />
+                <ImageUploadButton
+                  onImageSelected={(base64) => setPendingImage(base64)}
+                  disabled={isLoading}
+                />
                 <Textarea
                   placeholder={key === "immobilier" ? "Posez votre question immobilière..." : "Demandez un conseil marketing..."}
                   value={key === tab ? input : ""}
@@ -144,7 +190,7 @@ const AssistantIA = () => {
                   className="resize-none min-h-[44px]"
                   disabled={isLoading}
                 />
-                <Button onClick={envoyer} size="icon" className="shrink-0" disabled={isLoading || !input.trim()}>
+                <Button onClick={envoyer} size="icon" className="shrink-0" disabled={isLoading || (!input.trim() && !pendingImage)}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

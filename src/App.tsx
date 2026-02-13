@@ -13,6 +13,9 @@ import Taches from "./pages/Taches";
 import Marketing from "./pages/Marketing";
 import Prospection from "./pages/Prospection";
 import AssistantIA from "./pages/AssistantIA";
+import ImportCSV from "./pages/ImportCSV";
+import Pricing from "./pages/Pricing";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,12 +31,15 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/" element={<Dashboard />} />
             <Route path="/prospects" element={<Prospects />} />
             <Route path="/taches" element={<Taches />} />
             <Route path="/marketing" element={<Marketing />} />
             <Route path="/prospection" element={<Prospection />} />
             <Route path="/assistant" element={<AssistantIA />} />
+            <Route path="/import" element={<ImportCSV />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
