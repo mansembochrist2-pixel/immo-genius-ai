@@ -9,15 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, CheckSquare, Trash2, Pencil } from "lucide-react";
+import { Plus, CheckSquare, Trash2, Pencil, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { VoiceButton } from "@/components/VoiceButton";
 
 const prioriteOptions = ["basse", "moyenne", "haute", "urgente"] as const;
 
-const emptyForm = { titre: "", priorite: "moyenne" as string };
+const emptyForm = { titre: "", priorite: "moyenne" as string, due_date: "" };
 
 const Taches = () => {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ const Taches = () => {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("tasks").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("tasks").select("*").order("done", { ascending: true }).order("due_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -37,7 +38,12 @@ const Taches = () => {
 
   const addMutation = useMutation({
     mutationFn: async (t: typeof form) => {
-      const { error } = await supabase.from("tasks").insert({ titre: t.titre, priorite: t.priorite as any, user_id: user!.id });
+      const { error } = await supabase.from("tasks").insert({
+        titre: t.titre,
+        priorite: t.priorite as any,
+        due_date: t.due_date || null,
+        user_id: user!.id,
+      });
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks"] }); toast.success("Tâche ajoutée"); closeDialog(); },
@@ -46,7 +52,11 @@ const Taches = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...t }: typeof form & { id: string }) => {
-      const { error } = await supabase.from("tasks").update({ titre: t.titre, priorite: t.priorite as any }).eq("id", id);
+      const { error } = await supabase.from("tasks").update({
+        titre: t.titre,
+        priorite: t.priorite as any,
+        due_date: t.due_date || null,
+      }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks"] }); toast.success("Tâche modifiée"); closeDialog(); },
@@ -73,7 +83,7 @@ const Taches = () => {
 
   const openEdit = (t: any) => {
     setEditId(t.id);
-    setForm({ titre: t.titre, priorite: t.priorite });
+    setForm({ titre: t.titre, priorite: t.priorite, due_date: t.due_date || "" });
     setOpen(true);
   };
 
@@ -90,6 +100,16 @@ const Taches = () => {
   const isPending = addMutation.isPending || updateMutation.isPending;
   const pendingCount = tasks.filter((t: any) => !t.done).length;
 
+  const formatDate = (d: string | null) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  };
+
+  const isOverdue = (d: string | null, done: boolean) => {
+    if (!d || done) return false;
+    return new Date(d) < new Date(new Date().toDateString());
+  };
+
   return (
     <AppLayout>
       <div className="page-header flex items-center justify-between">
@@ -97,23 +117,44 @@ const Taches = () => {
           <h1 className="page-title flex items-center gap-2"><CheckSquare className="h-6 w-6 text-accent" /> Tâches</h1>
           <p className="page-subtitle">{pendingCount} tâches en cours</p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle></DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-              <div className="space-y-2"><Label>Titre</Label><Input placeholder="Appeler le client..." value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} /></div>
-              <div className="space-y-2">
-                <Label>Priorité</Label>
-                <Select value={form.priorite} onValueChange={(v) => setForm({ ...form, priorite: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{prioriteOptions.map((p) => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter la tâche"}</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <VoiceButton
+            onTranscript={(text) => {
+              setForm({ ...emptyForm, titre: text });
+              setOpen(true);
+              toast.info(`Tâche captée : "${text}"`);
+            }}
+          />
+          <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle></DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label>Titre</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="Appeler le client..." value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} className="flex-1" />
+                    <VoiceButton onTranscript={(text) => setForm({ ...form, titre: form.titre ? `${form.titre} ${text}` : text })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Priorité</Label>
+                    <Select value={form.priorite} onValueChange={(v) => setForm({ ...form, priorite: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{prioriteOptions.map((p) => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Échéance</Label>
+                    <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter la tâche"}</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -121,12 +162,20 @@ const Taches = () => {
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Chargement...</div>
           ) : tasks.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">Aucune tâche. Créez votre première tâche !</div>
+            <div className="p-8 text-center text-muted-foreground">
+              <CheckSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>Aucune tâche. Créez votre première tâche !</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10"></TableHead><TableHead>Titre</TableHead><TableHead>Priorité</TableHead><TableHead>Statut</TableHead><TableHead className="w-20"></TableHead>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead>Titre</TableHead>
+                  <TableHead>Priorité</TableHead>
+                  <TableHead>Échéance</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -135,6 +184,12 @@ const Taches = () => {
                     <TableCell><Checkbox checked={t.done} onCheckedChange={() => toggleMutation.mutate({ id: t.id, done: !t.done })} /></TableCell>
                     <TableCell className={`font-medium ${t.done ? "line-through" : ""}`}>{t.titre}</TableCell>
                     <TableCell><Badge variant={t.priorite === "haute" || t.priorite === "urgente" ? "destructive" : t.priorite === "moyenne" ? "default" : "secondary"} className="text-[10px]">{t.priorite}</Badge></TableCell>
+                    <TableCell>
+                      <span className={`text-sm flex items-center gap-1 ${isOverdue(t.due_date, t.done) ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                        {t.due_date && <Calendar className="h-3 w-3" />}
+                        {formatDate(t.due_date)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{t.done ? "Terminée" : "En cours"}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4 text-muted-foreground" /></Button>

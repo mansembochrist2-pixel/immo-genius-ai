@@ -6,16 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, User, CreditCard, Plug, Crown, Calendar, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Settings as SettingsIcon, User, CreditCard, Plug, Crown, Calendar, Download, Shield, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -49,14 +52,64 @@ const Settings = () => {
   const trialEnd = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const isTrialActive = trialEnd && trialEnd > new Date();
   const daysLeft = trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86400000)) : 0;
+  const planLabels: Record<string, string> = { starter: "Essai gratuit", active: "Actif", suspended: "Suspendu", cancelled: "Résilié" };
 
-  const planLabels: Record<string, string> = { trial: "Essai gratuit", active: "Actif", suspended: "Suspendu", cancelled: "Résilié" };
+  const exportData = async () => {
+    setExporting(true);
+    try {
+      const [prospects, tasks, annonces, analyses] = await Promise.all([
+        supabase.from("prospects").select("*"),
+        supabase.from("tasks").select("*"),
+        supabase.from("annonces").select("*"),
+        supabase.from("analyses_zone").select("*"),
+      ]);
+
+      const exportObj = {
+        export_date: new Date().toISOString(),
+        profile: profile,
+        prospects: prospects.data || [],
+        tasks: tasks.data || [],
+        annonces: annonces.data || [],
+        analyses_zone: analyses.data || [],
+      };
+
+      const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `estate-ai-export-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Données exportées avec succès");
+    } catch {
+      toast.error("Erreur lors de l'export");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      // Delete all user data
+      await Promise.all([
+        supabase.from("prospects").delete().eq("user_id", user!.id),
+        supabase.from("tasks").delete().eq("user_id", user!.id),
+        supabase.from("annonces").delete().eq("user_id", user!.id),
+        supabase.from("analyses_zone").delete().eq("user_id", user!.id),
+        supabase.from("conversations").delete().eq("user_id", user!.id),
+      ]);
+      toast.success("Données supprimées. Déconnexion...");
+      setTimeout(() => logout(), 1500);
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
 
   return (
     <AppLayout>
       <div className="page-header">
         <h1 className="page-title flex items-center gap-2"><SettingsIcon className="h-6 w-6 text-accent" /> Paramètres</h1>
-        <p className="page-subtitle">Gérez votre profil, abonnement et intégrations</p>
+        <p className="page-subtitle">Gérez votre profil, abonnement et données</p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
@@ -64,6 +117,7 @@ const Settings = () => {
           <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" /> Profil</TabsTrigger>
           <TabsTrigger value="billing" className="gap-2"><CreditCard className="h-4 w-4" /> Abonnement</TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2"><Plug className="h-4 w-4" /> Intégrations</TabsTrigger>
+          <TabsTrigger value="rgpd" className="gap-2"><Shield className="h-4 w-4" /> RGPD</TabsTrigger>
         </TabsList>
 
         {/* PROFILE TAB */}
@@ -89,7 +143,7 @@ const Settings = () => {
               <CardHeader><CardTitle className="text-base font-sans font-semibold flex items-center gap-2"><Crown className="h-5 w-5 text-accent" /> Votre abonnement</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Badge variant={isTrialActive ? "secondary" : "default"}>{planLabels[profile?.plan || "trial"]}</Badge>
+                  <Badge variant={isTrialActive ? "secondary" : "default"}>{planLabels[profile?.plan || "starter"]}</Badge>
                   <span className="text-2xl font-bold">79€<span className="text-sm font-normal text-muted-foreground">/mois</span></span>
                 </div>
                 {isTrialActive && (
@@ -113,9 +167,7 @@ const Settings = () => {
 
             <Card>
               <CardHeader><CardTitle className="text-base font-sans font-semibold">Historique de facturation</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Aucune facture pour le moment.</p>
-              </CardContent>
+              <CardContent><p className="text-sm text-muted-foreground">Aucune facture pour le moment.</p></CardContent>
             </Card>
 
             <Card>
@@ -133,9 +185,9 @@ const Settings = () => {
         <TabsContent value="integrations">
           <div className="space-y-4">
             {[
-              { name: "Gmail", desc: "Synchronisez vos emails et leads", icon: "📧", status: "soon" },
-              { name: "Outlook", desc: "Importez vos contacts et emails", icon: "📬", status: "soon" },
-              { name: "HubSpot", desc: "Synchronisation CRM bidirectionnelle", icon: "🔶", status: "soon" },
+              { name: "Gmail", desc: "Synchronisez vos emails et leads", icon: "📧", status: "config" },
+              { name: "Outlook", desc: "Importez vos contacts et emails", icon: "📬", status: "config" },
+              { name: "HubSpot", desc: "Synchronisation CRM bidirectionnelle", icon: "🔶", status: "config" },
             ].map((integ) => (
               <Card key={integ.name}>
                 <CardContent className="py-4 flex items-center justify-between">
@@ -146,13 +198,50 @@ const Settings = () => {
                       <p className="text-xs text-muted-foreground">{integ.desc}</p>
                     </div>
                   </div>
-                  <Badge variant="secondary">Bientôt</Badge>
+                  <Button variant="outline" size="sm" disabled>
+                    <Plug className="h-3.5 w-3.5 mr-1" /> Configurer
+                  </Button>
                 </CardContent>
               </Card>
             ))}
             <p className="text-xs text-muted-foreground text-center mt-4">
-              Les intégrations email seront disponibles dans une prochaine mise à jour. En attendant, utilisez l'import CSV pour synchroniser vos données.
+              Les intégrations email nécessitent une configuration OAuth. Contactez le support pour activer ces connecteurs.
             </p>
+          </div>
+        </TabsContent>
+
+        {/* RGPD TAB */}
+        <TabsContent value="rgpd">
+          <div className="space-y-4 max-w-lg">
+            <Card>
+              <CardHeader><CardTitle className="text-base font-sans font-semibold flex items-center gap-2"><Download className="h-5 w-5 text-accent" /> Exporter mes données</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">Téléchargez l'ensemble de vos données (prospects, tâches, annonces, analyses) au format JSON.</p>
+                <Button onClick={exportData} disabled={exporting}>
+                  {exporting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Export en cours...</> : <><Download className="h-4 w-4 mr-2" /> Exporter toutes mes données</>}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-destructive/30">
+              <CardHeader><CardTitle className="text-base font-sans font-semibold flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> Supprimer mon compte</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">Cette action supprimera définitivement toutes vos données (prospects, tâches, annonces, conversations). Cette action est irréversible.</p>
+                <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+                  <DialogTrigger asChild>
+                    <Button variant="destructive"><Trash2 className="h-4 w-4 mr-2" /> Supprimer mon compte</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Confirmer la suppression</DialogTitle></DialogHeader>
+                    <p className="text-sm text-muted-foreground">Êtes-vous sûr de vouloir supprimer définitivement toutes vos données ? Cette action est irréversible.</p>
+                    <div className="flex gap-3 mt-4">
+                      <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(false)}>Annuler</Button>
+                      <Button variant="destructive" className="flex-1" onClick={deleteAccount}>Supprimer définitivement</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>

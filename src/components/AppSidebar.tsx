@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, CheckSquare, Megaphone, MapPin, Bot, LogOut, Settings, FileSpreadsheet,
+  LayoutDashboard, Users, CheckSquare, Megaphone, MapPin, Bot, LogOut, Settings, FileSpreadsheet, FileText, Shield, ScrollText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,12 @@ const navItems = [
   { title: "Prospection", url: "/prospection", icon: MapPin },
   { title: "Assistant IA", url: "/assistant", icon: Bot },
   { title: "Import CSV", url: "/import", icon: FileSpreadsheet },
+];
+
+const legalItems = [
+  { title: "Mentions légales", url: "/mentions-legales", icon: FileText },
+  { title: "Confidentialité", url: "/politique-confidentialite", icon: Shield },
+  { title: "CGU", url: "/cgu", icon: ScrollText },
 ];
 
 export function AppSidebar() {
@@ -39,6 +45,24 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end={item.url === "/"} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                       <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-[10px] tracking-widest">Légal</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {legalItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-xs" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
+                      <item.icon className="h-3.5 w-3.5" />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>

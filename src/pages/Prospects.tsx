@@ -8,13 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Users, Trash2, Pencil, Camera, Loader2 } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { VoiceButton } from "@/components/VoiceButton";
-import { fileToBase64 } from "@/components/ImageUploadButton";
+import { ImageUploadButton, fileToBase64 } from "@/components/ImageUploadButton";
+import { CameraButton } from "@/components/CameraButton";
 import { useNavigate } from "react-router-dom";
 
 const statutOptions = ["nouveau", "contacte", "visite", "offre", "signe", "perdu"] as const;
@@ -86,12 +86,9 @@ const Prospects = () => {
     }
   };
 
-  const handlePhotoOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handlePhotoOCR = async (base64: string) => {
     setOcrLoading(true);
     try {
-      const base64 = await fileToBase64(file);
       const { data, error } = await supabase.functions.invoke("extract-prospects-from-image", {
         body: { imageBase64: base64 },
       });
@@ -104,7 +101,6 @@ const Prospects = () => {
         return;
       }
 
-      // Insert all extracted prospects
       const toInsert = extracted.map((p: any) => ({
         nom: p.nom || "Sans nom",
         email: p.email || null,
@@ -119,12 +115,12 @@ const Prospects = () => {
       if (insertErr) throw insertErr;
 
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["prospect-count"] });
       toast.success(`${extracted.length} prospect(s) extraits et ajoutés !`);
     } catch (err: any) {
       toast.error(err.message || "Erreur d'analyse de l'image");
     } finally {
       setOcrLoading(false);
-      e.target.value = "";
     }
   };
 
@@ -138,22 +134,19 @@ const Prospects = () => {
           <p className="page-subtitle">{prospects.length} prospects dans votre base</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Voice to add prospect */}
-          <VoiceButton
-            onTranscript={(text) => {
-              setForm({ ...emptyForm, nom: text });
-              setOpen(true);
-              toast.info(`Nom capté : "${text}" — complétez les infos`);
-            }}
+          {/* Photo upload OCR */}
+          <ImageUploadButton
+            onImageSelected={(base64) => handlePhotoOCR(base64)}
+            disabled={ocrLoading}
           />
 
-          {/* Photo OCR */}
-          <label className="cursor-pointer">
-            <Button variant="outline" size="icon" disabled={ocrLoading} asChild>
-              <span>{ocrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}</span>
-            </Button>
-            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoOCR} />
-          </label>
+          {/* Camera capture OCR */}
+          <CameraButton
+            onPhotoTaken={(base64) => handlePhotoOCR(base64)}
+            disabled={ocrLoading}
+          />
+
+          {ocrLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
 
           {/* CSV Import */}
           <Button variant="outline" onClick={() => navigate("/import")}>Import CSV</Button>
@@ -186,7 +179,10 @@ const Prospects = () => {
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Chargement...</div>
           ) : prospects.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">Aucun prospect. Ajoutez votre premier prospect !</div>
+            <div className="p-8 text-center text-muted-foreground">
+              <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>Aucun prospect. Ajoutez votre premier prospect !</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Upload, FileSpreadsheet, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -43,6 +44,25 @@ function autoDetectMapping(headers: string[]): Record<number, string> {
   return mapping;
 }
 
+function parseXlsx(file: File): Promise<string[][]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        resolve(rows.map(r => r.map(c => String(c))));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 const ImportCSV = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -50,36 +70,44 @@ const ImportCSV = () => {
   const [rows, setRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<Record<number, string>>({});
   const [importing, setImporting] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [result, setResult] = useState<{ success: number; errors: number } | null>(null);
+
+  const processData = (allRows: string[][]) => {
+    if (allRows.length < 2) {
+      toast.error("Le fichier est vide ou ne contient qu'un en-tête");
+      return;
+    }
+    const h = allRows[0];
+    const dataRows = allRows.slice(1).filter(r => r.some(c => c.trim()));
+    setHeaders(h);
+    setRows(dataRows);
+    setMapping(autoDetectMapping(h));
+    toast.success(`${dataRows.length} lignes détectées`);
+  };
 
   const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setResult(null);
+    setFileName(file.name);
 
-    Papa.parse(file, {
-      skipEmptyLines: true,
-      complete: (res) => {
-        if (res.data.length < 2) {
-          toast.error("Le fichier est vide ou ne contient qu'un en-tête");
-          return;
-        }
-        const allRows = res.data as string[][];
-        const h = allRows[0];
-        const dataRows = allRows.slice(1);
-        setHeaders(h);
-        setRows(dataRows);
-        setMapping(autoDetectMapping(h));
-        toast.success(`${dataRows.length} lignes détectées`);
-      },
-      error: () => toast.error("Erreur de lecture du fichier"),
-    });
+    const ext = file.name.split(".").pop()?.toLowerCase();
+
+    if (ext === "xlsx" || ext === "xls") {
+      parseXlsx(file).then(processData).catch(() => toast.error("Erreur de lecture du fichier Excel"));
+    } else {
+      Papa.parse(file, {
+        skipEmptyLines: true,
+        complete: (res) => processData(res.data as string[][]),
+        error: () => toast.error("Erreur de lecture du fichier CSV"),
+      });
+    }
   }, []);
 
   const updateMapping = (colIndex: number, field: string) => {
     setMapping((prev) => {
       const next = { ...prev };
-      // Remove previous column mapped to this field
       if (field !== "ignore") {
         Object.entries(next).forEach(([k, v]) => { if (v === field) delete next[Number(k)]; });
       }
@@ -105,14 +133,13 @@ const ImportCSV = () => {
       return p;
     }).filter((p) => p.nom);
 
-    // Batch insert in chunks of 50
     for (let i = 0; i < prospects.length; i += 50) {
       const chunk = prospects.slice(i, i + 50).map((p) => ({
         nom: p.nom,
         email: p.email || null,
         telephone: p.telephone || null,
         statut: (["nouveau", "contacte", "visite", "offre", "signe", "perdu"].includes(p.statut) ? p.statut : "nouveau") as any,
-        source: p.source || "csv",
+        source: p.source || "import",
         notes: p.notes || null,
         user_id: user!.id,
       }));
@@ -123,7 +150,10 @@ const ImportCSV = () => {
 
     setResult({ success, errors });
     setImporting(false);
+    // Invalidate all related queries so dashboard/prospects/tasks update
     queryClient.invalidateQueries({ queryKey: ["prospects"] });
+    queryClient.invalidateQueries({ queryKey: ["prospect-count"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-tasks"] });
     if (success > 0) toast.success(`${success} prospects importés !`);
     if (errors > 0) toast.error(`${errors} erreurs lors de l'import`);
   };
@@ -131,24 +161,24 @@ const ImportCSV = () => {
   return (
     <AppLayout>
       <div className="page-header">
-        <h1 className="page-title flex items-center gap-2"><FileSpreadsheet className="h-6 w-6 text-accent" /> Import CSV</h1>
-        <p className="page-subtitle">Importez vos prospects depuis un fichier CSV ou Excel exporté</p>
+        <h1 className="page-title flex items-center gap-2"><FileSpreadsheet className="h-6 w-6 text-accent" /> Import CSV / Excel</h1>
+        <p className="page-subtitle">Importez vos prospects depuis un fichier CSV ou Excel</p>
       </div>
 
       <div className="space-y-6">
-        {/* Upload zone */}
         <Card>
           <CardContent className="py-8">
             <label className="flex flex-col items-center gap-3 cursor-pointer border-2 border-dashed border-border rounded-xl p-8 hover:border-accent transition-colors">
               <Upload className="h-10 w-10 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Glissez votre fichier CSV ici ou cliquez pour parcourir</span>
-              <span className="text-xs text-muted-foreground/60">.csv uniquement</span>
-              <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFile} />
+              <span className="text-sm text-muted-foreground">
+                {fileName ? `📄 ${fileName}` : "Glissez votre fichier ici ou cliquez pour parcourir"}
+              </span>
+              <span className="text-xs text-muted-foreground/60">.csv, .xlsx, .xls</span>
+              <input type="file" accept=".csv,.xlsx,.xls,.txt" className="hidden" onChange={handleFile} />
             </label>
           </CardContent>
         </Card>
 
-        {/* Mapping */}
         {headers.length > 0 && (
           <Card>
             <CardHeader>
@@ -177,7 +207,6 @@ const ImportCSV = () => {
                 </p>
               )}
 
-              {/* Preview */}
               <div className="rounded-lg border overflow-x-auto max-h-[300px]">
                 <Table>
                   <TableHeader>
@@ -209,7 +238,6 @@ const ImportCSV = () => {
           </Card>
         )}
 
-        {/* Result */}
         {result && (
           <Card>
             <CardContent className="py-6 text-center">
