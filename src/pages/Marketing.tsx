@@ -11,7 +11,8 @@ import { Megaphone, Copy, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceButton } from "@/components/VoiceButton";
-import { ImageUploadButton, fileToBase64 } from "@/components/ImageUploadButton";
+import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { CameraButton } from "@/components/CameraButton";
 
 interface AnnonceResult {
   titre_accrocheur: string;
@@ -60,6 +61,11 @@ const Marketing = () => {
   const copier = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copié dans le presse-papier");
+  };
+
+  const handleImage = (base64: string) => {
+    setPhotoPreview(base64);
+    toast.success("Photo ajoutée");
   };
 
   return (
@@ -113,11 +119,11 @@ const Marketing = () => {
                 <Textarea placeholder="Bel appartement lumineux avec balcon..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
               </div>
 
-              {/* Photo upload */}
               <div className="space-y-2">
                 <Label>Photo du bien (optionnel)</Label>
                 <div className="flex items-center gap-3">
-                  <ImageUploadButton onImageSelected={(base64) => { setPhotoPreview(base64); toast.success("Photo ajoutée"); }} />
+                  <ImageUploadButton onImageSelected={handleImage} />
+                  <CameraButton onPhotoTaken={handleImage} />
                   {photoPreview && (
                     <div className="flex items-center gap-2">
                       <img src={photoPreview} alt="Preview" className="h-12 w-12 rounded object-cover" />

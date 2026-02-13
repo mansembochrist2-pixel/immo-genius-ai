@@ -10,13 +10,14 @@ import { streamChat } from "@/lib/ai-stream";
 import ReactMarkdown from "react-markdown";
 import { VoiceButton } from "@/components/VoiceButton";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { CameraButton } from "@/components/CameraButton";
 
 type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 
 interface Message {
   role: "user" | "assistant";
   content: string;
-  imageUrl?: string; // for display purposes
+  imageUrl?: string;
 }
 
 const WELCOME: Record<string, string> = {
@@ -54,12 +55,10 @@ const AssistantIA = () => {
     setPendingImage(null);
     setIsLoading(true);
 
-    // Build multimodal message for the API
     let apiContent: string | ContentPart[];
     if (imageToSend) {
       const parts: ContentPart[] = [];
-      if (input.trim()) parts.push({ type: "text", text: input.trim() });
-      else parts.push({ type: "text", text: "Analyse cette image." });
+      parts.push({ type: "text", text: input.trim() || "Analyse cette image en détail." });
       parts.push({ type: "image_url", image_url: { url: imageToSend } });
       apiContent = parts;
     } else {
@@ -69,7 +68,6 @@ const AssistantIA = () => {
     let assistantSoFar = "";
     const functionName = tab === "immobilier" ? "chat-immobilier" : "chat-marketing";
 
-    // Build API messages (exclude welcome + convert to API format)
     const apiMessages = newMessages
       .filter(m => m.role === "user" || m.content !== WELCOME[tab])
       .map((m, i) => {
@@ -112,6 +110,11 @@ const AssistantIA = () => {
   const clearConversation = () => {
     setConversations(prev => ({ ...prev, [tab]: [{ role: "assistant", content: WELCOME[tab] }] }));
     setPendingImage(null);
+  };
+
+  const handleImageSelected = (base64: string) => {
+    setPendingImage(base64);
+    toast.success("Photo prête à envoyer");
   };
 
   return (
@@ -163,7 +166,6 @@ const AssistantIA = () => {
                 )}
               </CardContent>
 
-              {/* Pending image preview */}
               {pendingImage && key === tab && (
                 <div className="border-t px-4 py-2 flex items-center gap-2">
                   <img src={pendingImage} alt="Preview" className="h-12 w-12 rounded object-cover" />
@@ -178,7 +180,11 @@ const AssistantIA = () => {
                   disabled={isLoading}
                 />
                 <ImageUploadButton
-                  onImageSelected={(base64) => setPendingImage(base64)}
+                  onImageSelected={handleImageSelected}
+                  disabled={isLoading}
+                />
+                <CameraButton
+                  onPhotoTaken={handleImageSelected}
                   disabled={isLoading}
                 />
                 <Textarea
