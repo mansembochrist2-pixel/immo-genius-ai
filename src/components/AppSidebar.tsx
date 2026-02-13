@@ -33,7 +33,7 @@ export function AppSidebar() {
     <Sidebar className="border-r-0">
       <div className="p-5 border-b border-sidebar-border">
         <h1 className="text-lg font-bold font-display tracking-tight text-white">Estate AI</h1>
-        <p className="text-xs text-sidebar-foreground/60 mt-0.5">{displayName}</p>
+        <p className="text-xs mt-0.5 text-white">{displayName}</p>
       </div>
       <SidebarContent>
         <SidebarGroup>
