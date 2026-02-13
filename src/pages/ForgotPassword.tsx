@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,14 +9,23 @@ import { toast } from "sonner";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { resetPassword } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast.error("Veuillez entrer votre email");
       return;
     }
-    toast.success("Un lien de réinitialisation a été envoyé à " + email);
+    setIsLoading(true);
+    const { error } = await resetPassword(email);
+    setIsLoading(false);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success("Un lien de réinitialisation a été envoyé à " + email);
+    }
   };
 
   return (
@@ -38,7 +48,9 @@ const ForgotPassword = () => {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button type="submit" className="w-full">Envoyer le lien</Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Envoi..." : "Envoyer le lien"}
+              </Button>
               <Link to="/login" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Retour à la connexion
               </Link>
