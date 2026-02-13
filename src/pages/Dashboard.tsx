@@ -1,10 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare, Users, TrendingUp, Bell, Calendar } from "lucide-react";
+import { CheckSquare, Bell, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { StatsCards } from "@/components/dashboard/StatsCards";
+import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
+import { HotProspects } from "@/components/dashboard/HotProspects";
+import { QuickActions } from "@/components/dashboard/QuickActions";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -34,13 +38,6 @@ const Dashboard = () => {
     },
   });
 
-  const stats = [
-    { label: "Prospects actifs", value: String(prospectCount), icon: Users, color: "text-info" },
-    { label: "Tâches en cours", value: String(tasks.length), icon: CheckSquare, color: "text-accent" },
-    { label: "Tâches terminées", value: String(tasksDoneCount), icon: TrendingUp, color: "text-success" },
-    { label: "Rappels", value: "0", icon: Bell, color: "text-destructive" },
-  ];
-
   return (
     <AppLayout>
       <div className="page-header">
@@ -48,22 +45,22 @@ const Dashboard = () => {
         <p className="page-subtitle">Voici un résumé de votre activité</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((s) => (
-          <div key={s.label} className="stat-card flex items-center gap-4">
-            <div className={`p-2.5 rounded-lg bg-muted ${s.color}`}>
-              <s.icon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold font-display">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-            </div>
-          </div>
-        ))}
+      <StatsCards
+        prospectCount={prospectCount}
+        activeTaskCount={tasks.length}
+        doneTaskCount={tasksDoneCount}
+        rappelCount={0}
+      />
+
+      {/* Charts + Hot Prospects row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <PerformanceChart />
+        <HotProspects />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      {/* Tasks + Quick Actions row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
               <Calendar className="h-4 w-4 text-accent" />Tâches récentes
@@ -86,16 +83,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
-              <Bell className="h-4 w-4 text-destructive" />Rappels importants
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Les rappels seront disponibles prochainement.</p>
-          </CardContent>
-        </Card>
+        <QuickActions />
       </div>
     </AppLayout>
   );
