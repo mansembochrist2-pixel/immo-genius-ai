@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Megaphone, Copy, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { VoiceButton } from "@/components/VoiceButton";
+import { ImageUploadButton, fileToBase64 } from "@/components/ImageUploadButton";
 
 interface AnnonceResult {
   titre_accrocheur: string;
@@ -24,6 +26,7 @@ const Marketing = () => {
   const [form, setForm] = useState({ adresse: "", prix: "", surface: "", description: "", style: "professionnel" });
   const [annonce, setAnnonce] = useState<AnnonceResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const generer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,15 +36,16 @@ const Marketing = () => {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-annonce", {
-        body: {
-          adresse: form.adresse,
-          prix: form.prix,
-          surface: form.surface,
-          description: form.description,
-          style: form.style,
-        },
-      });
+      const body: any = {
+        adresse: form.adresse,
+        prix: form.prix,
+        surface: form.surface,
+        description: form.description,
+        style: form.style,
+      };
+      if (photoPreview) body.imageBase64 = photoPreview;
+
+      const { data, error } = await supabase.functions.invoke("generate-annonce", { body });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setAnnonce(data);
@@ -62,7 +66,7 @@ const Marketing = () => {
     <AppLayout>
       <div className="page-header">
         <h1 className="page-title flex items-center gap-2"><Megaphone className="h-6 w-6 text-accent" /> Marketing IA</h1>
-        <p className="page-subtitle">Générez des annonces immobilières premium avec l'IA</p>
+        <p className="page-subtitle">Générez des annonces immobilières premium — texte, voix et photos</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -74,7 +78,10 @@ const Marketing = () => {
             <form onSubmit={generer} className="space-y-4">
               <div className="space-y-2">
                 <Label>Adresse *</Label>
-                <Input placeholder="12 Rue des Lilas, Lyon" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} />
+                <div className="flex gap-2">
+                  <Input placeholder="12 Rue des Lilas, Lyon" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} className="flex-1" />
+                  <VoiceButton onTranscript={(text) => setForm({ ...form, adresse: text })} />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -99,9 +106,27 @@ const Marketing = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Description</Label>
+                  <VoiceButton onTranscript={(text) => setForm({ ...form, description: form.description ? `${form.description} ${text}` : text })} size="sm" />
+                </div>
                 <Textarea placeholder="Bel appartement lumineux avec balcon..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
               </div>
+
+              {/* Photo upload */}
+              <div className="space-y-2">
+                <Label>Photo du bien (optionnel)</Label>
+                <div className="flex items-center gap-3">
+                  <ImageUploadButton onImageSelected={(base64) => { setPhotoPreview(base64); toast.success("Photo ajoutée"); }} />
+                  {photoPreview && (
+                    <div className="flex items-center gap-2">
+                      <img src={photoPreview} alt="Preview" className="h-12 w-12 rounded object-cover" />
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoPreview(null)}>✕</Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Génération en cours...</> : <><Sparkles className="h-4 w-4 mr-2" /> Générer avec l'IA</>}
               </Button>

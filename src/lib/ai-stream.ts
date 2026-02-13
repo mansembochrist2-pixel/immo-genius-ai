@@ -1,4 +1,6 @@
-type Msg = { role: "user" | "assistant"; content: string };
+type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+type MsgContent = string | ContentPart[];
+type Msg = { role: "user" | "assistant"; content: MsgContent };
 
 export async function streamChat({
   functionName,

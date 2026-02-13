@@ -8,11 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Users, Trash2, Pencil } from "lucide-react";
+import { Plus, Users, Trash2, Pencil, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { VoiceButton } from "@/components/VoiceButton";
+import { fileToBase64 } from "@/components/ImageUploadButton";
+import { useNavigate } from "react-router-dom";
 
 const statutOptions = ["nouveau", "contacte", "visite", "offre", "signe", "perdu"] as const;
 const statutLabels: Record<string, string> = {
@@ -23,10 +26,12 @@ const emptyForm = { nom: "", telephone: "", email: "", statut: "nouveau" as stri
 
 const Prospects = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   const { data: prospects = [], isLoading } = useQuery({
     queryKey: ["prospects"],
@@ -81,34 +86,99 @@ const Prospects = () => {
     }
   };
 
+  const handlePhotoOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOcrLoading(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke("extract-prospects-from-image", {
+        body: { imageBase64: base64 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const extracted = data?.prospects || [];
+      if (extracted.length === 0) {
+        toast.info("Aucun prospect détecté dans l'image");
+        return;
+      }
+
+      // Insert all extracted prospects
+      const toInsert = extracted.map((p: any) => ({
+        nom: p.nom || "Sans nom",
+        email: p.email || null,
+        telephone: p.telephone || null,
+        notes: p.notes || null,
+        source: "photo-ocr",
+        statut: "nouveau" as any,
+        user_id: user!.id,
+      }));
+
+      const { error: insertErr } = await supabase.from("prospects").insert(toInsert);
+      if (insertErr) throw insertErr;
+
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      toast.success(`${extracted.length} prospect(s) extraits et ajoutés !`);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur d'analyse de l'image");
+    } finally {
+      setOcrLoading(false);
+      e.target.value = "";
+    }
+  };
+
   const isPending = addMutation.isPending || updateMutation.isPending;
 
   return (
     <AppLayout>
-      <div className="page-header flex items-center justify-between">
+      <div className="page-header flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title flex items-center gap-2"><Users className="h-6 w-6 text-accent" /> Prospects</h1>
           <p className="page-subtitle">{prospects.length} prospects dans votre base</p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier le prospect" : "Nouveau prospect"}</DialogTitle></DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-              <div className="space-y-2"><Label>Nom</Label><Input placeholder="Jean Dupont" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Téléphone</Label><Input placeholder="06 12 34 56 78" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="email@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div className="space-y-2">
-                <Label>Statut</Label>
-                <Select value={form.statut} onValueChange={(v) => setForm({ ...form, statut: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{statutOptions.map((s) => <SelectItem key={s} value={s}>{statutLabels[s]}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter le prospect"}</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          {/* Voice to add prospect */}
+          <VoiceButton
+            onTranscript={(text) => {
+              setForm({ ...emptyForm, nom: text });
+              setOpen(true);
+              toast.info(`Nom capté : "${text}" — complétez les infos`);
+            }}
+          />
+
+          {/* Photo OCR */}
+          <label className="cursor-pointer">
+            <Button variant="outline" size="icon" disabled={ocrLoading} asChild>
+              <span>{ocrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}</span>
+            </Button>
+            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoOCR} />
+          </label>
+
+          {/* CSV Import */}
+          <Button variant="outline" onClick={() => navigate("/import")}>Import CSV</Button>
+
+          {/* Add manually */}
+          <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier le prospect" : "Nouveau prospect"}</DialogTitle></DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                <div className="space-y-2"><Label>Nom</Label><Input placeholder="Jean Dupont" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Téléphone</Label><Input placeholder="06 12 34 56 78" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="email@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Statut</Label>
+                  <Select value={form.statut} onValueChange={(v) => setForm({ ...form, statut: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{statutOptions.map((s) => <SelectItem key={s} value={s}>{statutLabels[s]}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter le prospect"}</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -121,7 +191,7 @@ const Prospects = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nom</TableHead><TableHead>Téléphone</TableHead><TableHead>Email</TableHead><TableHead>Statut</TableHead><TableHead className="w-20"></TableHead>
+                  <TableHead>Nom</TableHead><TableHead>Téléphone</TableHead><TableHead>Email</TableHead><TableHead>Source</TableHead><TableHead>Statut</TableHead><TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -130,6 +200,7 @@ const Prospects = () => {
                     <TableCell className="font-medium">{p.nom}</TableCell>
                     <TableCell>{p.telephone || "—"}</TableCell>
                     <TableCell>{p.email || "—"}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{p.source || "manual"}</Badge></TableCell>
                     <TableCell><Badge variant={p.statut === "signe" ? "default" : "secondary"}>{statutLabels[p.statut] || p.statut}</Badge></TableCell>
                     <TableCell className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4 text-muted-foreground" /></Button>

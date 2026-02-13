@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, CheckSquare, Megaphone, MapPin, Bot, LogOut,
+  LayoutDashboard, Users, CheckSquare, Megaphone, MapPin, Bot, LogOut, Settings, FileSpreadsheet,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ const navItems = [
   { title: "Marketing", url: "/marketing", icon: Megaphone },
   { title: "Prospection", url: "/prospection", icon: MapPin },
   { title: "Assistant IA", url: "/assistant", icon: Bot },
+  { title: "Import CSV", url: "/import", icon: FileSpreadsheet },
 ];
 
 export function AppSidebar() {
@@ -47,7 +48,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-1">
+        <NavLink to="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sm" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+          <Settings className="h-4 w-4" />
+          <span>Paramètres</span>
+        </NavLink>
         <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={logout}>
           <LogOut className="h-4 w-4 mr-2" />Déconnexion
         </Button>
