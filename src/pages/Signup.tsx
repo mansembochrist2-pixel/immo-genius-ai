@@ -11,10 +11,11 @@ const Signup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
       toast.error("Veuillez remplir tous les champs");
@@ -24,9 +25,15 @@ const Signup = () => {
       toast.error("Le mot de passe doit contenir au moins 6 caractères");
       return;
     }
-    signup(name, email, password);
-    toast.success("Compte créé avec succès");
-    navigate("/");
+    setIsLoading(true);
+    const { error } = await signup(name, email, password);
+    setIsLoading(false);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success("Vérifiez votre email pour confirmer votre inscription");
+      navigate("/login");
+    }
   };
 
   return (
@@ -57,7 +64,9 @@ const Signup = () => {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button type="submit" className="w-full">Créer mon compte</Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Création..." : "Créer mon compte"}
+              </Button>
               <Link to="/login" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Déjà un compte ? Se connecter
               </Link>

@@ -1,24 +1,11 @@
 import {
-  LayoutDashboard,
-  Users,
-  CheckSquare,
-  Megaphone,
-  MapPin,
-  Bot,
-  LogOut,
+  LayoutDashboard, Users, CheckSquare, Megaphone, MapPin, Bot, LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
@@ -33,34 +20,23 @@ const navItems = [
 
 export function AppSidebar() {
   const { logout, user } = useAuth();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
   return (
     <Sidebar className="border-r-0">
       <div className="p-5 border-b border-sidebar-border">
-        <h1 className="text-lg font-bold text-sidebar-primary font-display tracking-tight">
-          Estate AI
-        </h1>
-        <p className="text-xs text-sidebar-foreground/60 mt-0.5">
-          {user?.name}
-        </p>
+        <h1 className="text-lg font-bold text-sidebar-primary font-display tracking-tight">Estate AI</h1>
+        <p className="text-xs text-sidebar-foreground/60 mt-0.5">{displayName}</p>
       </div>
-
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-[10px] tracking-widest">
-            Navigation
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-[10px] tracking-widest">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    >
+                    <NavLink to={item.url} end={item.url === "/"} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </NavLink>
@@ -71,15 +47,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          onClick={logout}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Déconnexion
+        <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={logout}>
+          <LogOut className="h-4 w-4 mr-2" />Déconnexion
         </Button>
       </SidebarFooter>
     </Sidebar>

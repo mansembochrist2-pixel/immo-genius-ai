@@ -10,18 +10,25 @@ import { toast } from "sonner";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Veuillez remplir tous les champs");
       return;
     }
-    login(email, password);
-    toast.success("Connexion réussie");
-    navigate("/");
+    setIsLoading(true);
+    const { error } = await login(email, password);
+    setIsLoading(false);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success("Connexion réussie");
+      navigate("/");
+    }
   };
 
   return (
@@ -48,7 +55,9 @@ const Login = () => {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button type="submit" className="w-full">Se connecter</Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Connexion..." : "Se connecter"}
+              </Button>
               <div className="flex justify-between w-full text-sm">
                 <Link to="/forgot-password" className="text-muted-foreground hover:text-primary transition-colors">Mot de passe oublié ?</Link>
                 <Link to="/signup" className="text-muted-foreground hover:text-primary transition-colors">Créer un compte</Link>

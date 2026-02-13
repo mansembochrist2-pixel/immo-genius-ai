@@ -14,7 +14,218 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses_zone: {
+        Row: {
+          adresse: string
+          created_at: string
+          id: string
+          resultat: Json | null
+          secteur: string | null
+          sources_utilisees: string[] | null
+          user_id: string
+        }
+        Insert: {
+          adresse: string
+          created_at?: string
+          id?: string
+          resultat?: Json | null
+          secteur?: string | null
+          sources_utilisees?: string[] | null
+          user_id: string
+        }
+        Update: {
+          adresse?: string
+          created_at?: string
+          id?: string
+          resultat?: Json | null
+          secteur?: string | null
+          sources_utilisees?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      annonces: {
+        Row: {
+          adresse: string
+          contenu_genere: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          prix: number | null
+          surface: number | null
+          user_id: string
+        }
+        Insert: {
+          adresse: string
+          contenu_genere?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          prix?: number | null
+          surface?: number | null
+          user_id: string
+        }
+        Update: {
+          adresse?: string
+          contenu_genere?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          prix?: number | null
+          surface?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          assistant_type: string
+          created_at: string
+          id: string
+          messages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assistant_type?: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assistant_type?: string
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          agency_name: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          plan: string
+          trial_ends_at: string
+        }
+        Insert: {
+          agency_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          plan?: string
+          trial_ends_at?: string
+        }
+        Update: {
+          agency_name?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          plan?: string
+          trial_ends_at?: string
+        }
+        Relationships: []
+      }
+      prospects: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nom: string
+          notes: string | null
+          score_ia: number | null
+          source: string | null
+          statut: Database["public"]["Enums"]["prospect_statut"]
+          telephone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom: string
+          notes?: string | null
+          score_ia?: number | null
+          source?: string | null
+          statut?: Database["public"]["Enums"]["prospect_statut"]
+          telephone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          notes?: string | null
+          score_ia?: number | null
+          source?: string | null
+          statut?: Database["public"]["Enums"]["prospect_statut"]
+          telephone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          done: boolean
+          due_date: string | null
+          id: string
+          priorite: Database["public"]["Enums"]["task_priorite"]
+          prospect_id: string | null
+          source: Database["public"]["Enums"]["task_source"]
+          titre: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          done?: boolean
+          due_date?: string | null
+          id?: string
+          priorite?: Database["public"]["Enums"]["task_priorite"]
+          prospect_id?: string | null
+          source?: Database["public"]["Enums"]["task_source"]
+          titre: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          done?: boolean
+          due_date?: string | null
+          id?: string
+          priorite?: Database["public"]["Enums"]["task_priorite"]
+          prospect_id?: string | null
+          source?: Database["public"]["Enums"]["task_source"]
+          titre?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +234,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      prospect_statut:
+        | "nouveau"
+        | "contacte"
+        | "visite"
+        | "offre"
+        | "signe"
+        | "perdu"
+      task_priorite: "basse" | "moyenne" | "haute" | "urgente"
+      task_source: "manual" | "ia"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +369,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      prospect_statut: [
+        "nouveau",
+        "contacte",
+        "visite",
+        "offre",
+        "signe",
+        "perdu",
+      ],
+      task_priorite: ["basse", "moyenne", "haute", "urgente"],
+      task_source: ["manual", "ia"],
+    },
   },
 } as const
