@@ -1,1 +1,13 @@
 project_id = "wxkiqfakjtjciybeqrjh"
+
+[functions.chat-immobilier]
+verify_jwt = false
+
+[functions.chat-marketing]
+verify_jwt = false
+
+[functions.generate-annonce]
+verify_jwt = false
+
+[functions.analyze-zone]
+verify_jwt = false
