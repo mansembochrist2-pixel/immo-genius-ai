@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, CheckSquare, Trash2 } from "lucide-react";
+import { Plus, CheckSquare, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,11 +17,14 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const prioriteOptions = ["basse", "moyenne", "haute", "urgente"] as const;
 
+const emptyForm = { titre: "", priorite: "moyenne" as string };
+
 const Taches = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ titre: "", priorite: "moyenne" as string });
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks"],
@@ -37,7 +40,16 @@ const Taches = () => {
       const { error } = await supabase.from("tasks").insert({ titre: t.titre, priorite: t.priorite as any, user_id: user!.id });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks"] }); toast.success("Tâche ajoutée"); setOpen(false); setForm({ titre: "", priorite: "moyenne" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks"] }); toast.success("Tâche ajoutée"); closeDialog(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...t }: typeof form & { id: string }) => {
+      const { error } = await supabase.from("tasks").update({ titre: t.titre, priorite: t.priorite as any }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks"] }); toast.success("Tâche modifiée"); closeDialog(); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -57,12 +69,25 @@ const Taches = () => {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks"] }); toast.success("Tâche supprimée"); },
   });
 
-  const handleAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.titre) { toast.error("Veuillez entrer un titre"); return; }
-    addMutation.mutate(form);
+  const closeDialog = () => { setOpen(false); setEditId(null); setForm(emptyForm); };
+
+  const openEdit = (t: any) => {
+    setEditId(t.id);
+    setForm({ titre: t.titre, priorite: t.priorite });
+    setOpen(true);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.titre) { toast.error("Veuillez entrer un titre"); return; }
+    if (editId) {
+      updateMutation.mutate({ ...form, id: editId });
+    } else {
+      addMutation.mutate(form);
+    }
+  };
+
+  const isPending = addMutation.isPending || updateMutation.isPending;
   const pendingCount = tasks.filter((t: any) => !t.done).length;
 
   return (
@@ -72,11 +97,11 @@ const Taches = () => {
           <h1 className="page-title flex items-center gap-2"><CheckSquare className="h-6 w-6 text-accent" /> Tâches</h1>
           <p className="page-subtitle">{pendingCount} tâches en cours</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle className="font-display">Nouvelle tâche</DialogTitle></DialogHeader>
-            <form onSubmit={handleAdd} className="space-y-4 mt-2">
+            <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
               <div className="space-y-2"><Label>Titre</Label><Input placeholder="Appeler le client..." value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Priorité</Label>
@@ -85,7 +110,7 @@ const Taches = () => {
                   <SelectContent>{prioriteOptions.map((p) => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full" disabled={addMutation.isPending}>{addMutation.isPending ? "Ajout..." : "Ajouter la tâche"}</Button>
+              <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter la tâche"}</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -101,7 +126,7 @@ const Taches = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10"></TableHead><TableHead>Titre</TableHead><TableHead>Priorité</TableHead><TableHead>Statut</TableHead><TableHead className="w-10"></TableHead>
+                  <TableHead className="w-10"></TableHead><TableHead>Titre</TableHead><TableHead>Priorité</TableHead><TableHead>Statut</TableHead><TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -111,7 +136,10 @@ const Taches = () => {
                     <TableCell className={`font-medium ${t.done ? "line-through" : ""}`}>{t.titre}</TableCell>
                     <TableCell><Badge variant={t.priorite === "haute" || t.priorite === "urgente" ? "destructive" : t.priorite === "moyenne" ? "default" : "secondary"} className="text-[10px]">{t.priorite}</Badge></TableCell>
                     <TableCell className="text-sm text-muted-foreground">{t.done ? "Terminée" : "En cours"}</TableCell>
-                    <TableCell><Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(t.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                    <TableCell className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(t.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
