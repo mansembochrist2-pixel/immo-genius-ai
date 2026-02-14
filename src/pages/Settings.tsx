@@ -19,6 +19,9 @@ const Settings = () => {
   const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "" });
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [hubspotToken, setHubspotToken] = useState("");
+  const [hubspotStatus, setHubspotStatus] = useState<"idle" | "testing" | "connected" | "error">("idle");
+  const [hubspotInfo, setHubspotInfo] = useState("");
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -187,7 +190,6 @@ const Settings = () => {
             {[
               { name: "Gmail", desc: "Synchronisez vos emails et leads", icon: "📧", status: "config" },
               { name: "Outlook", desc: "Importez vos contacts et emails", icon: "📬", status: "config" },
-              { name: "HubSpot", desc: "Synchronisation CRM bidirectionnelle", icon: "🔶", status: "config" },
             ].map((integ) => (
               <Card key={integ.name}>
                 <CardContent className="py-4 flex items-center justify-between">
@@ -204,8 +206,68 @@ const Settings = () => {
                 </CardContent>
               </Card>
             ))}
+
+            {/* HubSpot with token */}
+            <Card>
+              <CardContent className="py-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🔶</span>
+                    <div>
+                      <p className="font-medium text-sm">HubSpot</p>
+                      <p className="text-xs text-muted-foreground">Synchronisation CRM via Private App Token</p>
+                    </div>
+                  </div>
+                  {hubspotStatus === "connected" && (
+                    <Badge variant="secondary" className="text-xs">✓ Connecté</Badge>
+                  )}
+                  {hubspotStatus === "error" && (
+                    <Badge variant="destructive" className="text-xs">Erreur</Badge>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    placeholder="pat-na1-xxxxxxxx..."
+                    value={hubspotToken}
+                    onChange={(e) => setHubspotToken(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!hubspotToken || hubspotStatus === "testing"}
+                    onClick={async () => {
+                      setHubspotStatus("testing");
+                      try {
+                        const { data, error } = await supabase.functions.invoke("test-hubspot", {
+                          body: { token: hubspotToken },
+                        });
+                        if (error) throw error;
+                        if (data?.success) {
+                          setHubspotStatus("connected");
+                          setHubspotInfo(`${data.contacts_count} contacts trouvés`);
+                          toast.success("HubSpot connecté avec succès !");
+                        } else {
+                          setHubspotStatus("error");
+                          toast.error(data?.error || "Erreur de connexion");
+                        }
+                      } catch (err: any) {
+                        setHubspotStatus("error");
+                        toast.error(err.message || "Erreur de connexion");
+                      }
+                    }}
+                  >
+                    {hubspotStatus === "testing" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5 mr-1" />}
+                    {hubspotStatus === "testing" ? "Test..." : "Tester"}
+                  </Button>
+                </div>
+                {hubspotInfo && <p className="text-xs text-muted-foreground">{hubspotInfo}</p>}
+              </CardContent>
+            </Card>
+
             <p className="text-xs text-muted-foreground text-center mt-4">
-              Les intégrations email nécessitent une configuration OAuth. Contactez le support pour activer ces connecteurs.
+              Gmail et Outlook nécessitent une configuration OAuth. Contactez le support pour activer ces connecteurs.
             </p>
           </div>
         </TabsContent>
