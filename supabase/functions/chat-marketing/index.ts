@@ -18,6 +18,7 @@ RÈGLES DE CONVERSATION :
 - Maximum 1-2 émojis
 - Donne des exemples concrets du marché français
 - Si on t'envoie une photo de bien, analyse-la et propose du contenu marketing adapté
+- Si tu as du CONTEXTE BUSINESS, utilise-le pour personnaliser tes conseils
 
 EXEMPLE de ton :
 Utilisateur : "Comment vendre plus vite sur Leboncoin ?"
@@ -27,9 +28,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, businessContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    let fullSystemPrompt = SYSTEM_PROMPT;
+    if (businessContext) {
+      fullSystemPrompt += `\n\n${businessContext}`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -39,7 +45,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: fullSystemPrompt }, ...messages],
         stream: true,
       }),
     });
