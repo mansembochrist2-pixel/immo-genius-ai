@@ -8,8 +8,8 @@ import { format, subMonths, startOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const chartConfig = {
-  prospects: { label: "Nouveaux prospects", color: "hsl(210 80% 52%)" },
-  tasks: { label: "Tâches terminées", color: "hsl(152 60% 40%)" },
+  prospects: { label: "Nouveaux prospects", color: "hsl(260 80% 65%)" },
+  tasks: { label: "Tâches terminées", color: "hsl(160 60% 45%)" },
 };
 
 export const PerformanceChart = () => {
@@ -39,22 +39,22 @@ export const PerformanceChart = () => {
   });
 
   return (
-    <Card className="col-span-1 lg:col-span-2">
+    <Card className="col-span-1 lg:col-span-2 bg-card/80 border-border/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-info" />
+          <BarChart3 className="h-4 w-4 text-primary" />
           Performance — 6 derniers mois
         </CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[260px] w-full">
           <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-            <XAxis dataKey="month" className="text-xs" />
-            <YAxis allowDecimals={false} className="text-xs" />
+            <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+            <XAxis dataKey="month" className="text-xs" stroke="hsl(240 5% 55%)" />
+            <YAxis allowDecimals={false} className="text-xs" stroke="hsl(240 5% 55%)" />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="prospects" fill="var(--color-prospects)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="tasks" fill="var(--color-tasks)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="prospects" fill="var(--color-prospects)" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="tasks" fill="var(--color-tasks)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ChartContainer>
       </CardContent>

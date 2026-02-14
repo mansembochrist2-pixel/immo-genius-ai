@@ -26,10 +26,10 @@ export const HotProspects = () => {
   });
 
   return (
-    <Card>
+    <Card className="bg-card/80 border-border/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
-          <Flame className="h-4 w-4 text-accent" />
+          <Flame className="h-4 w-4 text-warning" />
           Prospects chauds
         </CardTitle>
       </CardHeader>
@@ -41,7 +41,7 @@ export const HotProspects = () => {
             <button
               key={p.id}
               onClick={() => navigate("/prospects")}
-              className="flex items-center gap-3 py-2 border-b last:border-0 w-full text-left hover:bg-muted/50 rounded px-1 transition-colors"
+              className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0 w-full text-left hover:bg-muted/30 rounded px-1 transition-colors"
             >
               <Flame className="h-3.5 w-3.5 text-warning shrink-0" />
               <span className="flex-1 text-sm truncate">{p.nom}</span>

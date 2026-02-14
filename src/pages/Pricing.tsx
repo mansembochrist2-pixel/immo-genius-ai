@@ -22,9 +22,12 @@ const Pricing = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-16">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-16 relative overflow-hidden">
+      <div className="absolute top-1/3 -left-48 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[150px]" />
+      <div className="absolute bottom-1/3 -right-48 w-[500px] h-[500px] rounded-full bg-info/8 blur-[150px]" />
+
+      <div className="text-center mb-12 relative z-10">
+        <h1 className="text-4xl font-bold tracking-tight mb-3 font-display gradient-text">
           Un seul plan, tout inclus
         </h1>
         <p className="text-muted-foreground text-lg max-w-md mx-auto">
@@ -32,14 +35,14 @@ const Pricing = () => {
         </p>
       </div>
 
-      <Card className="max-w-md w-full border-2 border-accent shadow-lg">
+      <Card className="max-w-md w-full glow-border bg-card/80 backdrop-blur-xl relative z-10">
         <CardHeader className="text-center pb-2">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Crown className="h-6 w-6 text-accent" />
-            <CardTitle className="text-xl font-sans font-bold">Estate AI Pro</CardTitle>
+            <Crown className="h-6 w-6 text-primary" />
+            <CardTitle className="text-xl font-display font-bold">Estate AI Pro</CardTitle>
           </div>
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-5xl font-bold tracking-tight">79€</span>
+            <span className="text-5xl font-bold tracking-tight gradient-text">79€</span>
             <span className="text-muted-foreground text-lg">/mois</span>
           </div>
           <p className="text-sm text-muted-foreground mt-2">Sans engagement · Essai gratuit 7 jours</p>
@@ -48,8 +51,8 @@ const Pricing = () => {
           <ul className="space-y-3">
             {features.map((f, i) => (
               <li key={i} className="flex items-start gap-3 text-sm">
-                <Check className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-                <span>{f}</span>
+                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span className="text-foreground/80">{f}</span>
               </li>
             ))}
           </ul>
@@ -65,8 +68,8 @@ const Pricing = () => {
         </CardContent>
       </Card>
 
-      <div className="mt-8 text-center">
-        <Button variant="link" onClick={() => navigate(user ? "/" : "/login")}>
+      <div className="mt-8 text-center relative z-10">
+        <Button variant="link" className="text-muted-foreground hover:text-primary" onClick={() => navigate(user ? "/" : "/login")}>
           {user ? "Retour au dashboard" : "Déjà un compte ? Connectez-vous"}
         </Button>
       </div>

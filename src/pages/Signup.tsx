@@ -38,13 +38,16 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-primary/10 blur-[120px]" />
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 rounded-full bg-info/10 blur-[120px]" />
+      
+      <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold font-display text-primary">Estate AI</h1>
+          <h1 className="text-3xl font-bold font-display gradient-text">Estate AI</h1>
           <p className="text-muted-foreground mt-2">Créez votre compte agent</p>
         </div>
-        <Card>
+        <Card className="glow-border bg-card/80 backdrop-blur-xl">
           <CardHeader>
             <CardTitle className="font-display">Inscription</CardTitle>
             <CardDescription>Rejoignez Estate AI en quelques secondes</CardDescription>
@@ -53,15 +56,15 @@ const Signup = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nom complet</Label>
-                <Input id="name" placeholder="Jean Dupont" value={name} onChange={(e) => setName(e.target.value)} />
+                <Input id="name" placeholder="Jean Dupont" value={name} onChange={(e) => setName(e.target.value)} className="bg-muted/50 border-border/50" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="agent@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input id="email" type="email" placeholder="agent@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-muted/50 border-border/50" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Mot de passe</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-muted/50 border-border/50" />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
@@ -69,7 +72,7 @@ const Signup = () => {
                 {isLoading ? "Création..." : "Créer mon compte"}
               </Button>
               <div className="relative w-full">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">ou</span></div>
               </div>
               <GoogleSignInButton />

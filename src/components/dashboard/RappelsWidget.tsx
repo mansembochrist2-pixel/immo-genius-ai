@@ -23,7 +23,7 @@ export const RappelsWidget = () => {
   });
 
   return (
-    <Card>
+    <Card className="bg-card/80 border-border/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
           <Bell className="h-4 w-4 text-destructive" />
@@ -41,7 +41,7 @@ export const RappelsWidget = () => {
             <button
               key={t.id}
               onClick={() => navigate("/taches")}
-              className="flex items-center gap-3 py-2 border-b last:border-0 w-full text-left hover:bg-muted/50 rounded px-1 transition-colors"
+              className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0 w-full text-left hover:bg-muted/30 rounded px-1 transition-colors"
             >
               <Bell className="h-3.5 w-3.5 text-destructive shrink-0" />
               <span className="flex-1 text-sm truncate">{t.titre}</span>
