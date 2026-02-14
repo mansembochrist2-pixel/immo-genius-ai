@@ -13,10 +13,10 @@ export const QuickActions = () => {
   ];
 
   return (
-    <Card>
+    <Card className="bg-card/80 border-border/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
-          <Zap className="h-4 w-4 text-accent" />
+          <Zap className="h-4 w-4 text-primary" />
           Actions rapides
         </CardTitle>
       </CardHeader>
@@ -25,7 +25,7 @@ export const QuickActions = () => {
           <Button
             key={a.label}
             variant="outline"
-            className="w-full justify-start gap-2"
+            className="w-full justify-start gap-2 border-border/50 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all"
             onClick={() => navigate(a.href)}
           >
             <a.icon className="h-4 w-4" />

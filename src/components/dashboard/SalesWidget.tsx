@@ -53,7 +53,7 @@ export const SalesWidget = () => {
   });
 
   return (
-    <Card>
+    <Card className="bg-card/80 border-border/50">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
           <BadgeEuro className="h-4 w-4 text-success" />
@@ -61,13 +61,13 @@ export const SalesWidget = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-3xl font-bold text-center">{sales.length}</p>
+        <p className="text-3xl font-bold text-center gradient-text">{sales.length}</p>
         <p className="text-xs text-muted-foreground text-center">ventes enregistrées</p>
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
+            className="flex-1 border-border/50 hover:bg-success/10 hover:border-success/30 hover:text-success"
             onClick={() => addSale.mutate()}
             disabled={addSale.isPending}
           >
@@ -77,7 +77,7 @@ export const SalesWidget = () => {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
+            className="flex-1 border-border/50 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
             onClick={() => undoSale.mutate()}
             disabled={undoSale.isPending || sales.length === 0}
           >

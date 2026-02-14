@@ -9,10 +9,10 @@ interface StatsCardsProps {
 }
 
 const stats = [
-  { key: "prospects", label: "Prospects actifs", icon: Users, color: "text-info", href: "/prospects" },
-  { key: "active", label: "Tâches en cours", icon: CheckSquare, color: "text-accent", href: "/taches" },
-  { key: "sales", label: "Ventes", icon: BadgeEuro, color: "text-success", href: "#" },
-  { key: "rappels", label: "Rappels urgents", icon: Bell, color: "text-destructive", href: "/taches" },
+  { key: "prospects", label: "Prospects actifs", icon: Users, color: "text-info", bgGlow: "bg-info/10", href: "/prospects" },
+  { key: "active", label: "Tâches en cours", icon: CheckSquare, color: "text-primary", bgGlow: "bg-primary/10", href: "/taches" },
+  { key: "sales", label: "Ventes", icon: BadgeEuro, color: "text-success", bgGlow: "bg-success/10", href: "#" },
+  { key: "rappels", label: "Rappels urgents", icon: Bell, color: "text-destructive", bgGlow: "bg-destructive/10", href: "/taches" },
 ];
 
 export const StatsCards = ({ prospectCount, activeTaskCount, salesCount, rappelCount }: StatsCardsProps) => {
@@ -30,9 +30,9 @@ export const StatsCards = ({ prospectCount, activeTaskCount, salesCount, rappelC
         <button
           key={s.key}
           onClick={() => s.href !== "#" && navigate(s.href)}
-          className="stat-card flex items-center gap-4 text-left cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
+          className="stat-card flex items-center gap-4 text-left cursor-pointer hover:scale-[1.02] transition-all duration-300"
         >
-          <div className={`p-2.5 rounded-lg bg-muted ${s.color}`}>
+          <div className={`p-2.5 rounded-lg ${s.bgGlow} ${s.color}`}>
             <s.icon className="h-5 w-5" />
           </div>
           <div>
