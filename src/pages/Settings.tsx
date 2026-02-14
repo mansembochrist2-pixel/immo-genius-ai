@@ -22,12 +22,23 @@ const Settings = () => {
   const [hubspotToken, setHubspotToken] = useState("");
   const [hubspotStatus, setHubspotStatus] = useState<"idle" | "testing" | "connected" | "error">("idle");
   const [hubspotInfo, setHubspotInfo] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
       if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: subscription } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (error) return { subscribed: false };
       return data;
     },
   });
@@ -55,7 +66,37 @@ const Settings = () => {
   const trialEnd = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const isTrialActive = trialEnd && trialEnd > new Date();
   const daysLeft = trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86400000)) : 0;
-  const planLabels: Record<string, string> = { starter: "Essai gratuit", active: "Actif", suspended: "Suspendu", cancelled: "Résilié" };
+  const isSubscribed = subscription?.subscribed === true;
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la redirection vers le paiement");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handlePortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'ouverture du portail");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   const exportData = async () => {
     setExporting(true);
@@ -93,13 +134,13 @@ const Settings = () => {
 
   const deleteAccount = async () => {
     try {
-      // Delete all user data
       await Promise.all([
         supabase.from("prospects").delete().eq("user_id", user!.id),
         supabase.from("tasks").delete().eq("user_id", user!.id),
         supabase.from("annonces").delete().eq("user_id", user!.id),
         supabase.from("analyses_zone").delete().eq("user_id", user!.id),
         supabase.from("conversations").delete().eq("user_id", user!.id),
+        supabase.from("sales").delete().eq("user_id", user!.id),
       ]);
       toast.success("Données supprimées. Déconnexion...");
       setTimeout(() => logout(), 1500);
@@ -146,39 +187,47 @@ const Settings = () => {
               <CardHeader><CardTitle className="text-base font-sans font-semibold flex items-center gap-2"><Crown className="h-5 w-5 text-accent" /> Votre abonnement</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Badge variant={isTrialActive ? "secondary" : "default"}>{planLabels[profile?.plan || "starter"]}</Badge>
+                  <Badge variant={isSubscribed ? "default" : "secondary"}>
+                    {isSubscribed ? "Actif" : isTrialActive ? "Essai gratuit" : "Inactif"}
+                  </Badge>
                   <span className="text-2xl font-bold">79€<span className="text-sm font-normal text-muted-foreground">/mois</span></span>
                 </div>
-                {isTrialActive && (
+                {isTrialActive && !isSubscribed && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>Essai gratuit — {daysLeft} jours restants (fin le {trialEnd?.toLocaleDateString("fr-FR")})</span>
                   </div>
                 )}
-                <div className="border-t pt-4 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Prochaine facturation</span>
-                    <span>{isTrialActive ? trialEnd?.toLocaleDateString("fr-FR") : "—"}</span>
+                {isSubscribed && subscription?.subscription_end && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Prochain renouvellement : {new Date(subscription.subscription_end).toLocaleDateString("fr-FR")}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Moyen de paiement</span>
-                    <span className="text-muted-foreground italic">Non configuré</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle className="text-base font-sans font-semibold">Historique de facturation</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground">Aucune facture pour le moment.</p></CardContent>
             </Card>
 
             <Card>
               <CardHeader><CardTitle className="text-base font-sans font-semibold">Actions</CardTitle></CardHeader>
               <CardContent className="flex flex-wrap gap-3">
-                <Button variant="outline" disabled><CreditCard className="h-4 w-4 mr-2" /> Ajouter un moyen de paiement</Button>
-                <Button variant="outline" disabled><Download className="h-4 w-4 mr-2" /> Télécharger une facture</Button>
-                <Button variant="destructive" disabled>Résilier l'abonnement</Button>
+                {!isSubscribed && (
+                  <Button onClick={handleCheckout} disabled={checkoutLoading}>
+                    {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
+                    Ajouter un moyen de paiement
+                  </Button>
+                )}
+                {isSubscribed && (
+                  <Button variant="outline" onClick={handlePortal} disabled={portalLoading}>
+                    {portalLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
+                    Gérer mon abonnement
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => { queryClient.invalidateQueries({ queryKey: ["subscription"] }); toast.success("Statut mis à jour"); }}
+                >
+                  Rafraîchir le statut
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -188,8 +237,8 @@ const Settings = () => {
         <TabsContent value="integrations">
           <div className="space-y-4">
             {[
-              { name: "Gmail", desc: "Synchronisez vos emails et leads", icon: "📧", status: "config" },
-              { name: "Outlook", desc: "Importez vos contacts et emails", icon: "📬", status: "config" },
+              { name: "Gmail", desc: "Synchronisez vos emails et leads", icon: "📧" },
+              { name: "Outlook", desc: "Importez vos contacts et emails", icon: "📬" },
             ].map((integ) => (
               <Card key={integ.name}>
                 <CardContent className="py-4 flex items-center justify-between">
@@ -288,7 +337,7 @@ const Settings = () => {
             <Card className="border-destructive/30">
               <CardHeader><CardTitle className="text-base font-sans font-semibold flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> Supprimer mon compte</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">Cette action supprimera définitivement toutes vos données (prospects, tâches, annonces, conversations). Cette action est irréversible.</p>
+                <p className="text-sm text-muted-foreground mb-4">Cette action supprimera définitivement toutes vos données. Cette action est irréversible.</p>
                 <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
                   <DialogTrigger asChild>
                     <Button variant="destructive"><Trash2 className="h-4 w-4 mr-2" /> Supprimer mon compte</Button>
