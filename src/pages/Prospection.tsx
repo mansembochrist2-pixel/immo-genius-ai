@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Loader2, TrendingUp, AlertTriangle, Target, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 interface AnalyseResult {
   prix_m2_moyen: string;
@@ -62,7 +63,11 @@ const Prospection = () => {
             <form onSubmit={analyser} className="space-y-4">
               <div className="space-y-2">
                 <Label>Adresse / Quartier</Label>
-                <Input placeholder="6e arrondissement, Lyon" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} />
+                <AddressAutocomplete
+                  value={form.adresse}
+                  onChange={(val) => setForm({ ...form, adresse: val })}
+                  placeholder="6e arrondissement, Lyon"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Secteur d'activité</Label>
