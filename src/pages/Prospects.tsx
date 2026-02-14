@@ -22,7 +22,32 @@ const statutLabels: Record<string, string> = {
   nouveau: "Nouveau", contacte: "Contacté", visite: "En visite", offre: "Offre", signe: "Signé", perdu: "Perdu",
 };
 
-const emptyForm = { nom: "", telephone: "", email: "", statut: "nouveau" as string };
+const provenanceOptions = ["Manuel", "Recommandation", "Site web", "Publicité", "Instagram", "Facebook", "LinkedIn", "Leboncoin", "SeLoger", "Import CSV", "Autre"];
+
+const COUNTRY_CODES = [
+  { code: "+33", label: "🇫🇷 +33", country: "France" },
+  { code: "+32", label: "🇧🇪 +32", country: "Belgique" },
+  { code: "+41", label: "🇨🇭 +41", country: "Suisse" },
+  { code: "+352", label: "🇱🇺 +352", country: "Luxembourg" },
+  { code: "+377", label: "🇲🇨 +377", country: "Monaco" },
+  { code: "+44", label: "🇬🇧 +44", country: "Royaume-Uni" },
+  { code: "+49", label: "🇩🇪 +49", country: "Allemagne" },
+  { code: "+34", label: "🇪🇸 +34", country: "Espagne" },
+  { code: "+39", label: "🇮🇹 +39", country: "Italie" },
+  { code: "+351", label: "🇵🇹 +351", country: "Portugal" },
+  { code: "+1", label: "🇺🇸 +1", country: "États-Unis / Canada" },
+  { code: "+212", label: "🇲🇦 +212", country: "Maroc" },
+  { code: "+216", label: "🇹🇳 +216", country: "Tunisie" },
+  { code: "+213", label: "🇩🇿 +213", country: "Algérie" },
+  { code: "+221", label: "🇸🇳 +221", country: "Sénégal" },
+  { code: "+225", label: "🇨🇮 +225", country: "Côte d'Ivoire" },
+  { code: "+237", label: "🇨🇲 +237", country: "Cameroun" },
+  { code: "+81", label: "🇯🇵 +81", country: "Japon" },
+  { code: "+86", label: "🇨🇳 +86", country: "Chine" },
+  { code: "+971", label: "🇦🇪 +971", country: "Émirats arabes unis" },
+];
+
+const emptyForm = { nom: "", telephone: "", email: "", statut: "nouveau" as string, provenance: "", countryCode: "+33" };
 
 const Prospects = () => {
   const { user } = useAuth();
@@ -44,7 +69,15 @@ const Prospects = () => {
 
   const addMutation = useMutation({
     mutationFn: async (p: typeof form) => {
-      const { error } = await supabase.from("prospects").insert({ nom: p.nom, telephone: p.telephone, email: p.email, statut: p.statut as any, user_id: user!.id });
+      const fullPhone = p.telephone ? `${p.countryCode} ${p.telephone}` : null;
+      const { error } = await supabase.from("prospects").insert({
+        nom: p.nom,
+        telephone: fullPhone,
+        email: p.email || null,
+        statut: p.statut as any,
+        provenance: p.provenance || null,
+        user_id: user!.id,
+      });
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["prospects"] }); toast.success("Prospect ajouté"); closeDialog(); },
@@ -53,7 +86,14 @@ const Prospects = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...p }: typeof form & { id: string }) => {
-      const { error } = await supabase.from("prospects").update({ nom: p.nom, telephone: p.telephone, email: p.email, statut: p.statut as any }).eq("id", id);
+      const fullPhone = p.telephone ? `${p.countryCode} ${p.telephone}` : null;
+      const { error } = await supabase.from("prospects").update({
+        nom: p.nom,
+        telephone: fullPhone,
+        email: p.email || null,
+        statut: p.statut as any,
+        provenance: p.provenance || null,
+      }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["prospects"] }); toast.success("Prospect modifié"); closeDialog(); },
@@ -72,7 +112,22 @@ const Prospects = () => {
 
   const openEdit = (p: any) => {
     setEditId(p.id);
-    setForm({ nom: p.nom, telephone: p.telephone || "", email: p.email || "", statut: p.statut });
+    // Parse country code from stored phone
+    let countryCode = "+33";
+    let phone = p.telephone || "";
+    const match = phone.match(/^(\+\d{1,4})\s?(.*)/);
+    if (match) {
+      countryCode = match[1];
+      phone = match[2];
+    }
+    setForm({
+      nom: p.nom,
+      telephone: phone,
+      email: p.email || "",
+      statut: p.statut,
+      provenance: (p as any).provenance || "",
+      countryCode,
+    });
     setOpen(true);
   };
 
@@ -134,38 +189,46 @@ const Prospects = () => {
           <p className="page-subtitle">{prospects.length} prospects dans votre base</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Photo upload OCR */}
-          <ImageUploadButton
-            onImageSelected={(base64) => handlePhotoOCR(base64)}
-            disabled={ocrLoading}
-          />
-
-          {/* Camera capture OCR */}
-          <CameraButton
-            onPhotoTaken={(base64) => handlePhotoOCR(base64)}
-            disabled={ocrLoading}
-          />
-
+          <ImageUploadButton onImageSelected={(base64) => handlePhotoOCR(base64)} disabled={ocrLoading} />
+          <CameraButton onPhotoTaken={(base64) => handlePhotoOCR(base64)} disabled={ocrLoading} />
           {ocrLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-
-          {/* CSV Import */}
           <Button variant="outline" onClick={() => navigate("/import")}>Import CSV</Button>
-
-          {/* Add manually */}
           <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier le prospect" : "Nouveau prospect"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 mt-2">
                 <div className="space-y-2"><Label>Nom</Label><Input placeholder="Jean Dupont" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Téléphone</Label><Input placeholder="06 12 34 56 78" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="email@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                 <div className="space-y-2">
-                  <Label>Statut</Label>
-                  <Select value={form.statut} onValueChange={(v) => setForm({ ...form, statut: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{statutOptions.map((s) => <SelectItem key={s} value={s}>{statutLabels[s]}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Label>Téléphone</Label>
+                  <div className="flex gap-2">
+                    <Select value={form.countryCode} onValueChange={(v) => setForm({ ...form, countryCode: v })}>
+                      <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {COUNTRY_CODES.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>{c.label} {c.country}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input placeholder="06 12 34 56 78" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} className="flex-1" />
+                  </div>
+                </div>
+                <div className="space-y-2"><Label>Email</Label><Input type="email" placeholder="email@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Statut</Label>
+                    <Select value={form.statut} onValueChange={(v) => setForm({ ...form, statut: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{statutOptions.map((s) => <SelectItem key={s} value={s}>{statutLabels[s]}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Provenance</Label>
+                    <Select value={form.provenance} onValueChange={(v) => setForm({ ...form, provenance: v })}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
+                      <SelectContent>{provenanceOptions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter le prospect"}</Button>
               </form>
@@ -187,7 +250,7 @@ const Prospects = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nom</TableHead><TableHead>Téléphone</TableHead><TableHead>Email</TableHead><TableHead>Source</TableHead><TableHead>Statut</TableHead><TableHead className="w-20"></TableHead>
+                  <TableHead>Nom</TableHead><TableHead>Téléphone</TableHead><TableHead>Email</TableHead><TableHead>Source</TableHead><TableHead>Provenance</TableHead><TableHead>Statut</TableHead><TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -197,6 +260,7 @@ const Prospects = () => {
                     <TableCell>{p.telephone || "—"}</TableCell>
                     <TableCell>{p.email || "—"}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{p.source || "manual"}</Badge></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.provenance || "—"}</TableCell>
                     <TableCell><Badge variant={p.statut === "signe" ? "default" : "secondary"}>{statutLabels[p.statut] || p.statut}</Badge></TableCell>
                     <TableCell className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4 text-muted-foreground" /></Button>

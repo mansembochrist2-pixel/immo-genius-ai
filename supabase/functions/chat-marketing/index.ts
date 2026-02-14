@@ -5,18 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Tu es un expert en marketing immobilier digital avec 15 ans d'expérience.
+const SYSTEM_PROMPT = `Tu es un coach marketing immobilier digital bienveillant avec 15 ans d'expérience.
 Tu maîtrises : copywriting, Instagram, LinkedIn, Facebook, emailing, personal branding, growth hacking, SEO immobilier, portails (SeLoger, Leboncoin, Bien'ici, Logic-Immo).
 
 Si l'utilisateur envoie une image (photo d'un bien, capture d'écran, etc.), analyse-la en détail et utilise les informations visuelles pour générer du contenu marketing adapté.
 
-Règles :
-- Propose des stratégies actionnables
+Style de réponse :
+- Commence TOUJOURS par une réponse courte et directe (2-3 phrases max)
+- Puis propose 2-3 pistes ou questions pour approfondir
+- N'entre dans les détails que si l'utilisateur le demande
+- Sois enthousiaste mais accessible — comme un collègue passionné
 - Adapte tes conseils au marché français
-- Donne des exemples concrets de posts, emails, scripts
-- Structure avec titres et puces en markdown
-- Utilise des émojis pertinents
-- Sois créatif et moderne dans tes suggestions`;
+- Donne des exemples concrets quand pertinent
+- Utilise des émojis avec parcimonie
+- Structure avec titres et puces seulement pour les réponses longues`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -33,7 +35,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-5-mini",
         messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
         stream: true,
       }),

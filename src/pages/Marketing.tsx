@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Megaphone, Copy, Loader2, Sparkles } from "lucide-react";
+import { Megaphone, Copy, Loader2, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceButton } from "@/components/VoiceButton";
-import { ImageUploadButton } from "@/components/ImageUploadButton";
+import { ImageUploadButton, fileToBase64 } from "@/components/ImageUploadButton";
 import { CameraButton } from "@/components/CameraButton";
 
 interface AnnonceResult {
@@ -27,7 +27,7 @@ const Marketing = () => {
   const [form, setForm] = useState({ adresse: "", prix: "", surface: "", description: "", style: "professionnel" });
   const [annonce, setAnnonce] = useState<AnnonceResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const generer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ const Marketing = () => {
         description: form.description,
         style: form.style,
       };
-      if (photoPreview) body.imageBase64 = photoPreview;
+      if (photos.length > 0) body.imageBase64 = photos[0];
 
       const { data, error } = await supabase.functions.invoke("generate-annonce", { body });
       if (error) throw error;
@@ -64,8 +64,16 @@ const Marketing = () => {
   };
 
   const handleImage = (base64: string) => {
-    setPhotoPreview(base64);
+    if (photos.length >= 10) {
+      toast.error("Maximum 10 photos");
+      return;
+    }
+    setPhotos(prev => [...prev, base64]);
     toast.success("Photo ajoutée");
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -120,17 +128,27 @@ const Marketing = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Photo du bien (optionnel)</Label>
+                <Label>Photos du bien (optionnel, max 10)</Label>
                 <div className="flex items-center gap-3">
                   <ImageUploadButton onImageSelected={handleImage} />
                   <CameraButton onPhotoTaken={handleImage} />
-                  {photoPreview && (
-                    <div className="flex items-center gap-2">
-                      <img src={photoPreview} alt="Preview" className="h-12 w-12 rounded object-cover" />
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoPreview(null)}>✕</Button>
-                    </div>
-                  )}
                 </div>
+                {photos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {photos.map((p, i) => (
+                      <div key={i} className="relative group">
+                        <img src={p} alt={`Photo ${i + 1}`} className="h-16 w-16 rounded object-cover border" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(i)}
+                          className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>

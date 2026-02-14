@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { VoiceButton } from "@/components/VoiceButton";
 
 const prioriteOptions = ["basse", "moyenne", "haute", "urgente"] as const;
 
@@ -117,44 +116,32 @@ const Taches = () => {
           <h1 className="page-title flex items-center gap-2"><CheckSquare className="h-6 w-6 text-accent" /> Tâches</h1>
           <p className="page-subtitle">{pendingCount} tâches en cours</p>
         </div>
-        <div className="flex items-center gap-2">
-          <VoiceButton
-            onTranscript={(text) => {
-              setForm({ ...emptyForm, titre: text });
-              setOpen(true);
-              toast.info(`Tâche captée : "${text}"`);
-            }}
-          />
-          <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+        <Dialog open={open} onOpenChange={(v) => { if (!v) closeDialog(); else setOpen(true); }}>
+          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" /> Ajouter</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle className="font-display">{editId ? "Modifier la tâche" : "Nouvelle tâche"}</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label>Titre</Label>
+                <Input placeholder="Appeler le client..." value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Titre</Label>
-                  <div className="flex gap-2">
-                    <Input placeholder="Appeler le client..." value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} className="flex-1" />
-                    <VoiceButton onTranscript={(text) => setForm({ ...form, titre: form.titre ? `${form.titre} ${text}` : text })} />
-                  </div>
+                  <Label>Priorité</Label>
+                  <Select value={form.priorite} onValueChange={(v) => setForm({ ...form, priorite: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{prioriteOptions.map((p) => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Priorité</Label>
-                    <Select value={form.priorite} onValueChange={(v) => setForm({ ...form, priorite: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{prioriteOptions.map((p) => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Échéance</Label>
-                    <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Échéance</Label>
+                  <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
                 </div>
-                <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter la tâche"}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </div>
+              <Button type="submit" className="w-full" disabled={isPending}>{isPending ? "En cours..." : editId ? "Enregistrer" : "Ajouter la tâche"}</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>

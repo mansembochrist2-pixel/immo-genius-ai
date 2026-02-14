@@ -1,26 +1,26 @@
-import { CheckSquare, Users, TrendingUp, Bell } from "lucide-react";
+import { CheckSquare, Users, BadgeEuro, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface StatsCardsProps {
   prospectCount: number;
   activeTaskCount: number;
-  doneTaskCount: number;
+  salesCount: number;
   rappelCount: number;
 }
 
 const stats = [
   { key: "prospects", label: "Prospects actifs", icon: Users, color: "text-info", href: "/prospects" },
   { key: "active", label: "Tâches en cours", icon: CheckSquare, color: "text-accent", href: "/taches" },
-  { key: "done", label: "Tâches terminées", icon: TrendingUp, color: "text-success", href: "/taches" },
-  { key: "rappels", label: "Rappels", icon: Bell, color: "text-destructive", href: "#" },
+  { key: "sales", label: "Ventes", icon: BadgeEuro, color: "text-success", href: "#" },
+  { key: "rappels", label: "Rappels urgents", icon: Bell, color: "text-destructive", href: "/taches" },
 ];
 
-export const StatsCards = ({ prospectCount, activeTaskCount, doneTaskCount, rappelCount }: StatsCardsProps) => {
+export const StatsCards = ({ prospectCount, activeTaskCount, salesCount, rappelCount }: StatsCardsProps) => {
   const navigate = useNavigate();
   const values: Record<string, number> = {
     prospects: prospectCount,
     active: activeTaskCount,
-    done: doneTaskCount,
+    sales: salesCount,
     rappels: rappelCount,
   };
 
