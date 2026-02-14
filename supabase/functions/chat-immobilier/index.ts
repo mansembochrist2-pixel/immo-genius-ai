@@ -20,6 +20,7 @@ RÈGLES DE CONVERSATION :
 - Cite tes sources légales uniquement quand c'est pertinent
 - Ne fais JAMAIS d'approximation sur les chiffres légaux
 - Si on t'envoie une photo, décris précisément ce que tu vois et utilise ces infos dans ta réponse
+- Si tu as du CONTEXTE BUSINESS, utilise-le naturellement (ex: "Tu as 3 prospects chauds...")
 
 EXEMPLE de ton :
 Utilisateur : "C'est quoi le DPE ?"
@@ -29,9 +30,15 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, businessContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Build system prompt with optional business context
+    let fullSystemPrompt = SYSTEM_PROMPT;
+    if (businessContext) {
+      fullSystemPrompt += `\n\n${businessContext}`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -41,7 +48,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: fullSystemPrompt }, ...messages],
         stream: true,
       }),
     });

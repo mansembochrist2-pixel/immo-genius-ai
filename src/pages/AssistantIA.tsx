@@ -11,6 +11,7 @@ import ReactMarkdown from "react-markdown";
 import { VoiceButton } from "@/components/VoiceButton";
 import { ImageUploadButton } from "@/components/ImageUploadButton";
 import { CameraButton } from "@/components/CameraButton";
+import { useBusinessData } from "@/contexts/BusinessContext";
 
 type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 
@@ -28,6 +29,7 @@ const WELCOME: Record<string, string> = {
 const AssistantIA = () => {
   const [tab, setTab] = useState<"immobilier" | "marketing">("immobilier");
   const [input, setInput] = useState("");
+  const { getAIContext } = useBusinessData();
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [conversations, setConversations] = useState<Record<string, Message[]>>({
@@ -93,6 +95,7 @@ const AssistantIA = () => {
       await streamChat({
         functionName,
         messages: apiMessages,
+        businessContext: getAIContext(),
         onDelta: upsertAssistant,
         onDone: () => setIsLoading(false),
         onError: (err) => { toast.error(err); setIsLoading(false); },
