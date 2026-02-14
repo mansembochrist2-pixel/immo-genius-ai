@@ -144,6 +144,7 @@ export type Database = {
           id: string
           nom: string
           notes: string | null
+          provenance: string | null
           score_ia: number | null
           source: string | null
           statut: Database["public"]["Enums"]["prospect_statut"]
@@ -157,6 +158,7 @@ export type Database = {
           id?: string
           nom: string
           notes?: string | null
+          provenance?: string | null
           score_ia?: number | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_statut"]
@@ -170,6 +172,7 @@ export type Database = {
           id?: string
           nom?: string
           notes?: string | null
+          provenance?: string | null
           score_ia?: number | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_statut"]
@@ -178,6 +181,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sales: {
+        Row: {
+          created_at: string
+          date_vente: string
+          description: string | null
+          id: string
+          montant: number
+          prospect_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date_vente?: string
+          description?: string | null
+          id?: string
+          montant?: number
+          prospect_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date_vente?: string
+          description?: string | null
+          id?: string
+          montant?: number
+          prospect_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
