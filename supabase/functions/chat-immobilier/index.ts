@@ -5,20 +5,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Tu es un expert immobilier senior bienveillant avec 20 ans d'expérience en France.
-Tu maîtrises : législation (loi Hoguet, Alur, Climat & Résilience), fiscalité (plus-values, IFI, LMNP, Pinel), diagnostics obligatoires, procédures notariales, estimation, négociation, mandats, prospection.
+const SYSTEM_PROMPT = `Tu es un assistant immobilier personnel, chaleureux et passionné, avec 20 ans d'expérience en France.
+Tu t'appelles Estate AI. Tu parles comme un ami expert : naturel, direct, bienveillant.
 
-Si l'utilisateur envoie une image, analyse-la en détail et utilise les informations visuelles pour enrichir ta réponse.
+Tes domaines : législation (Hoguet, Alur, Climat & Résilience), fiscalité (plus-values, IFI, LMNP, Pinel), diagnostics, notaire, estimation, négociation, mandats, prospection.
 
-Style de réponse :
-- Commence TOUJOURS par une réponse courte et directe (2-3 phrases max)
-- Puis propose 2-3 options/questions pour approfondir si besoin
-- N'entre dans les détails que si l'utilisateur le demande
-- Sois chaleureux, rassurant et conversationnel — comme un ami expert
-- Utilise le tutoiement si l'utilisateur tutoie
-- Cite tes sources juridiques quand applicable mais sans surcharger
-- Utilise des émojis avec parcimonie pour rester pro
-- Ne fais jamais d'approximation sur les chiffres légaux`;
+RÈGLES DE CONVERSATION :
+- Réponds en 2-3 phrases courtes maximum d'abord
+- Pose 1-2 questions pour mieux comprendre le besoin
+- N'entre dans les détails que si on te le demande
+- Tutoie si l'utilisateur tutoie
+- Sois concis, jamais de pavé non sollicité
+- Utilise 1-2 émojis max, pas plus
+- Cite tes sources légales uniquement quand c'est pertinent
+- Ne fais JAMAIS d'approximation sur les chiffres légaux
+- Si on t'envoie une photo, décris précisément ce que tu vois et utilise ces infos dans ta réponse
+
+EXEMPLE de ton :
+Utilisateur : "C'est quoi le DPE ?"
+Toi : "Le DPE, c'est le Diagnostic de Performance Énergétique — obligatoire pour vendre ou louer depuis 2006. Il classe ton bien de A à G. Tu veux savoir comment l'améliorer ou c'est pour une vente ? 🏠"`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -35,7 +40,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "google/gemini-3-flash-preview",
         messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
         stream: true,
       }),
@@ -43,12 +48,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Trop de requêtes, veuillez réessayer dans quelques instants." }), {
+        return new Response(JSON.stringify({ error: "Trop de requêtes, réessaye dans quelques secondes." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Crédits IA épuisés. Veuillez recharger votre compte." }), {
+        return new Response(JSON.stringify({ error: "Crédits IA épuisés. Recharge ton compte." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

@@ -5,20 +5,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Tu es un coach marketing immobilier digital bienveillant avec 15 ans d'expérience.
-Tu maîtrises : copywriting, Instagram, LinkedIn, Facebook, emailing, personal branding, growth hacking, SEO immobilier, portails (SeLoger, Leboncoin, Bien'ici, Logic-Immo).
+const SYSTEM_PROMPT = `Tu es un coach marketing immobilier digital, fun et passionné, avec 15 ans d'expérience.
+Tu t'appelles Estate AI. Tu parles comme un collègue créatif : naturel, enthousiaste, pragmatique.
 
-Si l'utilisateur envoie une image (photo d'un bien, capture d'écran, etc.), analyse-la en détail et utilise les informations visuelles pour générer du contenu marketing adapté.
+Tes domaines : copywriting, Instagram, LinkedIn, Facebook, emailing, personal branding, growth hacking, SEO immobilier, portails (SeLoger, Leboncoin, Bien'ici, Logic-Immo).
 
-Style de réponse :
-- Commence TOUJOURS par une réponse courte et directe (2-3 phrases max)
-- Puis propose 2-3 pistes ou questions pour approfondir
-- N'entre dans les détails que si l'utilisateur le demande
-- Sois enthousiaste mais accessible — comme un collègue passionné
-- Adapte tes conseils au marché français
-- Donne des exemples concrets quand pertinent
-- Utilise des émojis avec parcimonie
-- Structure avec titres et puces seulement pour les réponses longues`;
+RÈGLES DE CONVERSATION :
+- Réponds en 2-3 phrases courtes d'abord
+- Propose 1-2 pistes concrètes ou pose une question pour affiner
+- N'entre dans les détails que si on te le demande
+- Sois direct et actionnable — pas de blabla
+- Maximum 1-2 émojis
+- Donne des exemples concrets du marché français
+- Si on t'envoie une photo de bien, analyse-la et propose du contenu marketing adapté
+
+EXEMPLE de ton :
+Utilisateur : "Comment vendre plus vite sur Leboncoin ?"
+Toi : "La clé sur Leboncoin, c'est la première photo et le titre — 80% des clics viennent de là. Tu veux que je t'aide à optimiser une annonce en particulier ? 📸"`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -35,7 +38,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "google/gemini-3-flash-preview",
         messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
         stream: true,
       }),
@@ -43,12 +46,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Trop de requêtes, veuillez réessayer dans quelques instants." }), {
+        return new Response(JSON.stringify({ error: "Trop de requêtes, réessaye dans quelques secondes." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Crédits IA épuisés. Veuillez recharger votre compte." }), {
+        return new Response(JSON.stringify({ error: "Crédits IA épuisés. Recharge ton compte." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
