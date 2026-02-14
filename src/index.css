@@ -43,13 +43,13 @@
     --radius: 0rem;
 
     --sidebar-background: 220 55% 15%;
-    --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 90%;
-    --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 0 0% 0%;
-    --sidebar-ring: 0 0% 0%;
+    --sidebar-foreground: 220 20% 90%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 220 40% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 40% 25%;
+    --sidebar-ring: 0 0% 100%;
     --sidebar-muted: 220 30% 30%;
 
     --success: 152 60% 40%;
@@ -100,12 +100,12 @@
     --input: 0 0% 100%;
     --ring: 0 0% 100%;
     --sidebar-background: 220 50% 8%;
-    --sidebar-foreground: 0 0% 100%;
+    --sidebar-foreground: 220 20% 85%;
     --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent: 220 40% 18%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 100%;
+    --sidebar-border: 220 30% 18%;
     --sidebar-ring: 0 0% 100%;
     --sidebar-muted: 220 25% 22%;
     --chart-1: 220 70% 50%;

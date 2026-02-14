@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare, Bell, Calendar } from "lucide-react";
+import { CheckSquare, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,8 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
 import { HotProspects } from "@/components/dashboard/HotProspects";
 import { QuickActions } from "@/components/dashboard/QuickActions";
+import { SalesWidget } from "@/components/dashboard/SalesWidget";
+import { RappelsWidget } from "@/components/dashboard/RappelsWidget";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -30,10 +32,18 @@ const Dashboard = () => {
     },
   });
 
-  const { data: tasksDoneCount = 0 } = useQuery({
-    queryKey: ["tasks-done-count"],
+  const { data: salesCount = 0 } = useQuery({
+    queryKey: ["sales-count"],
     queryFn: async () => {
-      const { count } = await supabase.from("tasks").select("*", { count: "exact", head: true }).eq("done", true);
+      const { count } = await supabase.from("sales").select("*", { count: "exact", head: true });
+      return count ?? 0;
+    },
+  });
+
+  const { data: urgentCount = 0 } = useQuery({
+    queryKey: ["urgent-count"],
+    queryFn: async () => {
+      const { count } = await supabase.from("tasks").select("*", { count: "exact", head: true }).eq("done", false).eq("priorite", "urgente");
       return count ?? 0;
     },
   });
@@ -48,8 +58,8 @@ const Dashboard = () => {
       <StatsCards
         prospectCount={prospectCount}
         activeTaskCount={tasks.length}
-        doneTaskCount={tasksDoneCount}
-        rappelCount={0}
+        salesCount={salesCount}
+        rappelCount={urgentCount}
       />
 
       {/* Charts + Hot Prospects row */}
@@ -58,9 +68,9 @@ const Dashboard = () => {
         <HotProspects />
       </div>
 
-      {/* Tasks + Quick Actions row */}
+      {/* Tasks + Sales + Rappels row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base font-semibold font-sans flex items-center gap-2">
               <Calendar className="h-4 w-4 text-accent" />Tâches récentes
@@ -83,6 +93,11 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        <SalesWidget />
+        <RappelsWidget />
+      </div>
+
+      <div className="mt-6">
         <QuickActions />
       </div>
     </AppLayout>

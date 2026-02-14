@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, FileSpreadsheet, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, AlertTriangle, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -19,6 +19,7 @@ const TARGET_FIELDS = [
   { key: "telephone", label: "Téléphone" },
   { key: "statut", label: "Statut" },
   { key: "source", label: "Source" },
+  { key: "provenance", label: "Provenance" },
   { key: "notes", label: "Notes" },
 ];
 
@@ -28,6 +29,7 @@ const AUTO_MAP: Record<string, string> = {
   telephone: "telephone", tel: "telephone", phone: "telephone", "téléphone": "telephone", mobile: "telephone", portable: "telephone",
   statut: "statut", status: "statut", état: "statut",
   source: "source", origine: "source",
+  provenance: "provenance",
   notes: "notes", commentaire: "notes", remarque: "notes", note: "notes",
 };
 
@@ -63,6 +65,17 @@ function parseXlsx(file: File): Promise<string[][]> {
   });
 }
 
+function downloadTemplate() {
+  const csv = "Nom,Email,Téléphone,Statut,Source,Provenance,Notes\nJean Dupont,jean@example.com,+33 6 12 34 56 78,nouveau,site,Site web,Premier contact\nMarie Martin,marie@example.com,+33 7 98 76 54 32,contacte,recommandation,Recommandation,Intéressée T3";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "template-prospects.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const ImportCSV = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -71,7 +84,7 @@ const ImportCSV = () => {
   const [mapping, setMapping] = useState<Record<number, string>>({});
   const [importing, setImporting] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [result, setResult] = useState<{ success: number; errors: number } | null>(null);
+  const [result, setResult] = useState<{ success: number; errors: number; duplicates: number } | null>(null);
 
   const processData = (allRows: string[][]) => {
     if (allRows.length < 2) {
@@ -124,6 +137,7 @@ const ImportCSV = () => {
     setImporting(true);
     let success = 0;
     let errors = 0;
+    let duplicates = 0;
 
     const prospects = rows.map((row) => {
       const p: Record<string, string> = {};
@@ -133,13 +147,30 @@ const ImportCSV = () => {
       return p;
     }).filter((p) => p.nom);
 
-    for (let i = 0; i < prospects.length; i += 50) {
-      const chunk = prospects.slice(i, i + 50).map((p) => ({
+    // Fetch existing emails/phones for dedup
+    const { data: existing } = await supabase.from("prospects").select("email, telephone");
+    const existingEmails = new Set((existing || []).map((e: any) => e.email?.toLowerCase()).filter(Boolean));
+    const existingPhones = new Set((existing || []).map((e: any) => e.telephone?.replace(/\s/g, "")).filter(Boolean));
+
+    const unique = prospects.filter((p) => {
+      const emailLower = p.email?.toLowerCase();
+      const phoneClean = p.telephone?.replace(/\s/g, "");
+      if (emailLower && existingEmails.has(emailLower)) { duplicates++; return false; }
+      if (phoneClean && existingPhones.has(phoneClean)) { duplicates++; return false; }
+      // Also dedup within file
+      if (emailLower) existingEmails.add(emailLower);
+      if (phoneClean) existingPhones.add(phoneClean);
+      return true;
+    });
+
+    for (let i = 0; i < unique.length; i += 50) {
+      const chunk = unique.slice(i, i + 50).map((p) => ({
         nom: p.nom,
         email: p.email || null,
         telephone: p.telephone || null,
         statut: (["nouveau", "contacte", "visite", "offre", "signe", "perdu"].includes(p.statut) ? p.statut : "nouveau") as any,
         source: p.source || "import",
+        provenance: p.provenance || null,
         notes: p.notes || null,
         user_id: user!.id,
       }));
@@ -148,21 +179,26 @@ const ImportCSV = () => {
       else success += chunk.length;
     }
 
-    setResult({ success, errors });
+    setResult({ success, errors, duplicates });
     setImporting(false);
-    // Invalidate all related queries so dashboard/prospects/tasks update
     queryClient.invalidateQueries({ queryKey: ["prospects"] });
     queryClient.invalidateQueries({ queryKey: ["prospect-count"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard-tasks"] });
     if (success > 0) toast.success(`${success} prospects importés !`);
+    if (duplicates > 0) toast.info(`${duplicates} doublons ignorés`);
     if (errors > 0) toast.error(`${errors} erreurs lors de l'import`);
   };
 
   return (
     <AppLayout>
-      <div className="page-header">
-        <h1 className="page-title flex items-center gap-2"><FileSpreadsheet className="h-6 w-6 text-accent" /> Import CSV / Excel</h1>
-        <p className="page-subtitle">Importez vos prospects depuis un fichier CSV ou Excel</p>
+      <div className="page-header flex items-center justify-between">
+        <div>
+          <h1 className="page-title flex items-center gap-2"><FileSpreadsheet className="h-6 w-6 text-accent" /> Import CSV / Excel</h1>
+          <p className="page-subtitle">Importez vos prospects depuis un fichier CSV ou Excel</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={downloadTemplate}>
+          <Download className="h-4 w-4 mr-2" /> Télécharger le template
+        </Button>
       </div>
 
       <div className="space-y-6">
@@ -243,6 +279,7 @@ const ImportCSV = () => {
             <CardContent className="py-6 text-center">
               <Check className="h-10 w-10 text-green-500 mx-auto mb-2" />
               <p className="font-semibold">{result.success} prospects importés avec succès</p>
+              {result.duplicates > 0 && <p className="text-sm text-muted-foreground mt-1">{result.duplicates} doublons ignorés (email/téléphone déjà existant)</p>}
               {result.errors > 0 && <p className="text-sm text-destructive mt-1">{result.errors} erreurs</p>}
             </CardContent>
           </Card>
