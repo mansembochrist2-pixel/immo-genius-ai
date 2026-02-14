@@ -92,10 +92,7 @@ const Marketing = () => {
             <form onSubmit={generer} className="space-y-4">
               <div className="space-y-2">
                 <Label>Adresse *</Label>
-                <div className="flex gap-2">
-                  <Input placeholder="12 Rue des Lilas, Lyon" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} className="flex-1" />
-                  <VoiceButton onTranscript={(text) => setForm({ ...form, adresse: text })} />
-                </div>
+                <Input placeholder="12 Rue des Lilas, Lyon" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
