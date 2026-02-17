@@ -2,21 +2,19 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 import { CookieConsent } from "@/components/CookieConsent";
-// ... keep existing code (imports for pages)
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
-import Prospects from "./pages/Prospects";
-import Taches from "./pages/Taches";
-import Marketing from "./pages/Marketing";
-import Prospection from "./pages/Prospection";
-import AssistantIA from "./pages/AssistantIA";
-import ImportCSV from "./pages/ImportCSV";
+import Inbox from "./pages/Inbox";
+import Copilote from "./pages/Copilote";
+import Radar from "./pages/Radar";
+import Clients from "./pages/Clients";
+import Studio from "./pages/Studio";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import MentionsLegales from "./pages/MentionsLegales";
@@ -41,12 +39,11 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/" element={<Dashboard />} />
-              <Route path="/prospects" element={<Prospects />} />
-              <Route path="/taches" element={<Taches />} />
-              <Route path="/marketing" element={<Marketing />} />
-              <Route path="/prospection" element={<Prospection />} />
-              <Route path="/assistant" element={<AssistantIA />} />
-              <Route path="/import" element={<ImportCSV />} />
+              <Route path="/inbox" element={<Inbox />} />
+              <Route path="/copilote" element={<Copilote />} />
+              <Route path="/radar" element={<Radar />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/studio" element={<Studio />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />

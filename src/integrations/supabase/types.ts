@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      api_connections: {
+        Row: {
+          config: Json | null
+          created_at: string
+          derniere_sync: string | null
+          id: string
+          service: string
+          statut: string | null
+          user_id: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          derniere_sync?: string | null
+          id?: string
+          service: string
+          statut?: string | null
+          user_id: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          derniere_sync?: string | null
+          id?: string
+          service?: string
+          statut?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           assistant_type: string
@@ -101,6 +131,116 @@ export type Database = {
           messages?: Json
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      inbox_messages: {
+        Row: {
+          analyse_ia: Json | null
+          canal: string
+          client_id: string | null
+          contenu: string
+          created_at: string
+          direction: string
+          id: string
+          intention: string | null
+          lu: boolean | null
+          repondu: boolean | null
+          reponses_suggerees: Json | null
+          source_externe_id: string | null
+          sujet: string | null
+          updated_at: string
+          urgence: number | null
+          user_id: string
+        }
+        Insert: {
+          analyse_ia?: Json | null
+          canal?: string
+          client_id?: string | null
+          contenu: string
+          created_at?: string
+          direction?: string
+          id?: string
+          intention?: string | null
+          lu?: boolean | null
+          repondu?: boolean | null
+          reponses_suggerees?: Json | null
+          source_externe_id?: string | null
+          sujet?: string | null
+          updated_at?: string
+          urgence?: number | null
+          user_id: string
+        }
+        Update: {
+          analyse_ia?: Json | null
+          canal?: string
+          client_id?: string | null
+          contenu?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          intention?: string | null
+          lu?: boolean | null
+          repondu?: boolean | null
+          reponses_suggerees?: Json | null
+          source_externe_id?: string | null
+          sujet?: string | null
+          updated_at?: string
+          urgence?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunites: {
+        Row: {
+          created_at: string
+          description: string | null
+          donnees: Json | null
+          id: string
+          score: number | null
+          sources: Json | null
+          statut: string | null
+          titre: string
+          type: string
+          updated_at: string
+          user_id: string
+          zone: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          donnees?: Json | null
+          id?: string
+          score?: number | null
+          sources?: Json | null
+          statut?: string | null
+          titre: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          zone?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          donnees?: Json | null
+          id?: string
+          score?: number | null
+          sources?: Json | null
+          statut?: string | null
+          titre?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          zone?: string | null
         }
         Relationships: []
       }
@@ -139,44 +279,83 @@ export type Database = {
       }
       prospects: {
         Row: {
+          budget_max: number | null
+          budget_min: number | null
+          canal_prefere: string | null
           created_at: string
+          derniere_interaction: string | null
           email: string | null
+          freins: string | null
           id: string
+          motivation: string | null
           nom: string
           notes: string | null
           provenance: string | null
+          resume_ia: string | null
           score_ia: number | null
+          score_urgence: number | null
+          secteur_recherche: string | null
           source: string | null
           statut: Database["public"]["Enums"]["prospect_statut"]
+          strategie_adaptee: string | null
+          tags: string[] | null
+          taux_signature: number | null
           telephone: string | null
+          type_bien_recherche: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          budget_max?: number | null
+          budget_min?: number | null
+          canal_prefere?: string | null
           created_at?: string
+          derniere_interaction?: string | null
           email?: string | null
+          freins?: string | null
           id?: string
+          motivation?: string | null
           nom: string
           notes?: string | null
           provenance?: string | null
+          resume_ia?: string | null
           score_ia?: number | null
+          score_urgence?: number | null
+          secteur_recherche?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_statut"]
+          strategie_adaptee?: string | null
+          tags?: string[] | null
+          taux_signature?: number | null
           telephone?: string | null
+          type_bien_recherche?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          budget_max?: number | null
+          budget_min?: number | null
+          canal_prefere?: string | null
           created_at?: string
+          derniere_interaction?: string | null
           email?: string | null
+          freins?: string | null
           id?: string
+          motivation?: string | null
           nom?: string
           notes?: string | null
           provenance?: string | null
+          resume_ia?: string | null
           score_ia?: number | null
+          score_urgence?: number | null
+          secteur_recherche?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_statut"]
+          strategie_adaptee?: string | null
+          tags?: string[] | null
+          taux_signature?: number | null
           telephone?: string | null
+          type_bien_recherche?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -266,6 +445,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workflows: {
+        Row: {
+          actif: boolean | null
+          actions: Json | null
+          created_at: string
+          declencheur: string
+          derniere_execution: string | null
+          executions: number | null
+          id: string
+          nom: string
+          user_id: string
+        }
+        Insert: {
+          actif?: boolean | null
+          actions?: Json | null
+          created_at?: string
+          declencheur: string
+          derniere_execution?: string | null
+          executions?: number | null
+          id?: string
+          nom: string
+          user_id: string
+        }
+        Update: {
+          actif?: boolean | null
+          actions?: Json | null
+          created_at?: string
+          declencheur?: string
+          derniere_execution?: string | null
+          executions?: number | null
+          id?: string
+          nom?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

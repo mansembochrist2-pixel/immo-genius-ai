@@ -1,29 +1,28 @@
 import {
-  LayoutDashboard, Users, CheckSquare, Megaphone, MapPin, Bot, LogOut, Settings, FileSpreadsheet, FileText, Shield, ScrollText } from
-"lucide-react";
+  LayoutDashboard, Mail, Bot, Radar, Users, Palette, LogOut, Settings, FileText, Shield, ScrollText
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter } from
-"@/components/ui/sidebar";
+  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter
+} from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-{ title: "Dashboard", url: "/", icon: LayoutDashboard },
-{ title: "Prospects", url: "/prospects", icon: Users },
-{ title: "Tâches", url: "/taches", icon: CheckSquare },
-{ title: "Marketing", url: "/marketing", icon: Megaphone },
-{ title: "Prospection", url: "/prospection", icon: MapPin },
-{ title: "Assistant IA", url: "/assistant", icon: Bot },
-{ title: "Import CSV", url: "/import", icon: FileSpreadsheet }];
-
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Inbox Intelligence", url: "/inbox", icon: Mail },
+  { title: "Copilote IA", url: "/copilote", icon: Bot },
+  { title: "Radar Opportunités", url: "/radar", icon: Radar },
+  { title: "Mémoire Client", url: "/clients", icon: Users },
+  { title: "Studio Business", url: "/studio", icon: Palette },
+];
 
 const legalItems = [
-{ title: "Mentions légales", url: "/mentions-legales", icon: FileText },
-{ title: "Confidentialité", url: "/politique-confidentialite", icon: Shield },
-{ title: "CGU", url: "/cgu", icon: ScrollText }];
-
+  { title: "Mentions légales", url: "/mentions-legales", icon: FileText },
+  { title: "Confidentialité", url: "/politique-confidentialite", icon: Shield },
+  { title: "CGU", url: "/cgu", icon: ScrollText },
+];
 
 export function AppSidebar() {
   const { logout, user } = useAuth();
@@ -37,11 +36,11 @@ export function AppSidebar() {
       </div>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-[10px] tracking-widest font-medium">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-[10px] tracking-widest font-medium">Modules</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) =>
-              <SidebarMenuItem key={item.title}>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end={item.url === "/"} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-all duration-200" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm">
                       <item.icon className="h-4 w-4" />
@@ -49,7 +48,7 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -58,8 +57,8 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-[10px] tracking-widest font-medium">Légal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {legalItems.map((item) =>
-              <SidebarMenuItem key={item.title}>
+              {legalItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/40 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-all duration-200 text-xs" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
                       <item.icon className="h-3.5 w-3.5" />
@@ -67,7 +66,7 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -81,6 +80,6 @@ export function AppSidebar() {
           <LogOut className="h-4 w-4 mr-2" />Déconnexion
         </Button>
       </SidebarFooter>
-    </Sidebar>);
-
+    </Sidebar>
+  );
 }
