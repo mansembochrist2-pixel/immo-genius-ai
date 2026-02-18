@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.analyze-zone]
 verify_jwt = false
+
+[functions.chat-copilote]
+verify_jwt = false
+
+[functions.analyze-inbox]
+verify_jwt = false
