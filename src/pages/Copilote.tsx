@@ -30,18 +30,32 @@ const Copilote = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: stats } = useQuery({
-    queryKey: ["copilote-context"],
+  const { data: ctx } = useQuery({
+    queryKey: ["copilote-full-context"],
     queryFn: async () => {
-      const [prospects, sales, tasks] = await Promise.all([
+      const [prospectsRes, salesRes, tasksRes, inboxRes, oppsRes, recentClientsRes] = await Promise.all([
         supabase.from("prospects").select("*", { count: "exact", head: true }),
-        supabase.from("sales").select("*", { count: "exact", head: true }),
-        supabase.from("tasks").select("*", { count: "exact", head: true }).eq("done", false),
+        supabase.from("sales").select("montant, date_vente, description").order("date_vente", { ascending: false }).limit(5),
+        supabase.from("tasks").select("titre, priorite, due_date, done").eq("done", false).order("due_date", { ascending: true }).limit(10),
+        supabase.from("inbox_messages").select("canal, sujet, contenu, intention, urgence, lu, repondu, created_at, direction").order("created_at", { ascending: false }).limit(10),
+        supabase.from("opportunites").select("titre, zone, score, type, description").order("score", { ascending: false }).limit(5),
+        supabase.from("prospects").select("nom, statut, motivation, freins, budget_min, budget_max, secteur_recherche, score_ia, derniere_interaction").order("updated_at", { ascending: false }).limit(10),
       ]);
+
+      const salesData = salesRes.data || [];
+      const caTotal = salesData.reduce((s, v) => s + Number(v.montant), 0);
+
       return {
-        prospects: prospects.count ?? 0,
-        sales: sales.count ?? 0,
-        tasksEnCours: tasks.count ?? 0,
+        prospects: prospectsRes.count ?? 0,
+        sales: salesData.length,
+        caTotal,
+        tasksEnCours: (tasksRes.data || []).length,
+        tasks: tasksRes.data || [],
+        inbox: inboxRes.data || [],
+        opportunities: oppsRes.data || [],
+        recentClients: recentClientsRes.data || [],
+        recentSales: salesData,
+        inboxUnread: (inboxRes.data || []).filter((m: any) => !m.lu).length,
       };
     },
   });
@@ -71,9 +85,51 @@ const Copilote = () => {
       });
     };
 
-    const businessContext = stats
-      ? `CONTEXTE BUSINESS ACTUEL:\n- ${stats.prospects} clients en portefeuille\n- ${stats.sales} ventes réalisées\n- ${stats.tasksEnCours} tâches en cours`
-      : "";
+    const buildBusinessContext = () => {
+      if (!ctx) return "";
+      const lines = [
+        `📊 CONTEXTE BUSINESS ACTUEL :`,
+        `- ${ctx.prospects} clients en portefeuille`,
+        `- ${ctx.sales} ventes réalisées, CA total : ${ctx.caTotal.toLocaleString("fr-FR")} €`,
+        `- ${ctx.tasksEnCours} tâches en cours`,
+        `- ${ctx.inboxUnread} messages non lus dans l'inbox`,
+      ];
+      if (ctx.recentClients.length > 0) {
+        lines.push(`\n👥 DERNIERS CLIENTS :`);
+        ctx.recentClients.forEach((c: any) => {
+          const budget = c.budget_min || c.budget_max ? ` | Budget: ${c.budget_min ? c.budget_min.toLocaleString("fr-FR") + "€" : "?"} - ${c.budget_max ? c.budget_max.toLocaleString("fr-FR") + "€" : "?"}` : "";
+          lines.push(`  • ${c.nom} (${c.statut})${budget}${c.secteur_recherche ? " | Secteur: " + c.secteur_recherche : ""}${c.motivation ? " | Motivation: " + c.motivation : ""}`);
+        });
+      }
+      if (ctx.tasks.length > 0) {
+        lines.push(`\n📋 TÂCHES PRIORITAIRES :`);
+        ctx.tasks.slice(0, 5).forEach((t: any) => {
+          lines.push(`  • [${t.priorite}] ${t.titre}${t.due_date ? " (échéance: " + t.due_date + ")" : ""}`);
+        });
+      }
+      if (ctx.inbox.length > 0) {
+        lines.push(`\n📬 DERNIERS MESSAGES INBOX :`);
+        ctx.inbox.slice(0, 5).forEach((m: any) => {
+          const status = m.lu ? "lu" : "NON LU";
+          lines.push(`  • [${m.canal}] ${m.sujet || m.contenu.slice(0, 60) + "..."} | ${m.intention || "?"} | ${status}${m.urgence >= 3 ? " ⚠️ URGENT" : ""}`);
+        });
+      }
+      if (ctx.opportunities.length > 0) {
+        lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
+        ctx.opportunities.forEach((o: any) => {
+          lines.push(`  • ${o.titre} (${o.zone || "?"}) — Score: ${o.score}/100 — ${o.type}`);
+        });
+      }
+      if (ctx.recentSales.length > 0) {
+        lines.push(`\n💰 DERNIÈRES VENTES :`);
+        ctx.recentSales.forEach((v: any) => {
+          lines.push(`  • ${Number(v.montant).toLocaleString("fr-FR")} € — ${v.description || "Sans description"} (${v.date_vente})`);
+        });
+      }
+      return lines.join("\n");
+    };
+
+    const businessContext = buildBusinessContext();
 
     try {
       await streamChat({
@@ -114,15 +170,27 @@ const Copilote = () => {
             <CardContent className="space-y-3">
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Clients</span>
-                <span className="font-medium">{stats?.prospects ?? "—"}</span>
+                <span className="font-medium">{ctx?.prospects ?? "—"}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Ventes</span>
-                <span className="font-medium">{stats?.sales ?? "—"}</span>
+                <span className="font-medium">{ctx?.sales ?? "—"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">CA Total</span>
+                <span className="font-medium">{ctx ? ctx.caTotal.toLocaleString("fr-FR") + " €" : "—"}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Tâches actives</span>
-                <span className="font-medium">{stats?.tasksEnCours ?? "—"}</span>
+                <span className="font-medium">{ctx?.tasksEnCours ?? "—"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Inbox non lus</span>
+                <span className="font-medium">{ctx?.inboxUnread ?? "—"}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Opportunités</span>
+                <span className="font-medium">{ctx?.opportunities?.length ?? "—"}</span>
               </div>
             </CardContent>
           </Card>
