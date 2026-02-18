@@ -1,39 +1,43 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Mail, Bot, Radar, Users, Palette, TrendingUp, Clock, Zap, ArrowRight } from "lucide-react";
+import { useBusinessData } from "@/contexts/BusinessContext";
+import { Mail, Bot, Radar, Users, Palette, TrendingUp, Zap, ArrowRight, BadgeEuro, Bell, Flame, BarChart3 } from "lucide-react";
+import { StatsCards } from "@/components/dashboard/StatsCards";
+import { HotProspects } from "@/components/dashboard/HotProspects";
+import { RappelsWidget } from "@/components/dashboard/RappelsWidget";
+import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
+import { SalesWidget } from "@/components/dashboard/SalesWidget";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { stats, loading } = useBusinessData();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
-  const { data: clientCount = 0 } = useQuery({
-    queryKey: ["client-count"],
+  const { data: inboxUnread = 0 } = useQuery({
+    queryKey: ["inbox-unread-count"],
     queryFn: async () => {
-      const { count } = await supabase.from("prospects").select("*", { count: "exact", head: true });
+      const { count } = await supabase
+        .from("inbox_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("lu", false)
+        .eq("direction", "entrant");
       return count ?? 0;
     },
   });
 
-  const { data: salesCount = 0 } = useQuery({
-    queryKey: ["sales-count"],
+  const { data: opportunityCount = 0 } = useQuery({
+    queryKey: ["opportunity-count"],
     queryFn: async () => {
-      const { count } = await supabase.from("sales").select("*", { count: "exact", head: true });
+      const { count } = await supabase
+        .from("opportunites")
+        .select("*", { count: "exact", head: true });
       return count ?? 0;
-    },
-  });
-
-  const { data: salesTotal = 0 } = useQuery({
-    queryKey: ["sales-total"],
-    queryFn: async () => {
-      const { data } = await supabase.from("sales").select("montant");
-      return data?.reduce((sum: number, s: any) => sum + Number(s.montant), 0) ?? 0;
     },
   });
 
@@ -43,8 +47,8 @@ const Dashboard = () => {
       description: "Messages centralisés et analysés",
       icon: Mail,
       route: "/inbox",
-      stat: "2 non lus",
-      statColor: "text-amber-400",
+      stat: inboxUnread > 0 ? `${inboxUnread} non lu${inboxUnread > 1 ? "s" : ""}` : "À jour",
+      statColor: inboxUnread > 0 ? "text-amber-400" : "text-green-400",
     },
     {
       title: "Copilote IA",
@@ -59,7 +63,7 @@ const Dashboard = () => {
       description: "Données marché en temps réel",
       icon: Radar,
       route: "/radar",
-      stat: "3 opportunités",
+      stat: `${opportunityCount} opportunité${opportunityCount > 1 ? "s" : ""}`,
       statColor: "text-primary",
     },
     {
@@ -67,7 +71,7 @@ const Dashboard = () => {
       description: "Fiches intelligentes",
       icon: Users,
       route: "/clients",
-      stat: `${clientCount} clients`,
+      stat: `${stats.prospects.total} clients`,
       statColor: "text-muted-foreground",
     },
     {
@@ -89,53 +93,72 @@ const Dashboard = () => {
         <p className="page-subtitle">Votre copilote immobilier est prêt</p>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs live */}
+      <StatsCards
+        prospectCount={stats.prospects.total}
+        activeTaskCount={stats.tasks.enCours}
+        salesCount={stats.sales.total}
+        rappelCount={stats.tasks.urgentes}
+      />
+
+      {/* KPI complémentaires */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-card/60 border-border/30">
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/clients")}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Clients</p>
-                <p className="text-2xl font-bold mt-1">{clientCount}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Prospects chauds</p>
+                <p className="text-2xl font-bold mt-1">{stats.prospects.chauds}</p>
               </div>
-              <Users className="h-8 w-8 text-primary/30" />
+              <Flame className="h-8 w-8 text-warning/30" />
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card/60 border-border/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ventes</p>
-                <p className="text-2xl font-bold mt-1">{salesCount}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-400/30" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/60 border-border/30">
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/inbox")}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CA Total</p>
-                <p className="text-2xl font-bold mt-1">{salesTotal.toLocaleString("fr-FR")}€</p>
+                <p className="text-2xl font-bold mt-1">{stats.sales.montantTotal.toLocaleString("fr-FR")}€</p>
               </div>
-              <Zap className="h-8 w-8 text-amber-400/30" />
+              <BadgeEuro className="h-8 w-8 text-success/30" />
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-card/60 border-border/30">
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/inbox")}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Inbox</p>
-                <p className="text-2xl font-bold mt-1">2</p>
-                <p className="text-[10px] text-amber-400">non lus</p>
+                <p className="text-2xl font-bold mt-1">{inboxUnread}</p>
+                {inboxUnread > 0 && <p className="text-[10px] text-amber-400">non lus</p>}
               </div>
               <Mail className="h-8 w-8 text-primary/30" />
             </div>
           </CardContent>
         </Card>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/radar")}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Opportunités</p>
+                <p className="text-2xl font-bold mt-1">{opportunityCount}</p>
+              </div>
+              <Radar className="h-8 w-8 text-primary/30" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+        <PerformanceChart />
+        <RappelsWidget />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <HotProspects />
+        <SalesWidget />
       </div>
 
       {/* Modules */}
