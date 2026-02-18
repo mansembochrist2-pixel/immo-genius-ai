@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.enrich-client]
 verify_jwt = false
+
+[functions.generate-marketing]
+verify_jwt = false
