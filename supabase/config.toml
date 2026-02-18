@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.analyze-inbox]
 verify_jwt = false
+
+[functions.enrich-client]
+verify_jwt = false
