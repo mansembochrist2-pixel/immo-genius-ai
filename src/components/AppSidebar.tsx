@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Mail, Bot, Radar, Users, Palette, LogOut, Settings, FileText, Shield, ScrollText
+  LayoutDashboard, Mail, Bot, Radar, Users, LogOut, Settings, FileText, Shield, ScrollText, Zap
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Centre d'Actions", url: "/actions", icon: Zap },
   { title: "Inbox Intelligence", url: "/inbox", icon: Mail },
   { title: "Copilote IA", url: "/copilote", icon: Bot },
-  { title: "Radar Opportunités", url: "/radar", icon: Radar },
+  { title: "Radar Stratégique", url: "/radar", icon: Radar },
   { title: "Mémoire Client", url: "/clients", icon: Users },
-  { title: "Studio Business", url: "/studio", icon: Palette },
 ];
 
 const legalItems = [
