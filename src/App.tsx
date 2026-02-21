@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
+import CentreActions from "./pages/CentreActions";
 import Inbox from "./pages/Inbox";
 import Copilote from "./pages/Copilote";
 import Radar from "./pages/Radar";
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/" element={<Dashboard />} />
+              <Route path="/actions" element={<CentreActions />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/copilote" element={<Copilote />} />
               <Route path="/radar" element={<Radar />} />

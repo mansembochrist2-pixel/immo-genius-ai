@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.generate-marketing]
 verify_jwt = false
+
+[functions.generate-actions]
+verify_jwt = false
+
+[functions.generate-plan-attaque]
+verify_jwt = false

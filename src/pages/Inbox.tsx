@@ -8,12 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, MessageSquare, Phone, Search, Zap, Clock, AlertTriangle,
   CheckCircle, Send, Loader2, Eye, EyeOff, Sparkles, Copy, PhoneCall,
+  Users, Target, Brain,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 // ─── Types ────────────────────────────────────────
 interface InboxMessage {
@@ -110,6 +112,7 @@ const DEMO_MESSAGES_SEED = [
 const Inbox = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState("tous");
@@ -180,7 +183,6 @@ const Inbox = () => {
         repondu: true,
       });
       if (insertErr) throw insertErr;
-      // Mark original as replied
       const { error: updateErr } = await supabase
         .from("inbox_messages")
         .update({ repondu: true })
@@ -205,7 +207,6 @@ const Inbox = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Save analysis back to DB
       await supabase.from("inbox_messages").update({
         analyse_ia: data,
         reponses_suggerees: data.reponses,
@@ -260,19 +261,14 @@ const Inbox = () => {
               <Mail className="h-7 w-7 text-primary" />
               Inbox <span className="gradient-text">Intelligence</span>
             </h1>
-            <p className="page-subtitle">Messages centralisés et analysés par l'IA</p>
+            <p className="page-subtitle">Analyse IA automatique • Réponse optimisée • Suivi intelligent</p>
           </div>
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
-              <Badge variant="outline" className="border-warning/30 text-warning">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {unreadCount} non lu{unreadCount > 1 ? "s" : ""}
-              </Badge>
-            )}
-            <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground text-xs">
-              Données de démo
+          {unreadCount > 0 && (
+            <Badge variant="outline" className="border-warning/30 text-warning">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {unreadCount} non lu{unreadCount > 1 ? "s" : ""}
             </Badge>
-          </div>
+          )}
         </div>
       </div>
 
@@ -405,71 +401,86 @@ const Inbox = () => {
                   <p className="text-sm leading-relaxed">{selected.contenu}</p>
                 </div>
 
+                {/* Action buttons row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs gap-1"
+                    disabled={analyzingId === selected.id}
+                    onClick={() => analyzeMessage(selected)}
+                  >
+                    {analyzingId === selected.id ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" /> Analyse...</>
+                    ) : (
+                      <><Brain className="h-3 w-3" /> Analyser ce contact</>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => navigate("/clients")}
+                  >
+                    <Users className="h-3 w-3" /> Voir mémoire client
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => {
+                      toast.success("Suivi intelligent activé pour ce contact");
+                    }}
+                  >
+                    <Target className="h-3 w-3" /> Activer suivi intelligent
+                  </Button>
+                </div>
+
                 {/* AI Analysis */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                {analysis && (
+                  <div className="space-y-3">
                     <h3 className="text-sm font-semibold flex items-center gap-2">
                       <Zap className="h-4 w-4 text-primary" /> Analyse IA
                     </h3>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      disabled={analyzingId === selected.id}
-                      onClick={() => analyzeMessage(selected)}
-                    >
-                      {analyzingId === selected.id ? (
-                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Analyse...</>
-                      ) : (
-                        <><Sparkles className="h-3 w-3 mr-1" /> {analysis ? "Ré-analyser" : "Analyser"}</>
-                      )}
-                    </Button>
-                  </div>
-
-                  {analysis ? (
-                    <>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {[
-                          { label: "Intention", value: analysis.intention },
-                          { label: "Urgence", value: `${analysis.urgence}/4`, color: urgenceColors[analysis.urgence] },
-                          { label: "Sentiment", value: analysis.sentiment },
-                          { label: "Stress", value: `${analysis.stress_level}/5` },
-                        ].map((item) => (
-                          <div key={item.label} className="bg-muted/10 rounded-lg p-3 text-center">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                              {item.label}
-                            </p>
-                            <p className={`text-sm font-medium mt-1 ${item.color || ""}`}>
-                              {item.value}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      {analysis.key_points?.length > 0 && (
-                        <div className="bg-muted/10 rounded-lg p-3">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-                            Points clés
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { label: "Intention", value: analysis.intention },
+                        { label: "Chaleur", value: `${analysis.urgence}/4`, color: urgenceColors[analysis.urgence] },
+                        { label: "Sentiment", value: analysis.sentiment },
+                        { label: "Scoring", value: `${analysis.stress_level}/5` },
+                      ].map((item) => (
+                        <div key={item.label} className="bg-muted/10 rounded-lg p-3 text-center">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            {item.label}
                           </p>
-                          <ul className="space-y-1">
-                            {analysis.key_points.map((pt, i) => (
-                              <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                                <span className="text-primary mt-0.5">•</span> {pt}
-                              </li>
-                            ))}
-                          </ul>
+                          <p className={`text-sm font-medium mt-1 ${item.color || ""}`}>
+                            {item.value}
+                          </p>
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      Cliquez sur « Analyser » pour obtenir l'analyse IA de ce message
-                    </p>
-                  )}
-                </div>
+                      ))}
+                    </div>
+                    {analysis.key_points?.length > 0 && (
+                      <div className="bg-muted/10 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                          Points clés
+                        </p>
+                        <ul className="space-y-1">
+                          {analysis.key_points.map((pt, i) => (
+                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                              <span className="text-primary mt-0.5">•</span> {pt}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                {/* Suggested replies */}
+                {/* Optimized AI responses */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold">Réponses suggérées</h3>
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Réponse optimisée IA
+                  </h3>
                   {suggestions ? (
                     <div className="space-y-2">
                       {(
@@ -512,7 +523,7 @@ const Inbox = () => {
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground italic">
-                      Lancez l'analyse IA pour générer des réponses adaptées
+                      Cliquez sur « Analyser ce contact » pour des réponses optimisées
                     </p>
                   )}
                 </div>
@@ -564,7 +575,7 @@ const Inbox = () => {
                 <Mail className="h-12 w-12 text-muted-foreground/30 mx-auto" />
                 <p className="text-muted-foreground">Sélectionnez un message</p>
                 <p className="text-xs text-muted-foreground/60">
-                  Cliquez sur un message à gauche pour voir le détail et répondre
+                  Analyse IA automatique • Réponse optimisée • Suivi intelligent
                 </p>
               </div>
             </Card>

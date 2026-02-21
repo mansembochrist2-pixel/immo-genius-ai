@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      actions_recommandees: {
+        Row: {
+          action_attendue: string | null
+          client_id: string | null
+          created_at: string
+          date_suggeree: string | null
+          donnees_contexte: Json | null
+          id: string
+          justification_report: string | null
+          objectif: string | null
+          priorite: string
+          risque_si_ignore: string | null
+          score_pertinence: number | null
+          source_module: string | null
+          statut: string
+          titre: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_attendue?: string | null
+          client_id?: string | null
+          created_at?: string
+          date_suggeree?: string | null
+          donnees_contexte?: Json | null
+          id?: string
+          justification_report?: string | null
+          objectif?: string | null
+          priorite?: string
+          risque_si_ignore?: string | null
+          score_pertinence?: number | null
+          source_module?: string | null
+          statut?: string
+          titre: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_attendue?: string | null
+          client_id?: string | null
+          created_at?: string
+          date_suggeree?: string | null
+          donnees_contexte?: Json | null
+          id?: string
+          justification_report?: string | null
+          objectif?: string | null
+          priorite?: string
+          risque_si_ignore?: string | null
+          score_pertinence?: number | null
+          source_module?: string | null
+          statut?: string
+          titre?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actions_recommandees_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analyses_zone: {
         Row: {
           adresse: string
