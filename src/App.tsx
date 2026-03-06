@@ -10,12 +10,12 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
-import CentreActions from "./pages/CentreActions";
 import Inbox from "./pages/Inbox";
+import Agenda from "./pages/Agenda";
 import Copilote from "./pages/Copilote";
 import Radar from "./pages/Radar";
 import Clients from "./pages/Clients";
-import Studio from "./pages/Studio";
+import Documents from "./pages/Documents";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import MentionsLegales from "./pages/MentionsLegales";
@@ -40,12 +40,12 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/" element={<Dashboard />} />
-              <Route path="/actions" element={<CentreActions />} />
               <Route path="/inbox" element={<Inbox />} />
+              <Route path="/agenda" element={<Agenda />} />
               <Route path="/copilote" element={<Copilote />} />
               <Route path="/radar" element={<Radar />} />
               <Route path="/clients" element={<Clients />} />
-              <Route path="/studio" element={<Studio />} />
+              <Route path="/documents" element={<Documents />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
