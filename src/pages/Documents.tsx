@@ -102,9 +102,9 @@ const Studio = () => {
       <div className="page-header">
         <h1 className="page-title flex items-center gap-3">
           <Palette className="h-7 w-7 text-primary" />
-          Studio <span className="gradient-text">Business</span>
+          Documents <span className="gradient-text">IA</span>
         </h1>
-        <p className="page-subtitle">Créez du contenu marketing professionnel en un clic</p>
+        <p className="page-subtitle">Générez annonces, contenus marketing et documents professionnels</p>
       </div>
 
       <Tabs defaultValue="annonces" className="space-y-6">

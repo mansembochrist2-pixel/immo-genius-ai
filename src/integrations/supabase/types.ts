@@ -202,6 +202,62 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          date_debut: string
+          date_fin: string | null
+          description: string | null
+          id: string
+          lieu: string | null
+          source_module: string | null
+          statut: string
+          titre: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          date_debut: string
+          date_fin?: string | null
+          description?: string | null
+          id?: string
+          lieu?: string | null
+          source_module?: string | null
+          statut?: string
+          titre: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          date_debut?: string
+          date_fin?: string | null
+          description?: string | null
+          id?: string
+          lieu?: string | null
+          source_module?: string | null
+          statut?: string
+          titre?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbox_messages: {
         Row: {
           analyse_ia: Json | null
