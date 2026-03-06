@@ -301,7 +301,7 @@ const Clients = () => {
                       </p>
                     </div>
                   </div>
-                  <Button size="sm" className="w-full text-xs gap-1" onClick={() => navigate("/actions")}>
+                  <Button size="sm" className="w-full text-xs gap-1" onClick={() => navigate("/copilote")}>
                     <Play className="h-3 w-3" /> Lancer l'action recommandée
                   </Button>
                 </CardContent>
