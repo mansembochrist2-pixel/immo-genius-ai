@@ -47,7 +47,7 @@ const Copilote = () => {
         .eq("assistant_type", "copilote")
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      return data as Conversation[];
+      return data as unknown as Conversation[];
     },
     enabled: !!user,
   });

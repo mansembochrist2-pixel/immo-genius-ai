@@ -168,9 +168,9 @@ const Radar = () => {
           <div>
             <h1 className="page-title flex items-center gap-3">
               <RadarIcon className="h-7 w-7 text-primary" />
-              Radar <span className="gradient-text">Stratégique</span>
+              Radar <span className="gradient-text">Prospection</span>
             </h1>
-            <p className="page-subtitle">Analyse IA des zones • Plans d'attaque commerciaux</p>
+            <p className="page-subtitle">Détectez les opportunités vendeurs • Plans d'attaque commerciaux</p>
           </div>
           {opportunites.length === 0 && (
             <Button variant="outline" size="sm" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
