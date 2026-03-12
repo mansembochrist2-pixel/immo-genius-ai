@@ -403,10 +403,12 @@ export type Database = {
       }
       prospects: {
         Row: {
+          biens_proposes: string | null
           budget_max: number | null
           budget_min: number | null
           canal_prefere: string | null
           created_at: string
+          delai_projet: string | null
           derniere_interaction: string | null
           email: string | null
           freins: string | null
@@ -414,11 +416,14 @@ export type Database = {
           motivation: string | null
           nom: string
           notes: string | null
+          prochain_rappel: string | null
+          prochain_rappel_note: string | null
           provenance: string | null
           resume_ia: string | null
           score_ia: number | null
           score_urgence: number | null
           secteur_recherche: string | null
+          situation: string | null
           source: string | null
           statut: Database["public"]["Enums"]["prospect_statut"]
           strategie_adaptee: string | null
@@ -426,14 +431,17 @@ export type Database = {
           taux_signature: number | null
           telephone: string | null
           type_bien_recherche: string | null
+          type_projet: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          biens_proposes?: string | null
           budget_max?: number | null
           budget_min?: number | null
           canal_prefere?: string | null
           created_at?: string
+          delai_projet?: string | null
           derniere_interaction?: string | null
           email?: string | null
           freins?: string | null
@@ -441,11 +449,14 @@ export type Database = {
           motivation?: string | null
           nom: string
           notes?: string | null
+          prochain_rappel?: string | null
+          prochain_rappel_note?: string | null
           provenance?: string | null
           resume_ia?: string | null
           score_ia?: number | null
           score_urgence?: number | null
           secteur_recherche?: string | null
+          situation?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_statut"]
           strategie_adaptee?: string | null
@@ -453,14 +464,17 @@ export type Database = {
           taux_signature?: number | null
           telephone?: string | null
           type_bien_recherche?: string | null
+          type_projet?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          biens_proposes?: string | null
           budget_max?: number | null
           budget_min?: number | null
           canal_prefere?: string | null
           created_at?: string
+          delai_projet?: string | null
           derniere_interaction?: string | null
           email?: string | null
           freins?: string | null
@@ -468,11 +482,14 @@ export type Database = {
           motivation?: string | null
           nom?: string
           notes?: string | null
+          prochain_rappel?: string | null
+          prochain_rappel_note?: string | null
           provenance?: string | null
           resume_ia?: string | null
           score_ia?: number | null
           score_urgence?: number | null
           secteur_recherche?: string | null
+          situation?: string | null
           source?: string | null
           statut?: Database["public"]["Enums"]["prospect_statut"]
           strategie_adaptee?: string | null
@@ -480,6 +497,7 @@ export type Database = {
           taux_signature?: number | null
           telephone?: string | null
           type_bien_recherche?: string | null
+          type_projet?: string | null
           updated_at?: string
           user_id?: string
         }
