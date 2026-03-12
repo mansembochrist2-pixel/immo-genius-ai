@@ -1,17 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
-  Mail, Bot, Radar, Users, Zap, TrendingUp, ArrowRight, Target,
-  AlertTriangle, Play, BarChart3, CalendarDays, Clock, Loader2,
-  SkipForward, X,
+  Mail, Bot, Users, Zap, TrendingUp, ArrowRight, Target,
+  AlertTriangle, Play, CalendarDays, Clock, SkipForward, X, DollarSign, Radar,
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 
 const Dashboard = () => {
@@ -20,7 +19,18 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
-  // ─── Data queries ───
+  // Profile (for objectif_ca)
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("objectif_ca").eq("id", user!.id).single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const objectifCa = Number(profile?.objectif_ca) || 0;
+
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["inbox-unread-count"],
     queryFn: async () => {
@@ -32,8 +42,25 @@ const Dashboard = () => {
   const { data: oppsCount = 0 } = useQuery({
     queryKey: ["opp-count"],
     queryFn: async () => {
-      const { count } = await supabase.from("opportunites").select("*", { count: "exact", head: true }).eq("type", "opportunite");
+      const { count } = await supabase.from("opportunites").select("*", { count: "exact", head: true });
       return count ?? 0;
+    },
+  });
+
+  const { data: clientsActifs = 0 } = useQuery({
+    queryKey: ["clients-actifs-count"],
+    queryFn: async () => {
+      const { count } = await supabase.from("prospects").select("*", { count: "exact", head: true }).in("statut", ["contacte", "visite", "offre"]);
+      return count ?? 0;
+    },
+  });
+
+  const { data: caMois = 0 } = useQuery({
+    queryKey: ["ca-mois"],
+    queryFn: async () => {
+      const debutMois = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+      const { data } = await supabase.from("sales").select("montant").gte("date_vente", debutMois);
+      return (data || []).reduce((s: number, v: any) => s + Number(v.montant), 0);
     },
   });
 
@@ -56,7 +83,7 @@ const Dashboard = () => {
       const { data } = await supabase
         .from("prospects")
         .select("id, nom, score_ia, taux_signature, statut, derniere_interaction")
-        .gte("score_ia", 50)
+        .not("score_ia", "is", null)
         .order("score_ia", { ascending: false })
         .limit(5);
       return data ?? [];
@@ -78,35 +105,6 @@ const Dashboard = () => {
     },
   });
 
-  // Business Index
-  const [showDetail, setShowDetail] = useState(false);
-  const { data: businessIndex } = useQuery({
-    queryKey: ["business-index"],
-    queryFn: async () => {
-      const now = new Date();
-      const debutMois = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const [salesMonth, prospectsActive, messagesNonLus, oppsNonTraitees, prospectsInactifs] = await Promise.all([
-        supabase.from("sales").select("montant").gte("date_vente", debutMois.split("T")[0]),
-        supabase.from("prospects").select("*", { count: "exact", head: true }).in("statut", ["contacte", "visite", "offre"]),
-        supabase.from("inbox_messages").select("*", { count: "exact", head: true }).eq("lu", false).eq("direction", "entrant"),
-        supabase.from("opportunites").select("*", { count: "exact", head: true }).eq("statut", "nouvelle"),
-        supabase.from("prospects").select("*", { count: "exact", head: true }).in("statut", ["nouveau", "contacte"]).lt("updated_at", new Date(Date.now() - 7 * 86400000).toISOString()),
-      ]);
-      const caMois = (salesMonth.data || []).reduce((s: number, v: any) => s + Number(v.montant), 0);
-      const actifs = prospectsActive.count ?? 0;
-      const nonLus = messagesNonLus.count ?? 0;
-      const nonTraitees = oppsNonTraitees.count ?? 0;
-      const inactifs = prospectsInactifs.count ?? 0;
-      const scoreReactivite = Math.max(0, 100 - nonLus * 15);
-      const scoreOpps = Math.max(0, 100 - nonTraitees * 10);
-      const scoreActifs = Math.min(100, actifs * 20);
-      const scoreInactifs = Math.max(0, 100 - inactifs * 15);
-      const index = Math.round((scoreReactivite + scoreOpps + scoreActifs + scoreInactifs) / 4);
-      return { index, caMois, actifs, nonLus, nonTraitees, inactifs, scoreReactivite, scoreOpps, scoreActifs, scoreInactifs };
-    },
-  });
-
-  // Action mutations
   const actionMutation = useMutation({
     mutationFn: async ({ id, statut }: { id: string; statut: string }) => {
       const { error } = await supabase.from("actions_recommandees").update({ statut }).eq("id", id);
@@ -118,13 +116,14 @@ const Dashboard = () => {
     },
   });
 
-  const indexColor = (businessIndex?.index ?? 0) >= 70 ? "text-success" : (businessIndex?.index ?? 0) >= 40 ? "text-warning" : "text-destructive";
+  // CA progress
+  const caProgress = objectifCa > 0 ? Math.min(100, Math.round((caMois / objectifCa) * 100)) : 0;
 
   // Alerts
-  const alerts: { text: string; type: string; action: () => void }[] = [];
+  const alerts: { text: string; type: "warning" | "destructive" | "info"; action: () => void }[] = [];
   if (unreadCount >= 3) alerts.push({ text: `${unreadCount} messages non traités`, type: "warning", action: () => navigate("/inbox") });
   if (actions.some((a: any) => a.priorite === "critique")) alerts.push({ text: "Action critique non lancée", type: "destructive", action: () => {} });
-  if (oppsCount > 0) alerts.push({ text: `${oppsCount} opportunité${oppsCount > 1 ? "s" : ""} vendeur détectée${oppsCount > 1 ? "s" : ""}`, type: "info", action: () => navigate("/radar") });
+  if (oppsCount > 0) alerts.push({ text: `${oppsCount} opportunité${oppsCount > 1 ? "s" : ""} détectée${oppsCount > 1 ? "s" : ""}`, type: "info", action: () => navigate("/radar") });
 
   const timeAgo = (d: string | null) => {
     if (!d) return "—";
@@ -143,41 +142,60 @@ const Dashboard = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all col-span-2 lg:col-span-1" onClick={() => setShowDetail(!showDetail)}>
-          <CardContent className="p-4 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Indice Business</p>
-            <p className={`text-3xl font-bold mt-1 ${indexColor}`}>{businessIndex?.index ?? "—"}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">/ 100 ce mois</p>
+        {/* Objectif CA */}
+        <Card className="bg-card/60 border-border/30 col-span-2 lg:col-span-1">
+          <CardContent className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><DollarSign className="h-3 w-3" /> Objectif CA</p>
+            <p className="text-xl font-bold mt-1">{caMois.toLocaleString("fr-FR")}€</p>
+            {objectifCa > 0 ? (
+              <>
+                <Progress value={caProgress} className="mt-2 h-1.5" />
+                <p className="text-[10px] text-muted-foreground mt-1">{caProgress}% de {objectifCa.toLocaleString("fr-FR")}€</p>
+              </>
+            ) : (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                <button className="text-primary hover:underline" onClick={() => navigate("/settings")}>Définir objectif →</button>
+              </p>
+            )}
           </CardContent>
         </Card>
-        <Card className="bg-card/60 border-border/30"><CardContent className="p-4"><p className="text-[10px] text-muted-foreground uppercase tracking-wider">CA ce mois</p><p className="text-xl font-bold mt-1">{(businessIndex?.caMois ?? 0).toLocaleString("fr-FR")}€</p></CardContent></Card>
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40" onClick={() => navigate("/clients")}><CardContent className="p-4"><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Clients actifs</p><p className="text-xl font-bold mt-1">{businessIndex?.actifs ?? 0}</p></CardContent></Card>
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40" onClick={() => navigate("/inbox")}><CardContent className="p-4"><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Inbox non lus</p><p className={`text-xl font-bold mt-1 ${unreadCount > 0 ? "text-warning" : ""}`}>{unreadCount}</p></CardContent></Card>
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40" onClick={() => navigate("/radar")}><CardContent className="p-4"><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Opportunités</p><p className="text-xl font-bold mt-1">{oppsCount}</p></CardContent></Card>
-      </div>
 
-      {/* Business Index Detail */}
-      {showDetail && businessIndex && (
-        <Card className="mb-6 bg-card/60 border-primary/20 glow-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" /> Détail Indice Business</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: "Réactivité inbox", value: businessIndex.scoreReactivite, detail: `${businessIndex.nonLus} non lus` },
-                { label: "Opps. traitées", value: businessIndex.scoreOpps, detail: `${businessIndex.nonTraitees} en attente` },
-                { label: "Pipeline actif", value: businessIndex.scoreActifs, detail: `${businessIndex.actifs} actifs` },
-                { label: "Relances", value: businessIndex.scoreInactifs, detail: `${businessIndex.inactifs} inactifs` },
-              ].map(item => (
-                <div key={item.label} className="bg-muted/10 rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
-                  <p className={`text-lg font-bold mt-1 ${item.value >= 70 ? "text-success" : item.value >= 40 ? "text-warning" : "text-destructive"}`}>{item.value}/100</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{item.detail}</p>
-                </div>
-              ))}
-            </div>
+        {/* Clients actifs */}
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/clients")}>
+          <CardContent className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Users className="h-3 w-3" /> Clients actifs</p>
+            <p className="text-xl font-bold mt-1">{clientsActifs}</p>
+            <p className="text-[10px] text-primary mt-1">Voir les fiches →</p>
           </CardContent>
         </Card>
-      )}
+
+        {/* Inbox non lus */}
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/inbox")}>
+          <CardContent className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Inbox non lus</p>
+            <p className={`text-xl font-bold mt-1 ${unreadCount > 0 ? "text-warning" : ""}`}>{unreadCount}</p>
+            <p className="text-[10px] text-primary mt-1">Ouvrir l'inbox →</p>
+          </CardContent>
+        </Card>
+
+        {/* Opportunités */}
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/copilote")}>
+          <CardContent className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Radar className="h-3 w-3" /> Opportunités</p>
+            <p className="text-xl font-bold mt-1">{oppsCount}</p>
+            <p className="text-[10px] text-primary mt-1">Analyser →</p>
+          </CardContent>
+        </Card>
+
+        {/* RDV du jour count */}
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/agenda")}>
+          <CardContent className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><CalendarDays className="h-3 w-3" /> RDV aujourd'hui</p>
+            <p className="text-xl font-bold mt-1">{todayEvents.length}</p>
+            <p className="text-[10px] text-primary mt-1">Voir l'agenda →</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Alerts */}
       {alerts.length > 0 && (
@@ -280,7 +298,9 @@ const Dashboard = () => {
                 <div key={p.id} className="flex items-center justify-between bg-muted/10 rounded-lg p-3 cursor-pointer hover:bg-muted/20" onClick={() => navigate("/clients")}>
                   <div className="min-w-0">
                     <p className="text-xs font-medium truncate">{p.nom}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Score: {p.score_ia}/100 • Signature: {p.taux_signature ?? 0}%</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      <span className="text-primary font-medium">{p.score_ia}/100</span> • Signature: {p.taux_signature ?? 0}%
+                    </p>
                     <p className="text-[10px] text-muted-foreground">Dernière interaction: {timeAgo(p.derniere_interaction)}</p>
                   </div>
                   <Badge variant="outline" className="text-[9px] shrink-0">{p.statut}</Badge>
