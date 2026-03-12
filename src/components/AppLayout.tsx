@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -27,6 +28,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
           <header className="h-14 flex items-center border-b border-border/50 bg-card/50 backdrop-blur-xl px-4 sticky top-0 z-30">
             <SidebarTrigger />
             <div className="ml-auto flex items-center gap-2">
+              <NotificationBell />
               <span className="text-sm font-medium gradient-text">Estate AI</span>
             </div>
           </header>
