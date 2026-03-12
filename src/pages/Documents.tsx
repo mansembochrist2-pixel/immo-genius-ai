@@ -166,7 +166,7 @@ const Studio = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground">Informations du mandat</p>
-                    <VoiceButton onResult={(text) => setMandatInfo(prev => prev + " " + text)} />
+                    <VoiceButton onTranscript={(text) => setMandatInfo(prev => prev + " " + text)} />
                   </div>
                   <Textarea
                     value={mandatInfo}
