@@ -183,6 +183,8 @@ const Settings = () => {
                 <div className="space-y-2"><Label>Email</Label><Input type="email" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Téléphone</Label><Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Agence</Label><Input value={profileForm.agency_name} onChange={(e) => setProfileForm({ ...profileForm, agency_name: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Objectif CA mensuel (€)</Label><Input type="number" value={profileForm.objectif_ca} onChange={(e) => setProfileForm({ ...profileForm, objectif_ca: e.target.value })} placeholder="Ex: 50000" /></div>
+                <div className="space-y-2"><Label>Zone géographique principale</Label><Input value={profileForm.zone_principale} onChange={(e) => setProfileForm({ ...profileForm, zone_principale: e.target.value })} placeholder="Ex: Paris 11, Lyon..." /></div>
                 <Button type="submit" disabled={updateProfile.isPending}>{updateProfile.isPending ? "Enregistrement..." : "Enregistrer"}</Button>
               </form>
             </CardContent>
