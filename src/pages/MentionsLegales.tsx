@@ -11,7 +11,7 @@ const MentionsLegales = () => (
       <CardHeader><CardTitle className="text-lg font-sans">Mentions légales</CardTitle></CardHeader>
       <CardContent className="prose prose-sm dark:prose-invert max-w-none space-y-4">
         <h3>Éditeur du site</h3>
-        <p>Estate AI — SAS au capital de [montant] €<br />Siège social : [Adresse]<br />RCS : [Numéro RCS]<br />N° TVA : [Numéro TVA]<br />Directeur de la publication : [Nom]</p>
+        <p>Estate AI — SAS<br />Les informations légales complètes de l'éditeur seront renseignées dans les paramètres de la plateforme.</p>
 
         <h3>Hébergement</h3>
         <p>Ce site est hébergé par Lovable Cloud.<br />Contact : support@lovable.dev</p>

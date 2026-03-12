@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Mail, Bot, Radar, Users, LogOut, Settings, FileText, Shield, ScrollText, CalendarDays, FileEdit
+  LayoutDashboard, Mail, Bot, Radar, Users, LogOut, Settings, FileText, Shield, ScrollText, CalendarDays, FileEdit, TrendingUp
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ const navItems = [
   { title: "Agenda IA", url: "/agenda", icon: CalendarDays },
   { title: "Mémoire Client", url: "/clients", icon: Users },
   { title: "Documents IA", url: "/documents", icon: FileEdit },
+  { title: "Estimation IA", url: "/estimation", icon: TrendingUp },
   { title: "Radar Prospection", url: "/radar", icon: Radar },
   { title: "Copilote Stratégique", url: "/copilote", icon: Bot },
 ];
