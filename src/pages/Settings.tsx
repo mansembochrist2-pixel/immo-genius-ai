@@ -50,6 +50,8 @@ const Settings = () => {
         email: profile.email || "",
         phone: profile.phone || "",
         agency_name: profile.agency_name || "",
+        objectif_ca: profile.objectif_ca?.toString() || "",
+        zone_principale: profile.zone_principale || "",
       });
     }
   }, [profile]);
