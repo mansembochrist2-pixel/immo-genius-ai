@@ -58,7 +58,14 @@ const Settings = () => {
 
   const updateProfile = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("profiles").update(profileForm).eq("id", user!.id);
+      const { error } = await supabase.from("profiles").update({
+        full_name: profileForm.full_name,
+        email: profileForm.email,
+        phone: profileForm.phone,
+        agency_name: profileForm.agency_name,
+        objectif_ca: profileForm.objectif_ca ? Number(profileForm.objectif_ca) : 0,
+        zone_principale: profileForm.zone_principale || null,
+      }).eq("id", user!.id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["profile"] }); toast.success("Profil mis à jour"); },
