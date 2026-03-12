@@ -375,9 +375,12 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          logo_url: string | null
+          objectif_ca: number | null
           phone: string | null
           plan: string
           trial_ends_at: string
+          zone_principale: string | null
         }
         Insert: {
           agency_name?: string | null
@@ -385,9 +388,12 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          logo_url?: string | null
+          objectif_ca?: number | null
           phone?: string | null
           plan?: string
           trial_ends_at?: string
+          zone_principale?: string | null
         }
         Update: {
           agency_name?: string | null
@@ -395,9 +401,12 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          logo_url?: string | null
+          objectif_ca?: number | null
           phone?: string | null
           plan?: string
           trial_ends_at?: string
+          zone_principale?: string | null
         }
         Relationships: []
       }

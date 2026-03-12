@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 const Settings = () => {
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
-  const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "" });
+  const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "", objectif_ca: "", zone_principale: "" });
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [hubspotToken, setHubspotToken] = useState("");
@@ -50,13 +50,22 @@ const Settings = () => {
         email: profile.email || "",
         phone: profile.phone || "",
         agency_name: profile.agency_name || "",
+        objectif_ca: profile.objectif_ca?.toString() || "",
+        zone_principale: profile.zone_principale || "",
       });
     }
   }, [profile]);
 
   const updateProfile = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("profiles").update(profileForm).eq("id", user!.id);
+      const { error } = await supabase.from("profiles").update({
+        full_name: profileForm.full_name,
+        email: profileForm.email,
+        phone: profileForm.phone,
+        agency_name: profileForm.agency_name,
+        objectif_ca: profileForm.objectif_ca ? Number(profileForm.objectif_ca) : 0,
+        zone_principale: profileForm.zone_principale || null,
+      }).eq("id", user!.id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["profile"] }); toast.success("Profil mis à jour"); },
@@ -174,6 +183,8 @@ const Settings = () => {
                 <div className="space-y-2"><Label>Email</Label><Input type="email" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Téléphone</Label><Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Agence</Label><Input value={profileForm.agency_name} onChange={(e) => setProfileForm({ ...profileForm, agency_name: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Objectif CA mensuel (€)</Label><Input type="number" value={profileForm.objectif_ca} onChange={(e) => setProfileForm({ ...profileForm, objectif_ca: e.target.value })} placeholder="Ex: 50000" /></div>
+                <div className="space-y-2"><Label>Zone géographique principale</Label><Input value={profileForm.zone_principale} onChange={(e) => setProfileForm({ ...profileForm, zone_principale: e.target.value })} placeholder="Ex: Paris 11, Lyon..." /></div>
                 <Button type="submit" disabled={updateProfile.isPending}>{updateProfile.isPending ? "Enregistrement..." : "Enregistrer"}</Button>
               </form>
             </CardContent>
