@@ -1,51 +1,40 @@
 import { AppLayout } from "@/components/AppLayout";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import {
-  CalendarDays, Plus, Clock, MapPin, Users, Phone, Home, Pen, FileSignature,
-  Bell, Loader2, Check, X, Bot, ChevronLeft, ChevronRight, Trash2,
-} from "lucide-react";
-import { useState, useMemo } from "react";
+import { CalendarDays, Plus, ChevronLeft, ChevronRight, Loader2, Check, Bot, Clock } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { AgendaDayView } from "@/components/agenda/AgendaDayView";
+import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
+import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
+import { AgendaEventDialog, EventFormData } from "@/components/agenda/AgendaEventDialog";
+import { formatDate, formatHeure, typeMap } from "@/components/agenda/AgendaEventCard";
 
-const EVENT_TYPES = [
-  { value: "visite", label: "Visite", icon: Home, color: "bg-primary/20 text-primary" },
-  { value: "appel", label: "Appel", icon: Phone, color: "bg-info/20 text-info" },
-  { value: "estimation", label: "Estimation", icon: Pen, color: "bg-warning/20 text-warning" },
-  { value: "signature", label: "Signature", icon: FileSignature, color: "bg-success/20 text-success" },
-  { value: "relance", label: "Relance", icon: Bell, color: "bg-destructive/20 text-destructive" },
-  { value: "rdv_vendeur", label: "RDV Vendeur", icon: Users, color: "bg-accent/20 text-accent" },
-  { value: "rdv_notaire", label: "RDV Notaire", icon: FileSignature, color: "bg-muted-foreground/20 text-muted-foreground" },
-];
+type ViewMode = "jour" | "semaine" | "mois";
 
-const typeMap = Object.fromEntries(EVENT_TYPES.map(t => [t.value, t]));
+const MONTH_NAMES = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-const formatDate = (d: Date) => d.toISOString().split("T")[0];
-const formatHeure = (iso: string) => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const emptyForm: EventFormData = {
+  titre: "", type: "visite", date_debut: "", heure_debut: "09:00",
+  heure_fin: "10:00", description: "", lieu: "", client_id: "none",
+};
 
 const Agenda = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showAdd, setShowAdd] = useState(false);
-  const [view, setView] = useState<"jour" | "semaine">("semaine");
-  const [form, setForm] = useState({
-    titre: "", type: "visite", date_debut: "", heure_debut: "09:00",
-    heure_fin: "10:00", description: "", lieu: "",
-  });
+  const [view, setView] = useState<ViewMode>("semaine");
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [form, setForm] = useState<EventFormData>(emptyForm);
 
-  // Week calculation
+  // Week days (Monday start)
   const weekDays = useMemo(() => {
     const start = new Date(currentDate);
     const day = start.getDay();
@@ -58,8 +47,16 @@ const Agenda = () => {
     });
   }, [currentDate]);
 
-  const rangeStart = view === "jour" ? formatDate(currentDate) : formatDate(weekDays[0]);
-  const rangeEnd = view === "jour" ? formatDate(currentDate) : formatDate(weekDays[6]);
+  // Query range based on view
+  const { rangeStart, rangeEnd } = useMemo(() => {
+    if (view === "jour") return { rangeStart: formatDate(currentDate), rangeEnd: formatDate(currentDate) };
+    if (view === "semaine") return { rangeStart: formatDate(weekDays[0]), rangeEnd: formatDate(weekDays[6]) };
+    // Month: get first and last day
+    const y = currentDate.getFullYear(), m = currentDate.getMonth();
+    const first = new Date(y, m, 1);
+    const last = new Date(y, m + 1, 0);
+    return { rangeStart: formatDate(first), rangeEnd: formatDate(last) };
+  }, [currentDate, view, weekDays]);
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["events", rangeStart, rangeEnd],
@@ -100,24 +97,30 @@ const Agenda = () => {
     enabled: !!user,
   });
 
-  const addMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user || !form.titre || !form.date_debut) throw new Error("Champs requis");
       const dateDebut = `${form.date_debut}T${form.heure_debut}:00`;
       const dateFin = `${form.date_debut}T${form.heure_fin}:00`;
-      const { error } = await supabase.from("events").insert({
+      const payload = {
         user_id: user.id, titre: form.titre, type: form.type,
         date_debut: dateDebut, date_fin: dateFin,
         description: form.description || null, lieu: form.lieu || null,
+        client_id: form.client_id && form.client_id !== "none" ? form.client_id : null,
         statut: "confirme",
-      });
-      if (error) throw error;
+      };
+      if (editingEvent) {
+        const { error } = await supabase.from("events").update(payload).eq("id", editingEvent.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("events").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      setShowAdd(false);
-      setForm({ titre: "", type: "visite", date_debut: "", heure_debut: "09:00", heure_fin: "10:00", description: "", lieu: "" });
-      toast.success("Événement ajouté");
+      closeDialog();
+      toast.success(editingEvent ? "Événement modifié" : "Événement ajouté");
     },
     onError: (e: any) => toast.error(e.message || "Erreur"),
   });
@@ -129,7 +132,8 @@ const Agenda = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Supprimé");
+      closeDialog();
+      toast.success("Événement supprimé");
     },
   });
 
@@ -148,183 +152,134 @@ const Agenda = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["suggested-events"] });
-      toast.success("Événement confirmé et ajouté");
+      toast.success("Événement confirmé");
     },
   });
 
+  const closeDialog = useCallback(() => {
+    setShowDialog(false);
+    setEditingEvent(null);
+    setForm(emptyForm);
+  }, []);
+
+  const openNewEvent = useCallback((date?: Date, hour?: number) => {
+    const d = date || currentDate;
+    const h = hour ?? 9;
+    setEditingEvent(null);
+    setForm({
+      ...emptyForm,
+      date_debut: formatDate(d),
+      heure_debut: `${String(h).padStart(2, "0")}:00`,
+      heure_fin: `${String(h + 1).padStart(2, "0")}:00`,
+    });
+    setShowDialog(true);
+  }, [currentDate]);
+
+  const openEditEvent = useCallback((evt: any) => {
+    const d = new Date(evt.date_debut);
+    setEditingEvent(evt);
+    setForm({
+      titre: evt.titre,
+      type: evt.type,
+      date_debut: formatDate(d),
+      heure_debut: d.toTimeString().slice(0, 5),
+      heure_fin: evt.date_fin ? new Date(evt.date_fin).toTimeString().slice(0, 5) : d.toTimeString().slice(0, 5),
+      description: evt.description || "",
+      lieu: evt.lieu || "",
+      client_id: evt.client_id || "none",
+    });
+    setShowDialog(true);
+  }, []);
+
   const navigateDate = (dir: number) => {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() + (view === "jour" ? dir : dir * 7));
+    if (view === "jour") d.setDate(d.getDate() + dir);
+    else if (view === "semaine") d.setDate(d.getDate() + dir * 7);
+    else d.setMonth(d.getMonth() + dir);
     setCurrentDate(d);
   };
+
+  const headerLabel = useMemo(() => {
+    if (view === "jour") return currentDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    if (view === "semaine") return `${weekDays[0].getDate()} – ${weekDays[6].getDate()} ${MONTH_NAMES[weekDays[6].getMonth()]} ${weekDays[6].getFullYear()}`;
+    return `${MONTH_NAMES[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  }, [currentDate, view, weekDays]);
 
   const todayStr = formatDate(new Date());
   const todayEvents = events.filter((e: any) => formatDate(new Date(e.date_debut)) === todayStr);
 
-  const groupByDay = (evts: any[]) => {
-    const groups: Record<string, any[]> = {};
-    evts.forEach(e => {
-      const day = formatDate(new Date(e.date_debut));
-      if (!groups[day]) groups[day] = [];
-      groups[day].push(e);
-    });
-    return groups;
-  };
-
-  const dayNames = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-  const monthNames = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
   return (
     <AppLayout>
-      <div className="page-header">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="page-title flex items-center gap-3">
-              <CalendarDays className="h-7 w-7 text-primary" />
-              Agenda <span className="gradient-text">IA</span>
-            </h1>
-            <p className="page-subtitle">Organisation intelligente de vos journées</p>
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-primary" />
+            Agenda <span className="gradient-text">IA</span>
+          </h1>
+          <p className="text-xs text-muted-foreground">Organisation intelligente de vos journées</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* View switcher */}
+          <div className="flex bg-card/60 rounded-lg border border-border/30 p-0.5">
+            {(["jour", "semaine", "mois"] as ViewMode[]).map(v => (
+              <Button key={v} variant={view === v ? "default" : "ghost"} size="sm" className="text-xs h-7 px-3 capitalize" onClick={() => setView(v)}>
+                {v}
+              </Button>
+            ))}
           </div>
-          <div className="flex gap-2">
-            <div className="flex bg-card/60 rounded-lg border border-border/30">
-              <Button variant={view === "jour" ? "default" : "ghost"} size="sm" className="text-xs h-8" onClick={() => setView("jour")}>Jour</Button>
-              <Button variant={view === "semaine" ? "default" : "ghost"} size="sm" className="text-xs h-8" onClick={() => setView("semaine")}>Semaine</Button>
-            </div>
-            <Button size="sm" onClick={() => { setForm({ ...form, date_debut: formatDate(currentDate) }); setShowAdd(true); }}>
-              <Plus className="h-4 w-4 mr-2" /> Ajouter
-            </Button>
-          </div>
+          <Button size="sm" onClick={() => openNewEvent()}>
+            <Plus className="h-4 w-4 mr-1" /> Nouveau
+          </Button>
         </div>
       </div>
 
-      {/* Navigation date */}
-      <div className="flex items-center justify-between mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigateDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+      {/* Date navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
         <div className="text-center">
-          <p className="text-lg font-semibold">
-            {view === "jour"
-              ? currentDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-              : `${weekDays[0].getDate()} - ${weekDays[6].getDate()} ${monthNames[weekDays[6].getMonth()]} ${weekDays[6].getFullYear()}`
-            }
-          </p>
-          <Button variant="link" size="sm" className="text-xs text-primary h-auto p-0" onClick={() => setCurrentDate(new Date())}>Aujourd'hui</Button>
+          <p className="text-sm font-semibold capitalize">{headerLabel}</p>
+          <Button variant="link" size="sm" className="text-[10px] text-primary h-auto p-0" onClick={() => setCurrentDate(new Date())}>Aujourd'hui</Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => navigateDate(1)}><ChevronRight className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateDate(1)}><ChevronRight className="h-4 w-4" /></Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Main calendar area */}
-        <div className="lg:col-span-3 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+        {/* Main calendar */}
+        <div>
           {isLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : view === "jour" ? (
-            <Card className="bg-card/60 border-border/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">{currentDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {todayEvents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Aucun événement ce jour</p>
-                ) : (
-                  <div className="space-y-2">
-                    {todayEvents.map((evt: any) => {
-                      const t = typeMap[evt.type] || typeMap.visite;
-                      const Icon = t?.icon || CalendarDays;
-                      return (
-                        <div key={evt.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors group">
-                          <div className={`p-2 rounded-lg ${t?.color || "bg-primary/20 text-primary"}`}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{evt.titre}</p>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatHeure(evt.date_debut)}{evt.date_fin ? ` - ${formatHeure(evt.date_fin)}` : ""}</span>
-                              {evt.lieu && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{evt.lieu}</span>}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigate(`/copilote`)} title="Préparer avec Copilote">
-                              <Bot className="h-3 w-3" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(evt.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <AgendaDayView date={currentDate} events={events} onEventClick={openEditEvent} onSlotClick={openNewEvent} />
+          ) : view === "semaine" ? (
+            <AgendaWeekView weekDays={weekDays} events={events} onEventClick={openEditEvent} onSlotClick={openNewEvent} />
           ) : (
-            /* Week view */
-            <div className="space-y-3">
-              {weekDays.map(day => {
-                const dayStr = formatDate(day);
-                const isToday = dayStr === todayStr;
-                const dayEvents = events.filter((e: any) => formatDate(new Date(e.date_debut)) === dayStr);
-                return (
-                  <Card key={dayStr} className={`bg-card/60 border-border/30 ${isToday ? "border-l-2 border-l-primary" : ""}`}>
-                    <CardHeader className="pb-1 pt-3 px-4">
-                      <div className="flex items-center justify-between">
-                        <p className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                          {dayNames[day.getDay()]} {day.getDate()}/{day.getMonth() + 1}
-                          {isToday && <Badge variant="outline" className="ml-2 text-[8px] px-1 py-0 border-primary/30 text-primary">Aujourd'hui</Badge>}
-                        </p>
-                        <span className="text-[10px] text-muted-foreground">{dayEvents.length} évt{dayEvents.length !== 1 ? "s" : ""}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pb-3 px-4">
-                      {dayEvents.length === 0 ? (
-                        <p className="text-xs text-muted-foreground/50 py-1">—</p>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {dayEvents.map((evt: any) => {
-                            const t = typeMap[evt.type] || typeMap.visite;
-                            const Icon = t?.icon || CalendarDays;
-                            return (
-                              <div key={evt.id} className="flex items-center gap-2 text-xs group">
-                                <Icon className={`h-3 w-3 shrink-0 ${t?.color?.split(" ")[1] || "text-primary"}`} />
-                                <span className="font-medium truncate">{evt.titre}</span>
-                                <span className="text-muted-foreground shrink-0">{formatHeure(evt.date_debut)}</span>
-                                {evt.lieu && <span className="text-muted-foreground/50 truncate hidden sm:inline">{evt.lieu}</span>}
-                                <Button size="icon" variant="ghost" className="h-5 w-5 ml-auto opacity-0 group-hover:opacity-100 text-destructive shrink-0" onClick={() => deleteMutation.mutate(evt.id)}>
-                                  <X className="h-2.5 w-2.5" />
-                                </Button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            <AgendaMonthView currentDate={currentDate} events={events} onEventClick={openEditEvent} onDayClick={(d) => { setCurrentDate(d); setView("jour"); }} />
           )}
         </div>
 
-        {/* Sidebar: Today + IA suggestions */}
+        {/* Sidebar */}
         <div className="space-y-4">
+          {/* Today's events */}
           <Card className="bg-card/60 border-border/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" /> Aujourd'hui
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-xs flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5 text-primary" /> Aujourd'hui · {todayEvents.length} évt{todayEvents.length !== 1 ? "s" : ""}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 pb-3">
               {todayEvents.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">Rien de prévu</p>
+                <p className="text-xs text-muted-foreground italic">Aucun événement aujourd'hui</p>
               ) : (
-                <div className="space-y-2">
-                  {todayEvents.slice(0, 5).map((evt: any) => {
+                <div className="space-y-1.5">
+                  {todayEvents.slice(0, 6).map((evt: any) => {
                     const t = typeMap[evt.type];
                     return (
-                      <div key={evt.id} className="text-xs">
-                        <p className="font-medium truncate">{evt.titre}</p>
-                        <p className="text-muted-foreground">{formatHeure(evt.date_debut)}</p>
-                      </div>
+                      <button key={evt.id} onClick={() => openEditEvent(evt)} className="w-full text-left flex items-center gap-2 text-xs hover:bg-muted/10 rounded px-1 py-1 transition-colors">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${t?.color || "bg-primary"}`} />
+                        <span className="font-medium truncate flex-1">{evt.titre}</span>
+                        <span className="text-muted-foreground text-[10px]">{formatHeure(evt.date_debut)}</span>
+                      </button>
                     );
                   })}
                 </div>
@@ -332,20 +287,21 @@ const Agenda = () => {
             </CardContent>
           </Card>
 
+          {/* AI suggestions */}
           {suggestedActions.length > 0 && (
             <Card className="bg-card/60 border-primary/20 glow-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Bot className="h-4 w-4 text-primary" /> Suggestions IA
+              <CardHeader className="pb-2 pt-3 px-4">
+                <CardTitle className="text-xs flex items-center gap-2">
+                  <Bot className="h-3.5 w-3.5 text-primary" /> Suggestions IA
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="px-4 pb-3 space-y-2">
                 {suggestedActions.map((a: any) => (
-                  <div key={a.id} className="bg-muted/10 rounded-lg p-2.5">
-                    <p className="text-xs font-medium truncate">{a.titre}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
+                  <div key={a.id} className="bg-muted/10 rounded-lg p-2">
+                    <p className="text-[11px] font-medium truncate">{a.titre}</p>
+                    <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className="text-[8px] px-1 py-0">{a.priorite}</Badge>
-                      <Button size="sm" variant="ghost" className="h-6 text-[10px] ml-auto gap-1" onClick={() => confirmAction.mutate(a)}>
+                      <Button size="sm" variant="ghost" className="h-5 text-[10px] ml-auto gap-1" onClick={() => confirmAction.mutate(a)}>
                         <Check className="h-3 w-3" /> Confirmer
                       </Button>
                     </div>
@@ -354,63 +310,46 @@ const Agenda = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Legend */}
+          <Card className="bg-card/60 border-border/30">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-xs text-muted-foreground">Légende</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: "Visite", color: "bg-blue-500" },
+                  { label: "Appel", color: "bg-orange-500" },
+                  { label: "Estimation", color: "bg-violet-500" },
+                  { label: "Signature", color: "bg-emerald-500" },
+                  { label: "Relance", color: "bg-red-500" },
+                  { label: "RDV Vendeur", color: "bg-amber-500" },
+                ].map(l => (
+                  <div key={l.label} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className={`w-2 h-2 rounded-full ${l.color}`} />
+                    {l.label}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Add event dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Nouvel événement</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-xs">Titre *</Label>
-              <Input value={form.titre} onChange={e => setForm({ ...form, titre: e.target.value })} className="mt-1 bg-muted/10" placeholder="Ex: Visite T3 rue Oberkampf" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Type</Label>
-                <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
-                  <SelectTrigger className="mt-1 bg-muted/10"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {EVENT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Date *</Label>
-                <Input type="date" value={form.date_debut} onChange={e => setForm({ ...form, date_debut: e.target.value })} className="mt-1 bg-muted/10" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Heure début</Label>
-                <Input type="time" value={form.heure_debut} onChange={e => setForm({ ...form, heure_debut: e.target.value })} className="mt-1 bg-muted/10" />
-              </div>
-              <div>
-                <Label className="text-xs">Heure fin</Label>
-                <Input type="time" value={form.heure_fin} onChange={e => setForm({ ...form, heure_fin: e.target.value })} className="mt-1 bg-muted/10" />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">Lieu</Label>
-              <Input value={form.lieu} onChange={e => setForm({ ...form, lieu: e.target.value })} className="mt-1 bg-muted/10" placeholder="Adresse ou lieu" />
-            </div>
-            <div>
-              <Label className="text-xs">Notes</Label>
-              <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="mt-1 bg-muted/10" rows={2} placeholder="Notes complémentaires..." />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAdd(false)}>Annuler</Button>
-            <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !form.titre || !form.date_debut}>
-              {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              Ajouter
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Event dialog */}
+      <AgendaEventDialog
+        open={showDialog}
+        onOpenChange={(v) => { if (!v) closeDialog(); else setShowDialog(true); }}
+        form={form}
+        setForm={setForm}
+        onSubmit={() => saveMutation.mutate()}
+        onDelete={editingEvent ? () => deleteMutation.mutate(editingEvent.id) : undefined}
+        onPrepare={editingEvent ? () => navigate("/copilote") : undefined}
+        isPending={saveMutation.isPending}
+        isEdit={!!editingEvent}
+        clients={clients}
+      />
     </AppLayout>
   );
 };
