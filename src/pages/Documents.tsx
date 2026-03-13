@@ -173,8 +173,8 @@ const Studio = () => {
                     />
                   </div>
                   <Textarea
-                    value={mandatInfo}
-                    onChange={e => setMandatInfo(e.target.value)}
+                    value={mandatInfo + (voiceInterim ? " " + voiceInterim : "")}
+                    onChange={e => { setMandatInfo(e.target.value); setVoiceInterim(""); }}
                     className="bg-muted/10 border-border/30 min-h-[180px]"
                     placeholder={"Dictez ou écrivez les informations :\n\nVendeur : Jean Dupont\nAdresse du bien : 12 rue de la Paix, 75002 Paris\nType : Appartement T3\nSurface : 65 m²\nPrix : 450 000 €\nHonoraires : 5% TTC\nDurée : 3 mois"}
                   />

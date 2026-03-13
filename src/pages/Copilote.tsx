@@ -323,6 +323,10 @@ const Copilote = () => {
                 className="min-h-[44px] max-h-32 resize-none bg-muted/10 border-border/30"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
               />
+              <VoiceButton
+                onTranscript={(text) => setInput(prev => prev + " " + text)}
+                disabled={isLoading}
+              />
               <Button onClick={() => envoyer()} disabled={isLoading || !input.trim()} size="icon" className="shrink-0"><Send className="h-4 w-4" /></Button>
             </div>
           </div>

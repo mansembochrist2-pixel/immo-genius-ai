@@ -533,6 +533,9 @@ const Inbox = () => {
               {/* Reply bar */}
               <div className="p-4 border-t border-border/20 shrink-0">
                 <div className="flex gap-2">
+                  <VoiceButton
+                    onTranscript={(text) => setReplyText(prev => prev + " " + text)}
+                  />
                   <Textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
