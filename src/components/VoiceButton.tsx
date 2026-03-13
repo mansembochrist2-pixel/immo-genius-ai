@@ -3,29 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { toast } from "sonner";
-import { useRef, useCallback } from "react";
+import { useCallback } from "react";
 
 interface VoiceButtonProps {
-  /** Called with interim text while speaking (for real-time preview) */
   onInterim?: (text: string) => void;
-  /** Called with final confirmed text to append */
   onTranscript: (text: string) => void;
   disabled?: boolean;
   size?: "default" | "sm" | "icon";
 }
 
 export function VoiceButton({ onTranscript, onInterim, disabled, size = "icon" }: VoiceButtonProps) {
-  const handleFinal = useCallback((text: string) => {
-    onTranscript(text);
-  }, [onTranscript]);
-
-  const handleInterim = useCallback((text: string) => {
-    onInterim?.(text);
-  }, [onInterim]);
+  const handleError = useCallback((type: "denied" | "unsupported") => {
+    if (type === "denied") toast.error("Autorisez l'accès au microphone dans votre navigateur");
+    else toast.error("La saisie vocale nécessite Chrome ou Edge");
+  }, []);
 
   const { isListening, isSupported, isSafari, startListening, stopListening } = useVoiceInput({
-    onFinal: handleFinal,
-    onInterim: handleInterim,
+    onFinal: onTranscript,
+    onInterim,
+    onError: handleError,
   });
 
   if (!isSupported) return null;
@@ -35,14 +31,9 @@ export function VoiceButton({ onTranscript, onInterim, disabled, size = "icon" }
       stopListening();
     } else {
       if (isSafari) {
-        toast.warning("Safari a un support limité de la saisie vocale. Utilisez Chrome ou Edge pour de meilleurs résultats.");
+        toast.warning("Safari a un support limité. Utilisez Chrome ou Edge pour de meilleurs résultats.");
       }
-      const result = startListening();
-      if (result === "unsupported") {
-        toast.error("La saisie vocale nécessite Chrome ou Edge");
-      } else if (result === "denied") {
-        toast.error("Autorisez l'accès au microphone dans votre navigateur");
-      }
+      startListening();
     }
   };
 

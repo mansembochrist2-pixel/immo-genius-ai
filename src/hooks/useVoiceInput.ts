@@ -3,9 +3,10 @@ import { useState, useCallback, useRef } from "react";
 interface UseVoiceInputOptions {
   onInterim?: (text: string) => void;
   onFinal?: (text: string) => void;
+  onError?: (type: "denied" | "unsupported") => void;
 }
 
-export function useVoiceInput({ onInterim, onFinal }: UseVoiceInputOptions) {
+export function useVoiceInput({ onInterim, onFinal, onError }: UseVoiceInputOptions) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -13,8 +14,11 @@ export function useVoiceInput({ onInterim, onFinal }: UseVoiceInputOptions) {
   const SR = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
   const isSupported = !!SR;
 
-  const startListening = useCallback(() => {
-    if (!SR) return "unsupported";
+  const startListening = useCallback((): boolean => {
+    if (!SR) {
+      onError?.("unsupported");
+      return false;
+    }
 
     try {
       const recognition = new SR();
@@ -40,7 +44,9 @@ export function useVoiceInput({ onInterim, onFinal }: UseVoiceInputOptions) {
 
       recognition.onerror = (event: any) => {
         setIsListening(false);
-        if (event.error === "not-allowed") return "denied";
+        if (event.error === "not-allowed") {
+          onError?.("denied");
+        }
       };
 
       recognition.onend = () => {
@@ -50,11 +56,12 @@ export function useVoiceInput({ onInterim, onFinal }: UseVoiceInputOptions) {
       recognitionRef.current = recognition;
       recognition.start();
       setIsListening(true);
-      return "ok";
+      return true;
     } catch {
-      return "unsupported";
+      onError?.("unsupported");
+      return false;
     }
-  }, [SR, onInterim, onFinal]);
+  }, [SR, onInterim, onFinal, onError]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();
