@@ -29,6 +29,7 @@ const Studio = () => {
   // --- Mandats state ---
   const [mandatType, setMandatType] = useState(MANDAT_TYPES[0].value);
   const [mandatInfo, setMandatInfo] = useState("");
+  const [voiceInterim, setVoiceInterim] = useState("");
   const [mandatContent, setMandatContent] = useState("");
   const [loadingMandat, setLoadingMandat] = useState(false);
   const mandatRef = useRef<HTMLTextAreaElement>(null);
