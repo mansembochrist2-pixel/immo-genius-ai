@@ -14,6 +14,7 @@ import { streamChat } from "@/lib/ai-stream";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
+import { VoiceButton } from "@/components/VoiceButton";
 
 interface Message { role: "user" | "assistant"; content: string; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
@@ -321,6 +322,10 @@ const Copilote = () => {
                 placeholder="Posez une question à votre copilote..."
                 className="min-h-[44px] max-h-32 resize-none bg-muted/10 border-border/30"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
+              />
+              <VoiceButton
+                onTranscript={(text) => setInput(prev => prev + " " + text)}
+                disabled={isLoading}
               />
               <Button onClick={() => envoyer()} disabled={isLoading || !input.trim()} size="icon" className="shrink-0"><Send className="h-4 w-4" /></Button>
             </div>

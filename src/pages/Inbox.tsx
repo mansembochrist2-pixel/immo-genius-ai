@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { VoiceButton } from "@/components/VoiceButton";
 
 // ─── Types ────────────────────────────────────────
 interface InboxMessage {
@@ -532,6 +533,9 @@ const Inbox = () => {
               {/* Reply bar */}
               <div className="p-4 border-t border-border/20 shrink-0">
                 <div className="flex gap-2">
+                  <VoiceButton
+                    onTranscript={(text) => setReplyText(prev => prev + " " + text)}
+                  />
                   <Textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}

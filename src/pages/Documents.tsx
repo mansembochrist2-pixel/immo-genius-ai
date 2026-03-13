@@ -29,6 +29,7 @@ const Studio = () => {
   // --- Mandats state ---
   const [mandatType, setMandatType] = useState(MANDAT_TYPES[0].value);
   const [mandatInfo, setMandatInfo] = useState("");
+  const [voiceInterim, setVoiceInterim] = useState("");
   const [mandatContent, setMandatContent] = useState("");
   const [loadingMandat, setLoadingMandat] = useState(false);
   const mandatRef = useRef<HTMLTextAreaElement>(null);
@@ -166,11 +167,14 @@ const Studio = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground">Informations du mandat</p>
-                    <VoiceButton onTranscript={(text) => setMandatInfo(prev => prev + " " + text)} />
+                    <VoiceButton
+                      onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
+                      onInterim={(text) => setVoiceInterim(text)}
+                    />
                   </div>
                   <Textarea
-                    value={mandatInfo}
-                    onChange={e => setMandatInfo(e.target.value)}
+                    value={mandatInfo + (voiceInterim ? " " + voiceInterim : "")}
+                    onChange={e => { setMandatInfo(e.target.value); setVoiceInterim(""); }}
                     className="bg-muted/10 border-border/30 min-h-[180px]"
                     placeholder={"Dictez ou écrivez les informations :\n\nVendeur : Jean Dupont\nAdresse du bien : 12 rue de la Paix, 75002 Paris\nType : Appartement T3\nSurface : 65 m²\nPrix : 450 000 €\nHonoraires : 5% TTC\nDurée : 3 mois"}
                   />
