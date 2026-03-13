@@ -14,6 +14,7 @@ import { streamChat } from "@/lib/ai-stream";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
+import { VoiceButton } from "@/components/VoiceButton";
 
 interface Message { role: "user" | "assistant"; content: string; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
