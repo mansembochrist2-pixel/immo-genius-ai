@@ -179,7 +179,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Opportunités */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/copilote")}>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/copilote")}>
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Radar className="h-3 w-3" /> Opportunités</p>
             <p className="text-xl font-bold mt-1">{oppsCount}</p>
