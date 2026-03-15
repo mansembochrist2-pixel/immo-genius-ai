@@ -69,7 +69,7 @@ Rédige le mandat complet, professionnel, conforme à la législation française
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-5.2",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
