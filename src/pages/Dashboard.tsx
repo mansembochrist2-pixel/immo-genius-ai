@@ -143,7 +143,7 @@ const Dashboard = () => {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {/* Objectif CA */}
-        <Card className="bg-card/60 border-border/30 col-span-2 lg:col-span-1">
+        <Card className="bg-card/60 border-border/30 col-span-2 lg:col-span-1 card-shimmer">
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><DollarSign className="h-3 w-3" /> Objectif CA</p>
             <p className="text-xl font-bold mt-1">{caMois.toLocaleString("fr-FR")}€</p>
