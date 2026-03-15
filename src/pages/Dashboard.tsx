@@ -143,7 +143,7 @@ const Dashboard = () => {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {/* Objectif CA */}
-        <Card className="bg-card/60 border-border/30 col-span-2 lg:col-span-1">
+        <Card className="bg-card/60 border-border/30 col-span-2 lg:col-span-1 card-shimmer">
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><DollarSign className="h-3 w-3" /> Objectif CA</p>
             <p className="text-xl font-bold mt-1">{caMois.toLocaleString("fr-FR")}€</p>
@@ -161,7 +161,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Clients actifs */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/clients")}>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/clients")}>
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Users className="h-3 w-3" /> Clients actifs</p>
             <p className="text-xl font-bold mt-1">{clientsActifs}</p>
@@ -170,7 +170,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Inbox non lus */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/inbox")}>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/inbox")}>
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Inbox non lus</p>
             <p className={`text-xl font-bold mt-1 ${unreadCount > 0 ? "text-warning" : ""}`}>{unreadCount}</p>
@@ -179,7 +179,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Opportunités */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/copilote")}>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/copilote")}>
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Radar className="h-3 w-3" /> Opportunités</p>
             <p className="text-xl font-bold mt-1">{oppsCount}</p>
@@ -188,7 +188,7 @@ const Dashboard = () => {
         </Card>
 
         {/* RDV du jour count */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/agenda")}>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/agenda")}>
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><CalendarDays className="h-3 w-3" /> RDV aujourd'hui</p>
             <p className="text-xl font-bold mt-1">{todayEvents.length}</p>

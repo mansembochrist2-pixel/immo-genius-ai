@@ -379,6 +379,7 @@ export type Database = {
           objectif_ca: number | null
           phone: string | null
           plan: string
+          preferred_language: string
           trial_ends_at: string
           zone_principale: string | null
         }
@@ -392,6 +393,7 @@ export type Database = {
           objectif_ca?: number | null
           phone?: string | null
           plan?: string
+          preferred_language?: string
           trial_ends_at?: string
           zone_principale?: string | null
         }
@@ -405,6 +407,7 @@ export type Database = {
           objectif_ca?: number | null
           phone?: string | null
           plan?: string
+          preferred_language?: string
           trial_ends_at?: string
           zone_principale?: string | null
         }
