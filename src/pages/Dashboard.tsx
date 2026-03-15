@@ -170,7 +170,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Inbox non lus */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/inbox")}>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/inbox")}>
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Inbox non lus</p>
             <p className={`text-xl font-bold mt-1 ${unreadCount > 0 ? "text-warning" : ""}`}>{unreadCount}</p>
