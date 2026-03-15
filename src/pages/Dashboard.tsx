@@ -188,7 +188,7 @@ const Dashboard = () => {
         </Card>
 
         {/* RDV du jour count */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all" onClick={() => navigate("/agenda")}>
+        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/agenda")}>
           <CardContent className="p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><CalendarDays className="h-3 w-3" /> RDV aujourd'hui</p>
             <p className="text-xl font-bold mt-1">{todayEvents.length}</p>
