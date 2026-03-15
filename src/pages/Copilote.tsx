@@ -277,7 +277,7 @@ const Copilote = () => {
           <CardHeader className="pb-2 border-b border-border/20">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
-              <Badge variant="outline" className="text-[10px]">Gemini Flash</Badge>
+              <Badge variant="outline" className="text-[10px]">GPT-5.2</Badge>
             </div>
           </CardHeader>
 
