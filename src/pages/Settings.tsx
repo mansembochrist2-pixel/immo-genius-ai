@@ -40,6 +40,11 @@ const Settings = () => {
   const { data: subscription } = useQuery({
     queryKey: ["subscription"],
     queryFn: async () => {
+      // Skip subscription check for mock/demo users
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token || session.access_token === "mock-token") {
+        return { subscribed: false };
+      }
       const { data, error } = await supabase.functions.invoke("check-subscription");
       if (error) return { subscribed: false };
       return data;
