@@ -21,21 +21,46 @@ export const useAuth = () => {
   return ctx;
 };
 
+const MOCK_USER: User = {
+  id: "00000000-0000-0000-0000-000000000000",
+  aud: "authenticated",
+  role: "authenticated",
+  email: "agent.demo@estateai.fr",
+  email_confirmed_at: new Date().toISOString(),
+  phone: "",
+  confirmed_at: new Date().toISOString(),
+  last_sign_in_at: new Date().toISOString(),
+  app_metadata: { provider: "email", providers: ["email"] },
+  user_metadata: { full_name: "Agent Démo" },
+  identities: [],
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+} as User;
+
+const MOCK_SESSION: Session = {
+  access_token: "mock-access-token",
+  refresh_token: "mock-refresh-token",
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  token_type: "bearer",
+  user: MOCK_USER,
+} as Session;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(MOCK_USER);
+  const [session, setSession] = useState<Session | null>(MOCK_SESSION);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess ?? MOCK_SESSION);
+      setUser(sess?.user ?? MOCK_USER);
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: sess } }) => {
+      setSession(sess ?? MOCK_SESSION);
+      setUser(sess?.user ?? MOCK_USER);
       setLoading(false);
     });
 
