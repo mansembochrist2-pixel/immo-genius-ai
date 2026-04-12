@@ -215,7 +215,7 @@ const Copilote = () => {
         {/* Sidebar: history + context */}
         <div className="space-y-4">
           {/* Conversations */}
-          <Card className="bg-card/60 border-border/30">
+          <Card className="bg-card border-border rounded-2xl shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /> Conversations</CardTitle>
@@ -226,7 +226,7 @@ const Copilote = () => {
               {conversations.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">Aucune conversation</p>
               ) : conversations.map(c => (
-                <div key={c.id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-xs group ${activeConvId === c.id ? "bg-primary/10 text-primary" : "hover:bg-muted/10"}`} onClick={() => loadConversation(c)}>
+                <div key={c.id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-xs group ${activeConvId === c.id ? "bg-primary/10 text-primary" : "hover:bg-secondary"}`} onClick={() => loadConversation(c)}>
                   <MessageSquare className="h-3 w-3 shrink-0" />
                   <span className="truncate flex-1">
                     {(c.messages as Message[])?.[0]?.content?.slice(0, 40) || "Nouvelle conversation"}
@@ -239,7 +239,7 @@ const Copilote = () => {
           </Card>
 
           {/* Context */}
-          <Card className="bg-card/60 border-border/30">
+          <Card className="bg-card border-border rounded-2xl shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Contexte actif</CardTitle>
             </CardHeader>
@@ -260,7 +260,7 @@ const Copilote = () => {
           </Card>
 
           {/* Quick actions */}
-          <Card className="bg-card/60 border-border/30">
+          <Card className="bg-card border-border rounded-2xl shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm">Actions rapides</CardTitle></CardHeader>
             <CardContent className="space-y-1.5">
               {QUICK_ACTIONS.map(a => (
@@ -273,8 +273,8 @@ const Copilote = () => {
         </div>
 
         {/* Chat */}
-        <Card className="lg:col-span-3 bg-card/60 border-border/30 flex flex-col h-[calc(100vh-220px)]">
-          <CardHeader className="pb-2 border-b border-border/20">
+        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-220px)]">
+          <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
               <Badge variant="outline" className="text-[10px]">GPT-5.2</Badge>
@@ -299,9 +299,9 @@ const Copilote = () => {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/20"}`}>
+              <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm prose-invert max-w-none"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                    <div className="prose prose-sm max-w-none"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                   ) : msg.content}
                 </div>
               </div>
@@ -309,18 +309,18 @@ const Copilote = () => {
 
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="flex justify-start">
-                <div className="bg-muted/20 rounded-2xl px-4 py-3"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div>
+                <div className="bg-secondary rounded-2xl px-4 py-3"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div>
               </div>
             )}
           </div>
 
-          <div className="p-4 border-t border-border/20">
+          <div className="p-4 border-t border-border">
             <div className="flex gap-2">
               <Textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder="Posez une question à votre copilote..."
-                className="min-h-[44px] max-h-32 resize-none bg-muted/10 border-border/30"
+                className="min-h-[44px] max-h-32 resize-none bg-secondary border-border"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
               />
               <VoiceButton

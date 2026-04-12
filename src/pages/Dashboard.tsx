@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Mail, Bot, Users, Zap, TrendingUp, ArrowRight, Target,
   AlertTriangle, Play, CalendarDays, Clock, SkipForward, X, DollarSign, Radar,
+  Search, FileText, BarChart3, MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -116,10 +117,8 @@ const Dashboard = () => {
     },
   });
 
-  // CA progress
   const caProgress = objectifCa > 0 ? Math.min(100, Math.round((caMois / objectifCa) * 100)) : 0;
 
-  // Alerts
   const alerts: { text: string; type: "warning" | "destructive" | "info"; action: () => void }[] = [];
   if (unreadCount >= 3) alerts.push({ text: `${unreadCount} messages non traités`, type: "warning", action: () => navigate("/inbox") });
   if (actions.some((a: any) => a.priorite === "critique")) alerts.push({ text: "Action critique non lancée", type: "destructive", action: () => {} });
@@ -133,6 +132,13 @@ const Dashboard = () => {
     return `${Math.floor(hrs / 24)}j`;
   };
 
+  const AI_SUGGESTIONS = [
+    { label: "Estimer un bien", icon: Search, action: () => navigate("/estimation") },
+    { label: "Rédiger une annonce", icon: FileText, action: () => navigate("/documents") },
+    { label: "Relancer des clients", icon: Users, action: () => navigate("/copilote") },
+    { label: "Analyser des opportunités", icon: BarChart3, action: () => navigate("/radar") },
+  ];
+
   return (
     <AppLayout>
       <div className="page-header">
@@ -140,70 +146,90 @@ const Dashboard = () => {
         <p className="page-subtitle">Qu'est-ce que vous devez faire aujourd'hui pour avancer votre business ?</p>
       </div>
 
+      {/* AI Action Bar */}
+      <div className="ai-action-bar mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Bot className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-foreground">Que voulez-vous faire aujourd'hui ?</p>
+            <p className="text-xs text-muted-foreground">Votre assistant IA est prêt à vous aider</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 cursor-pointer rounded-xl border border-border bg-secondary/50 px-4 py-3 mb-4 hover:border-primary/30 transition-colors" onClick={() => navigate("/copilote")}>
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Posez une question à votre copilote stratégique...</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {AI_SUGGESTIONS.map(s => (
+            <Button key={s.label} variant="outline" size="sm" className="gap-2 rounded-xl border-border hover:bg-primary/5 hover:border-primary/30 hover:text-primary transition-all" onClick={s.action}>
+              <s.icon className="h-3.5 w-3.5" />
+              {s.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {/* Objectif CA */}
-        <Card className="bg-card/60 border-border/30 col-span-2 lg:col-span-1 card-shimmer">
-          <CardContent className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><DollarSign className="h-3 w-3" /> Objectif CA</p>
-            <p className="text-xl font-bold mt-1">{caMois.toLocaleString("fr-FR")}€</p>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <Card className="bg-card border-border col-span-2 lg:col-span-1 card-shimmer rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-primary" /> Objectif CA</p>
+            <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
             {objectifCa > 0 ? (
               <>
-                <Progress value={caProgress} className="mt-2 h-1.5" />
-                <p className="text-[10px] text-muted-foreground mt-1">{caProgress}% de {objectifCa.toLocaleString("fr-FR")}€</p>
+                <Progress value={caProgress} className="mt-3 h-1.5" />
+                <p className="text-[10px] text-muted-foreground mt-1.5">{caProgress}% de {objectifCa.toLocaleString("fr-FR")}€</p>
               </>
             ) : (
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <p className="text-[10px] text-muted-foreground mt-2">
                 <button className="text-primary hover:underline" onClick={() => navigate("/settings")}>Définir objectif →</button>
               </p>
             )}
           </CardContent>
         </Card>
 
-        {/* Clients actifs */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/clients")}>
-          <CardContent className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Users className="h-3 w-3" /> Clients actifs</p>
-            <p className="text-xl font-bold mt-1">{clientsActifs}</p>
-            <p className="text-[10px] text-primary mt-1">Voir les fiches →</p>
+        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/clients")}>
+          <CardContent className="p-5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" /> Clients actifs</p>
+            <p className="text-2xl font-bold mt-2 text-foreground">{clientsActifs}</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">Voir les fiches →</p>
           </CardContent>
         </Card>
 
-        {/* Inbox non lus */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/inbox")}>
-          <CardContent className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Mail className="h-3 w-3" /> Inbox non lus</p>
-            <p className={`text-xl font-bold mt-1 ${unreadCount > 0 ? "text-warning" : ""}`}>{unreadCount}</p>
-            <p className="text-[10px] text-primary mt-1">Ouvrir l'inbox →</p>
+        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/inbox")}>
+          <CardContent className="p-5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-primary" /> Inbox non lus</p>
+            <p className={`text-2xl font-bold mt-2 ${unreadCount > 0 ? "text-warning" : "text-foreground"}`}>{unreadCount}</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">Ouvrir l'inbox →</p>
           </CardContent>
         </Card>
 
-        {/* Opportunités */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/copilote")}>
-          <CardContent className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Radar className="h-3 w-3" /> Opportunités</p>
-            <p className="text-xl font-bold mt-1">{oppsCount}</p>
-            <p className="text-[10px] text-primary mt-1">Analyser →</p>
+        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/copilote")}>
+          <CardContent className="p-5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Radar className="h-3.5 w-3.5 text-primary" /> Opportunités</p>
+            <p className="text-2xl font-bold mt-2 text-foreground">{oppsCount}</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">Analyser →</p>
           </CardContent>
         </Card>
 
-        {/* RDV du jour count */}
-        <Card className="bg-card/60 border-border/30 cursor-pointer hover:border-primary/40 transition-all card-shimmer" onClick={() => navigate("/agenda")}>
-          <CardContent className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><CalendarDays className="h-3 w-3" /> RDV aujourd'hui</p>
-            <p className="text-xl font-bold mt-1">{todayEvents.length}</p>
-            <p className="text-[10px] text-primary mt-1">Voir l'agenda →</p>
+        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/agenda")}>
+          <CardContent className="p-5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-primary" /> RDV aujourd'hui</p>
+            <p className="text-2xl font-bold mt-2 text-foreground">{todayEvents.length}</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">Voir l'agenda →</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Alerts */}
       {alerts.length > 0 && (
-        <div className="space-y-2 mb-6">
+        <div className="space-y-2 mb-8">
           {alerts.map((a, i) => (
-            <div key={i} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/10 transition-colors ${a.type === "destructive" ? "border-destructive/30 bg-destructive/5" : a.type === "warning" ? "border-warning/30 bg-warning/5" : "border-info/30 bg-info/5"}`} onClick={a.action}>
+            <div key={i} className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer hover:shadow-sm transition-all ${a.type === "destructive" ? "border-destructive/20 bg-destructive/5" : a.type === "warning" ? "border-warning/20 bg-warning/5" : "border-primary/20 bg-primary/5"}`} onClick={a.action}>
               <span className="text-xs font-medium flex items-center gap-2">
-                <AlertTriangle className={`h-3.5 w-3.5 ${a.type === "destructive" ? "text-destructive" : a.type === "warning" ? "text-warning" : "text-info"}`} />
+                <AlertTriangle className={`h-3.5 w-3.5 ${a.type === "destructive" ? "text-destructive" : a.type === "warning" ? "text-warning" : "text-primary"}`} />
                 {a.text}
               </span>
               <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
@@ -213,12 +239,12 @@ const Dashboard = () => {
       )}
 
       {/* Actions recommandées + RDV du jour */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card className="bg-card/60 border-border/30">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <Card className="bg-card border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Actions recommandées</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/copilote")}>Copilote <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/copilote")}>Copilote <ArrowRight className="h-3 w-3 ml-1" /></Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -227,21 +253,21 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-2">
                 {actions.map((a: any) => (
-                  <div key={a.id} className="bg-muted/10 rounded-lg p-3">
+                  <div key={a.id} className="bg-secondary/50 rounded-xl p-3.5 hover:bg-secondary transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-xs font-medium">{a.titre}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className={`text-[8px] px-1 py-0 ${a.priorite === "critique" ? "bg-destructive/20 text-destructive" : a.priorite === "haute" ? "bg-warning/20 text-warning" : "bg-muted/30 text-muted-foreground"}`}>{a.priorite}</Badge>
+                        <p className="text-xs font-medium text-foreground">{a.titre}</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Badge className={`text-[8px] px-1.5 py-0 ${a.priorite === "critique" ? "bg-destructive/10 text-destructive border-destructive/20" : a.priorite === "haute" ? "bg-warning/10 text-warning border-warning/20" : "bg-muted text-muted-foreground"}`}>{a.priorite}</Badge>
                           {(a.donnees_contexte as any)?.client_nom && <span className="text-[10px] text-muted-foreground">👤 {(a.donnees_contexte as any).client_nom}</span>}
                           {a.score_pertinence && <span className="text-[10px] text-muted-foreground">Impact: {a.score_pertinence}/100</span>}
                         </div>
                         {a.risque_si_ignore && <p className="text-[10px] text-destructive/70 mt-1">⚠️ {a.risque_si_ignore}</p>}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button size="icon" variant="default" className="h-7 w-7" onClick={() => actionMutation.mutate({ id: a.id, statut: "lance" })} title="Lancer"><Play className="h-3 w-3" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => actionMutation.mutate({ id: a.id, statut: "reporte" })} title="Reporter"><SkipForward className="h-3 w-3" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => actionMutation.mutate({ id: a.id, statut: "ignore" })} title="Ignorer"><X className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="default" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "lance" })} title="Lancer"><Play className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "reporte" })} title="Reporter"><SkipForward className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground" onClick={() => actionMutation.mutate({ id: a.id, statut: "ignore" })} title="Ignorer"><X className="h-3 w-3" /></Button>
                       </div>
                     </div>
                   </div>
@@ -251,11 +277,11 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-card/60 border-border/30">
+        <Card className="bg-card border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /> Rendez-vous du jour</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/agenda")}>Agenda <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/agenda")}>Agenda <ArrowRight className="h-3 w-3 ml-1" /></Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -264,10 +290,10 @@ const Dashboard = () => {
             ) : (
               <div className="space-y-2">
                 {todayEvents.map((evt: any) => (
-                  <div key={evt.id} className="flex items-center gap-3 bg-muted/10 rounded-lg p-3 cursor-pointer hover:bg-muted/20" onClick={() => navigate("/agenda")}>
+                  <div key={evt.id} className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3.5 cursor-pointer hover:bg-secondary transition-colors" onClick={() => navigate("/agenda")}>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium truncate">{evt.titre}</p>
-                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                      <p className="text-xs font-medium truncate text-foreground">{evt.titre}</p>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
                         <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(evt.date_debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
                         {evt.lieu && <span className="truncate">{evt.lieu}</span>}
                       </div>
@@ -282,11 +308,11 @@ const Dashboard = () => {
       </div>
 
       {/* Prospects chauds */}
-      <Card className="bg-card/60 border-border/30 mb-6">
+      <Card className="bg-card border-border rounded-2xl shadow-sm mb-8">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> Prospects chauds</CardTitle>
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/clients")}>Voir tout <ArrowRight className="h-3 w-3 ml-1" /></Button>
+            <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/clients")}>Voir tout <ArrowRight className="h-3 w-3 ml-1" /></Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -295,10 +321,10 @@ const Dashboard = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {hotProspects.map((p: any) => (
-                <div key={p.id} className="flex items-center justify-between bg-muted/10 rounded-lg p-3 cursor-pointer hover:bg-muted/20" onClick={() => navigate("/clients")}>
+                <div key={p.id} className="flex items-center justify-between bg-secondary/50 rounded-xl p-3.5 cursor-pointer hover:bg-secondary transition-colors" onClick={() => navigate("/clients")}>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium truncate">{p.nom}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-xs font-medium truncate text-foreground">{p.nom}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       <span className="text-primary font-medium">{p.score_ia}/100</span> • Signature: {p.taux_signature ?? 0}%
                     </p>
                     <p className="text-[10px] text-muted-foreground">Dernière interaction: {timeAgo(p.derniere_interaction)}</p>

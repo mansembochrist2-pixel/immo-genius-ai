@@ -33,10 +33,10 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar className="border-r border-border/30">
-      <div className="p-5 border-b border-border/30">
+    <Sidebar className="border-r border-border">
+      <div className="p-5 border-b border-border">
         <h1 className="text-lg font-bold font-display tracking-tight gradient-text">Estate AI</h1>
-        <p className="text-xs mt-0.5 text-sidebar-foreground/50">{displayName}</p>
+        <p className="text-xs mt-0.5 text-muted-foreground">{displayName}</p>
       </div>
       <SidebarContent>
         <SidebarGroup>
@@ -75,7 +75,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-border/30 p-3 space-y-1">
+      <SidebarFooter className="border-t border-border p-3 space-y-1">
         <NavLink to="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-all duration-200 text-sm" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
           <Settings className="h-4 w-4" />
           <span>{t("nav.settings")}</span>

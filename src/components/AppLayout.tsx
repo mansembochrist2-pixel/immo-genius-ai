@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
+import realEstateBg from "@/assets/real-estate-bg.jpg";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -22,17 +23,20 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div
+        className="min-h-screen flex w-full bg-background real-estate-bg"
+        style={{ "--bg-image": `url(${realEstateBg})` } as React.CSSProperties}
+      >
         <AppSidebar />
         <main className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center border-b border-border/50 bg-card/50 backdrop-blur-xl px-4 sticky top-0 z-30">
+          <header className="h-14 flex items-center border-b border-border bg-card/80 backdrop-blur-xl px-4 sticky top-0 z-30">
             <SidebarTrigger />
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
               <NotificationBell />
-              <span className="text-sm font-medium gradient-text">Estate AI</span>
+              <span className="text-sm font-semibold gradient-text">Estate AI</span>
             </div>
           </header>
-          <div className="flex-1 p-6 animate-fade-in">
+          <div className="flex-1 p-6 lg:p-8 animate-fade-in">
             {children}
           </div>
         </main>
