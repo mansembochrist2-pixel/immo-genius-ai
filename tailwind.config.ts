@@ -93,10 +93,10 @@ export default {
   				from: { opacity: '0', transform: 'translateY(8px)' },
   				to: { opacity: '1', transform: 'translateY(0)' }
   			},
-  			'glow-pulse': {
-  				'0%, 100%': { boxShadow: '0 0 20px hsl(260 80% 65% / 0.15)' },
-  				'50%': { boxShadow: '0 0 30px hsl(260 80% 65% / 0.25)' }
-  			}
+			'glow-pulse': {
+				'0%, 100%': { boxShadow: '0 0 20px hsl(217 91% 53% / 0.1)' },
+				'50%': { boxShadow: '0 0 30px hsl(217 91% 53% / 0.18)' }
+			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
