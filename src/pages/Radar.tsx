@@ -248,7 +248,12 @@ const Radar = () => {
               <CardTitle className="text-sm flex items-center gap-2">
                 <Crosshair className="h-4 w-4 text-primary" /> Plan d'attaque — {planAttaque.oppTitre}
               </CardTitle>
-              <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => navigate("/copilote")}>
+              <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => {
+                // Navigate to copilote with the plan data as a query
+                const summary = `Voici le plan d'attaque pour "${planAttaque.oppTitre}":\n\nProfil cible: ${planAttaque.profil_cible || "N/C"}\nAngle commercial: ${planAttaque.angle_commercial || "N/C"}\nTiming: ${planAttaque.timing_optimal || "N/C"}\nPotentiel: ${planAttaque.estimation_potentiel || "N/C"}\n\nPriorités: ${planAttaque.priorites?.join(", ") || "N/C"}\nRisques: ${planAttaque.risques?.join(", ") || "N/C"}\n\nAnalyse cette opportunité et propose-moi des actions concrètes.`;
+                sessionStorage.setItem("copilote_prefill", summary);
+                navigate("/copilote");
+              }}>
                 <Bot className="h-3 w-3" /> Envoyer au Copilote
               </Button>
             </div>

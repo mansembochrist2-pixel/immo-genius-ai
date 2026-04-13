@@ -408,8 +408,12 @@ const Studio = () => {
                       <SelectItem value="post_social">📱 Post réseaux sociaux</SelectItem>
                       <SelectItem value="sms">💬 SMS / WhatsApp</SelectItem>
                       <SelectItem value="flyer">📄 Texte flyer</SelectItem>
+                      <SelectItem value="autre">🔧 {lang === "fr" ? "Autre" : "Other"}</SelectItem>
                     </SelectContent>
                   </Select>
+                  {marketingForm.type === "autre" && (
+                    <Input placeholder={lang === "fr" ? "Décrivez le type de contenu souhaité..." : "Describe desired content type..."} value={(marketingForm as any).type_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, type_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
+                  )}
                   <Textarea placeholder={lang === "fr" ? "Décrivez le bien ou le sujet *" : "Describe the property or subject *"} value={marketingForm.bien} onChange={(e) => setMarketingForm({...marketingForm, bien: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
                   <Input placeholder={lang === "fr" ? "Cible (ex: primo-accédants...)" : "Target audience..."} value={marketingForm.cible} onChange={(e) => setMarketingForm({...marketingForm, cible: e.target.value})} className="bg-muted/10 border-border/30" />
                   <Select value={marketingForm.ton} onValueChange={(v) => setMarketingForm({...marketingForm, ton: v})}>
@@ -420,8 +424,12 @@ const Studio = () => {
                       <SelectItem value="luxe">Luxe</SelectItem>
                       <SelectItem value="decontracte">Décontracté</SelectItem>
                       <SelectItem value="urgence">Urgence</SelectItem>
+                      <SelectItem value="autre">{lang === "fr" ? "Autre (personnalisé)" : "Other (custom)"}</SelectItem>
                     </SelectContent>
                   </Select>
+                  {marketingForm.ton === "autre" && (
+                    <Input placeholder={lang === "fr" ? "Décrivez votre style souhaité..." : "Describe your desired style..."} value={(marketingForm as any).ton_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, ton_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
+                  )}
                   <Button type="submit" className="w-full" disabled={loadingMarketing}>
                     {loadingMarketing ? t("docs.generating") : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer le contenu" : "Generate content"}</>}
                   </Button>

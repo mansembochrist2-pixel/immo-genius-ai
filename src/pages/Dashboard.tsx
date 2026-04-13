@@ -2,25 +2,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Mail, Bot, Users, Zap, TrendingUp, ArrowRight, Target,
   AlertTriangle, Play, CalendarDays, Clock, SkipForward, X, DollarSign, Radar,
-  Search, FileText, BarChart3, MessageSquare,
+  Search, FileText, BarChart3, MessageSquare, Pencil, Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t, lang } = useLanguage();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
-  // Profile (for objectif_ca)
+  const [editingCA, setEditingCA] = useState(false);
+  const [caInput, setCaInput] = useState("");
+
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -31,6 +37,18 @@ const Dashboard = () => {
   });
 
   const objectifCa = Number(profile?.objectif_ca) || 0;
+
+  const updateCaMutation = useMutation({
+    mutationFn: async (value: number) => {
+      const { error } = await supabase.from("profiles").update({ objectif_ca: value } as any).eq("id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      setEditingCA(false);
+      toast.success(lang === "fr" ? "Objectif mis à jour" : "Goal updated");
+    },
+  });
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["inbox-unread-count"],
@@ -113,16 +131,16 @@ const Dashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-actions"] });
-      toast.success("Action mise à jour");
+      toast.success(lang === "fr" ? "Action mise à jour" : "Action updated");
     },
   });
 
   const caProgress = objectifCa > 0 ? Math.min(100, Math.round((caMois / objectifCa) * 100)) : 0;
 
   const alerts: { text: string; type: "warning" | "destructive" | "info"; action: () => void }[] = [];
-  if (unreadCount >= 3) alerts.push({ text: `${unreadCount} messages non traités`, type: "warning", action: () => navigate("/inbox") });
-  if (actions.some((a: any) => a.priorite === "critique")) alerts.push({ text: "Action critique non lancée", type: "destructive", action: () => {} });
-  if (oppsCount > 0) alerts.push({ text: `${oppsCount} opportunité${oppsCount > 1 ? "s" : ""} détectée${oppsCount > 1 ? "s" : ""}`, type: "info", action: () => navigate("/radar") });
+  if (unreadCount >= 3) alerts.push({ text: `${unreadCount} ${lang === "fr" ? "messages non traités" : "unread messages"}`, type: "warning", action: () => navigate("/inbox") });
+  if (actions.some((a: any) => a.priorite === "critique")) alerts.push({ text: lang === "fr" ? "Action critique non lancée" : "Critical action pending", type: "destructive", action: () => {} });
+  if (oppsCount > 0) alerts.push({ text: `${oppsCount} ${lang === "fr" ? "opportunité" : "opportunit"}${oppsCount > 1 ? (lang === "fr" ? "s détectée" : "ies detected") : (lang === "fr" ? " détectée" : "y detected")}${oppsCount > 1 ? "s" : ""}`, type: "info", action: () => navigate("/radar") });
 
   const timeAgo = (d: string | null) => {
     if (!d) return "—";
@@ -133,17 +151,17 @@ const Dashboard = () => {
   };
 
   const AI_SUGGESTIONS = [
-    { label: "Estimer un bien", icon: Search, action: () => navigate("/estimation") },
-    { label: "Rédiger une annonce", icon: FileText, action: () => navigate("/documents") },
-    { label: "Relancer des clients", icon: Users, action: () => navigate("/copilote") },
-    { label: "Analyser des opportunités", icon: BarChart3, action: () => navigate("/radar") },
+    { label: lang === "fr" ? "Estimer un bien" : "Estimate property", icon: Search, action: () => navigate("/estimation") },
+    { label: lang === "fr" ? "Rédiger une annonce" : "Write a listing", icon: FileText, action: () => navigate("/documents") },
+    { label: lang === "fr" ? "Relancer des clients" : "Follow up clients", icon: Users, action: () => navigate("/copilote") },
+    { label: lang === "fr" ? "Analyser des opportunités" : "Analyze opportunities", icon: BarChart3, action: () => navigate("/radar") },
   ];
 
   return (
     <AppLayout>
       <div className="page-header">
-        <h1 className="page-title">Bonjour, <span className="gradient-text">{displayName}</span> 👋</h1>
-        <p className="page-subtitle">Qu'est-ce que vous devez faire aujourd'hui pour avancer votre business ?</p>
+        <h1 className="page-title">{t("dash.hello")} <span className="gradient-text">{displayName}</span> 👋</h1>
+        <p className="page-subtitle">{t("dash.subtitle")}</p>
       </div>
 
       {/* AI Action Bar */}
@@ -153,13 +171,13 @@ const Dashboard = () => {
             <Bot className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-base font-semibold text-foreground">Que voulez-vous faire aujourd'hui ?</p>
-            <p className="text-xs text-muted-foreground">Votre assistant IA est prêt à vous aider</p>
+            <p className="text-base font-semibold text-foreground">{lang === "fr" ? "Que voulez-vous faire aujourd'hui ?" : "What would you like to do today?"}</p>
+            <p className="text-xs text-muted-foreground">{lang === "fr" ? "Votre assistant IA est prêt à vous aider" : "Your AI assistant is ready to help"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 cursor-pointer rounded-xl border border-border bg-secondary/50 px-4 py-3 mb-4 hover:border-primary/30 transition-colors" onClick={() => navigate("/copilote")}>
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Posez une question à votre copilote stratégique...</span>
+          <span className="text-sm text-muted-foreground">{t("copilote.placeholder")}</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {AI_SUGGESTIONS.map(s => (
@@ -173,52 +191,86 @@ const Dashboard = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {/* Objectif CA with inline edit */}
         <Card className="bg-card border-border col-span-2 lg:col-span-1 card-shimmer rounded-2xl shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-primary" /> Objectif CA</p>
-            <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
-            {objectifCa > 0 ? (
-              <>
-                <Progress value={caProgress} className="mt-3 h-1.5" />
-                <p className="text-[10px] text-muted-foreground mt-1.5">{caProgress}% de {objectifCa.toLocaleString("fr-FR")}€</p>
-              </>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-primary" /> {t("dash.objectif_ca")}</p>
+              <button
+                className="h-6 w-6 rounded-md hover:bg-muted/20 flex items-center justify-center transition-colors"
+                onClick={() => { setEditingCA(!editingCA); setCaInput(objectifCa.toString()); }}
+                title={lang === "fr" ? "Modifier l'objectif" : "Edit goal"}
+              >
+                <Pencil className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </div>
+            {editingCA ? (
+              <div className="mt-2 space-y-2">
+                <Input
+                  type="number"
+                  value={caInput}
+                  onChange={e => setCaInput(e.target.value)}
+                  placeholder="50000"
+                  className="h-8 text-sm"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === "Enter") updateCaMutation.mutate(Number(caInput)); if (e.key === "Escape") setEditingCA(false); }}
+                />
+                <div className="flex gap-1">
+                  <Button size="sm" className="h-6 text-[10px] flex-1" onClick={() => updateCaMutation.mutate(Number(caInput))}>
+                    <Check className="h-3 w-3 mr-1" /> OK
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setEditingCA(false)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <p className="text-[10px] text-muted-foreground mt-2">
-                <button className="text-primary hover:underline" onClick={() => navigate("/settings")}>Définir objectif →</button>
-              </p>
+              <>
+                <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
+                {objectifCa > 0 ? (
+                  <>
+                    <Progress value={caProgress} className="mt-3 h-1.5" />
+                    <p className="text-[10px] text-muted-foreground mt-1.5">{caProgress}% {lang === "fr" ? "de" : "of"} {objectifCa.toLocaleString("fr-FR")}€</p>
+                  </>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    <button className="text-primary hover:underline" onClick={() => { setEditingCA(true); setCaInput(""); }}>{t("dash.define_objective")}</button>
+                  </p>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/clients")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" /> Clients actifs</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary" /> {t("dash.clients_actifs")}</p>
             <p className="text-2xl font-bold mt-2 text-foreground">{clientsActifs}</p>
-            <p className="text-[10px] text-primary mt-2 font-medium">Voir les fiches →</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">{t("dash.see_clients")}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/inbox")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-primary" /> Inbox non lus</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-primary" /> {t("dash.inbox_unread")}</p>
             <p className={`text-2xl font-bold mt-2 ${unreadCount > 0 ? "text-warning" : "text-foreground"}`}>{unreadCount}</p>
-            <p className="text-[10px] text-primary mt-2 font-medium">Ouvrir l'inbox →</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">{t("dash.open_inbox")}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/copilote")}>
+        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/radar")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Radar className="h-3.5 w-3.5 text-primary" /> Opportunités</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Radar className="h-3.5 w-3.5 text-primary" /> {t("dash.opportunities")}</p>
             <p className="text-2xl font-bold mt-2 text-foreground">{oppsCount}</p>
-            <p className="text-[10px] text-primary mt-2 font-medium">Analyser →</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">{t("dash.analyze")}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl shadow-sm card-shimmer" onClick={() => navigate("/agenda")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-primary" /> RDV aujourd'hui</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-primary" /> {t("dash.rdv_today")}</p>
             <p className="text-2xl font-bold mt-2 text-foreground">{todayEvents.length}</p>
-            <p className="text-[10px] text-primary mt-2 font-medium">Voir l'agenda →</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">{t("dash.see_agenda")}</p>
           </CardContent>
         </Card>
       </div>
@@ -243,13 +295,13 @@ const Dashboard = () => {
         <Card className="bg-card border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Actions recommandées</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/copilote")}>Copilote <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              <CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {t("dash.actions_title")}</CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/copilote")}>{t("common.copilote")} <ArrowRight className="h-3 w-3 ml-1" /></Button>
             </div>
           </CardHeader>
           <CardContent>
             {actions.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-4 text-center">Aucune action en attente. Utilisez le Copilote pour en générer.</p>
+              <p className="text-xs text-muted-foreground italic py-4 text-center">{t("dash.no_actions")}</p>
             ) : (
               <div className="space-y-2">
                 {actions.map((a: any) => (
@@ -265,9 +317,9 @@ const Dashboard = () => {
                         {a.risque_si_ignore && <p className="text-[10px] text-destructive/70 mt-1">⚠️ {a.risque_si_ignore}</p>}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button size="icon" variant="default" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "lance" })} title="Lancer"><Play className="h-3 w-3" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "reporte" })} title="Reporter"><SkipForward className="h-3 w-3" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground" onClick={() => actionMutation.mutate({ id: a.id, statut: "ignore" })} title="Ignorer"><X className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="default" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "lance" })} title={lang === "fr" ? "Lancer" : "Launch"}><Play className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "reporte" })} title={lang === "fr" ? "Reporter" : "Postpone"}><SkipForward className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground" onClick={() => actionMutation.mutate({ id: a.id, statut: "ignore" })} title={lang === "fr" ? "Ignorer" : "Ignore"}><X className="h-3 w-3" /></Button>
                       </div>
                     </div>
                   </div>
@@ -280,13 +332,13 @@ const Dashboard = () => {
         <Card className="bg-card border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /> Rendez-vous du jour</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/agenda")}>Agenda <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              <CardTitle className="text-sm flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /> {t("dash.rdv_title")}</CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/agenda")}>{t("common.agenda")} <ArrowRight className="h-3 w-3 ml-1" /></Button>
             </div>
           </CardHeader>
           <CardContent>
             {todayEvents.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-4 text-center">Rien de prévu aujourd'hui</p>
+              <p className="text-xs text-muted-foreground italic py-4 text-center">{t("dash.no_rdv")}</p>
             ) : (
               <div className="space-y-2">
                 {todayEvents.map((evt: any) => (
@@ -311,13 +363,13 @@ const Dashboard = () => {
       <Card className="bg-card border-border rounded-2xl shadow-sm mb-8">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> Prospects chauds</CardTitle>
-            <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/clients")}>Voir tout <ArrowRight className="h-3 w-3 ml-1" /></Button>
+            <CardTitle className="text-sm flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> {t("dash.hot_prospects")}</CardTitle>
+            <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/clients")}>{t("dash.see_all")} <ArrowRight className="h-3 w-3 ml-1" /></Button>
           </div>
         </CardHeader>
         <CardContent>
           {hotProspects.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic py-4 text-center">Aucun prospect chaud. Enrichissez vos fiches clients avec l'IA.</p>
+            <p className="text-xs text-muted-foreground italic py-4 text-center">{t("dash.no_hot")}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {hotProspects.map((p: any) => (
@@ -327,9 +379,8 @@ const Dashboard = () => {
                     <p className="text-[10px] text-muted-foreground mt-1">
                       <span className="text-primary font-medium">{p.score_ia}/100</span> • Signature: {p.taux_signature ?? 0}%
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Dernière interaction: {timeAgo(p.derniere_interaction)}</p>
                   </div>
-                  <Badge variant="outline" className="text-[9px] shrink-0">{p.statut}</Badge>
+                  <TrendingUp className="h-4 w-4 text-primary shrink-0" />
                 </div>
               ))}
             </div>
