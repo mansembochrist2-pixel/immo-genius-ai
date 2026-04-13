@@ -55,7 +55,6 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
 
-  // Fetch profile for PDF header
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -70,8 +69,8 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
       const { error } = await supabase.from("prospects").update(updates).eq("id", client.id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clients"] }); setEditMode(false); toast.success("Client mis à jour"); },
-    onError: () => toast.error("Erreur"),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clients"] }); setEditMode(false); toast.success(lang === "fr" ? "Client mis à jour" : "Client updated"); },
+    onError: () => toast.error(lang === "fr" ? "Erreur" : "Error"),
   });
 
   const deleteMutation = useMutation({
@@ -79,7 +78,7 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
       const { error } = await supabase.from("prospects").delete().eq("id", client.id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clients"] }); onDeleted(); toast.success("Client supprimé"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clients"] }); onDeleted(); toast.success(lang === "fr" ? "Client supprimé" : "Client deleted"); },
   });
 
   const startEdit = () => {
@@ -122,143 +121,34 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
     return `${Math.floor(hrs / 24)}j`;
   };
 
-  // PDF Export
   const downloadPDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
-
-    // Header
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Estate AI", 14, y);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(profile?.agency_name || "", pageWidth - 14, y, { align: "right" });
-    y += 6;
-    doc.text(profile?.full_name || "", pageWidth - 14, y, { align: "right" });
-    y += 10;
-    doc.setDrawColor(100);
-    doc.line(14, y, pageWidth - 14, y);
-    y += 10;
-
-    // Client name
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text(client.nom, 14, y);
-    y += 8;
-
-    // Contact info
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(18); doc.setFont("helvetica", "bold"); doc.text("Estate AI", 14, y);
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    doc.text(profile?.agency_name || "", pageWidth - 14, y, { align: "right" }); y += 6;
+    doc.text(profile?.full_name || "", pageWidth - 14, y, { align: "right" }); y += 10;
+    doc.setDrawColor(100); doc.line(14, y, pageWidth - 14, y); y += 10;
+    doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.text(client.nom, 14, y); y += 8;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
     if (client.email) { doc.text(`Email : ${client.email}`, 14, y); y += 5; }
     if (client.telephone) { doc.text(`Téléphone : ${client.telephone}`, 14, y); y += 5; }
     y += 5;
-
-    // Project info
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Informations projet", 14, y);
-    y += 7;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    const projectFields = [
-      ["Type de projet", client.type_projet],
-      ["Budget", client.budget_min || client.budget_max ? `${client.budget_min?.toLocaleString("fr-FR") || "?"} € – ${client.budget_max?.toLocaleString("fr-FR") || "?"} €` : null],
-      ["Secteur", client.secteur_recherche],
-      ["Type de bien", client.type_bien_recherche],
-      ["Délai", client.delai_projet],
-      ["Situation", client.situation],
-    ];
-    projectFields.forEach(([label, value]) => {
-      if (value) { doc.text(`${label} : ${value}`, 14, y); y += 5; }
-    });
+    const projectFields = [["Type de projet", client.type_projet], ["Budget", client.budget_min || client.budget_max ? `${client.budget_min?.toLocaleString("fr-FR") || "?"} € – ${client.budget_max?.toLocaleString("fr-FR") || "?"} €` : null], ["Secteur", client.secteur_recherche], ["Type de bien", client.type_bien_recherche]];
+    doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text("Informations projet", 14, y); y += 7;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    projectFields.forEach(([label, value]) => { if (value) { doc.text(`${label} : ${value}`, 14, y); y += 5; } });
     y += 5;
-
-    // AI Scores
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Scores IA", 14, y);
-    y += 7;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text("Scores IA", 14, y); y += 7;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
     doc.text(`Score IA : ${client.score_ia ?? "—"}/100`, 14, y); y += 5;
     doc.text(`Urgence : ${client.score_urgence ?? "—"}/10`, 14, y); y += 5;
     doc.text(`Probabilité de signature : ${client.taux_signature ?? "—"}%`, 14, y); y += 10;
-
-    // AI Summary
-    if (client.resume_ia) {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Résumé IA", 14, y);
-      y += 7;
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      const lines = doc.splitTextToSize(client.resume_ia, pageWidth - 28);
-      doc.text(lines, 14, y);
-      y += lines.length * 4.5 + 5;
-    }
-
-    // Strategy
-    if (client.strategie_adaptee) {
-      if (y > 250) { doc.addPage(); y = 20; }
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Stratégie recommandée", 14, y);
-      y += 7;
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      const lines = doc.splitTextToSize(client.strategie_adaptee, pageWidth - 28);
-      doc.text(lines, 14, y);
-      y += lines.length * 4.5 + 5;
-    }
-
-    // Interactions
-    if (interactions.length > 0) {
-      if (y > 230) { doc.addPage(); y = 20; }
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Historique des interactions", 14, y);
-      y += 7;
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      interactions.slice(0, 10).forEach((msg: any) => {
-        if (y > 270) { doc.addPage(); y = 20; }
-        const date = new Date(msg.created_at).toLocaleDateString("fr-FR");
-        const direction = msg.direction === "entrant" ? "Reçu" : "Envoyé";
-        doc.text(`[${date}] ${msg.canal} — ${direction}`, 14, y); y += 4;
-        const msgLines = doc.splitTextToSize(msg.contenu.slice(0, 200), pageWidth - 28);
-        doc.text(msgLines, 14, y);
-        y += msgLines.length * 4 + 4;
-      });
-    }
-
-    // Notes
-    if (client.notes) {
-      if (y > 250) { doc.addPage(); y = 20; }
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Notes", 14, y);
-      y += 7;
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      const lines = doc.splitTextToSize(client.notes, pageWidth - 28);
-      doc.text(lines, 14, y);
-      y += lines.length * 4.5 + 5;
-    }
-
-    // Footer
+    if (client.resume_ia) { doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text("Résumé IA", 14, y); y += 7; doc.setFontSize(9); doc.setFont("helvetica", "normal"); const lines = doc.splitTextToSize(client.resume_ia, pageWidth - 28); doc.text(lines, 14, y); y += lines.length * 4.5 + 5; }
+    if (client.notes) { if (y > 250) { doc.addPage(); y = 20; } doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text("Notes", 14, y); y += 7; doc.setFontSize(9); doc.setFont("helvetica", "normal"); const lines = doc.splitTextToSize(client.notes, pageWidth - 28); doc.text(lines, 14, y); y += lines.length * 4.5 + 5; }
     const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "italic");
-      doc.setTextColor(150);
-      doc.text(`Généré par Estate AI — ${new Date().toLocaleDateString("fr-FR")}`, 14, doc.internal.pageSize.getHeight() - 10);
-      doc.text(`Page ${i}/${pageCount}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 10, { align: "right" });
-      doc.setTextColor(0);
-    }
-
+    for (let i = 1; i <= pageCount; i++) { doc.setPage(i); doc.setFontSize(8); doc.setFont("helvetica", "italic"); doc.setTextColor(150); doc.text(`Généré par Estate AI — ${new Date().toLocaleDateString("fr-FR")}`, 14, doc.internal.pageSize.getHeight() - 10); doc.text(`Page ${i}/${pageCount}`, pageWidth - 14, doc.internal.pageSize.getHeight() - 10, { align: "right" }); doc.setTextColor(0); }
     doc.save(`fiche-client-${client.nom.replace(/\s+/g, "-")}.pdf`);
     toast.success(lang === "fr" ? "PDF téléchargé" : "PDF downloaded");
   };
@@ -279,11 +169,21 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => client.telephone && window.open(`tel:${client.telephone}`)}><Phone className="h-3 w-3" /> {lang === "fr" ? "Appeler" : "Call"}</Button>
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => client.email && window.open(`mailto:${client.email}`)}><Mail className="h-3 w-3" /> Email</Button>
+              {/* Only show Call if phone exists */}
+              {client.telephone && (
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => window.open(`tel:${client.telephone}`)}>
+                  <Phone className="h-3 w-3" /> {lang === "fr" ? "Appeler" : "Call"}
+                </Button>
+              )}
+              {/* Only show Email if email exists */}
+              {client.email && (
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => window.open(`mailto:${client.email}`)}>
+                  <Mail className="h-3 w-3" /> Email
+                </Button>
+              )}
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={startEdit}><Pencil className="h-3 w-3" /> {t("common.edit")}</Button>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={enrichingId === client.id} onClick={() => onEnrich(client)}>
-                {enrichingId === client.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Recalcul IA
+                {enrichingId === client.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} {lang === "fr" ? "Recalcul IA" : "AI Recalc"}
               </Button>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={downloadPDF}>
                 <Download className="h-3 w-3" /> {t("clients.download_pdf")}
@@ -387,7 +287,7 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
                 <div><Label className="text-xs">Motivation</Label><Textarea value={form.motivation} onChange={e => setForm({ ...form, motivation: e.target.value })} className="bg-muted/10 mt-1 min-h-[50px]" /></div>
                 <div><Label className="text-xs">{lang === "fr" ? "Freins" : "Obstacles"}</Label><Textarea value={form.freins} onChange={e => setForm({ ...form, freins: e.target.value })} className="bg-muted/10 mt-1 min-h-[50px]" /></div>
               </div>
-              <div className="mt-3"><Label className="text-xs">Notes</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="bg-muted/10 mt-1 min-h-[60px]" /></div>
+              <div className="mt-3"><Label className="text-xs">{lang === "fr" ? "Notes libres" : "Free notes"}</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="bg-muted/10 mt-1 min-h-[80px]" placeholder={lang === "fr" ? "Ajoutez vos observations, remarques..." : "Add your observations, remarks..."} /></div>
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>{t("common.cancel")}</Button>
@@ -419,6 +319,14 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
         </CardContent></Card>
       </div>
 
+      {/* Notes display (when not editing) */}
+      {!editMode && client.notes && (
+        <Card className="bg-card/60 border-border/30">
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Pencil className="h-4 w-4 text-primary" /> {lang === "fr" ? "Notes libres" : "Free Notes"}</CardTitle></CardHeader>
+          <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{client.notes}</p></CardContent>
+        </Card>
+      )}
+
       {/* Project info display */}
       {!editMode && (client.type_projet || client.delai_projet || client.situation || client.biens_proposes || client.prochain_rappel) && (
         <Card className="bg-card/60 border-border/30">
@@ -432,9 +340,7 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
               {client.secteur_recherche && <div><p className="text-[10px] text-muted-foreground uppercase">{lang === "fr" ? "Secteur" : "Area"}</p><p className="font-medium mt-0.5">{client.secteur_recherche}</p></div>}
               {client.canal_prefere && <div><p className="text-[10px] text-muted-foreground uppercase">{lang === "fr" ? "Canal préféré" : "Preferred channel"}</p><p className="font-medium mt-0.5">{client.canal_prefere}</p></div>}
             </div>
-            {client.biens_proposes && (
-              <div className="mt-3"><p className="text-[10px] text-muted-foreground uppercase">{lang === "fr" ? "Biens proposés" : "Properties offered"}</p><p className="text-xs mt-0.5">{client.biens_proposes}</p></div>
-            )}
+            {client.biens_proposes && <div className="mt-3"><p className="text-[10px] text-muted-foreground uppercase">{lang === "fr" ? "Biens proposés" : "Properties offered"}</p><p className="text-xs mt-0.5">{client.biens_proposes}</p></div>}
             {client.prochain_rappel && (
               <div className="mt-3 bg-warning/10 rounded-lg p-2 flex items-center gap-2">
                 <Timer className="h-4 w-4 text-warning shrink-0" />

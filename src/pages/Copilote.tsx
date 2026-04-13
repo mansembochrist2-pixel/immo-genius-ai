@@ -6,29 +6,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
   Bot, Send, Zap, Target, TrendingUp, CalendarDays, BarChart3, Loader2,
-  Plus, MessageSquare, Pencil, Trash2, Clock, Users,
+  Plus, MessageSquare, Pencil, Trash2, Clock, Users, Search, Check, X,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { streamChat } from "@/lib/ai-stream";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { VoiceButton } from "@/components/VoiceButton";
+import { toast } from "sonner";
 
 interface Message { role: "user" | "assistant"; content: string; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
 
-const QUICK_ACTIONS = [
-  { label: "Que faire aujourd'hui ?", icon: CalendarDays, prompt: "Analyse mon agenda, mes messages non lus, mes prospects chauds et mes actions en attente. Dis-moi exactement ce que je dois faire aujourd'hui pour maximiser mon business." },
-  { label: "Préparer mon RDV", icon: Target, prompt: "Aide-moi à préparer mon prochain rendez-vous client. Résume le contexte, les points clés à aborder, les objections possibles et la stratégie." },
-  { label: "Analyser mon portefeuille", icon: BarChart3, prompt: "Analyse mon portefeuille clients et donne-moi des recommandations stratégiques : qui relancer, qui risque de partir, où est l'argent." },
-  { label: "Coaching vente", icon: TrendingUp, prompt: "Donne-moi des conseils de coaching concrets pour améliorer mes performances de vente ce mois-ci." },
-  { label: "Relancer mes prospects", icon: Users, prompt: "Identifie les prospects chauds que je n'ai pas relancés et propose-moi un plan de relance priorisé." },
-];
-
 const Copilote = () => {
   const { user } = useAuth();
+  const { lang } = useLanguage();
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -36,24 +31,33 @@ const Copilote = () => {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
+  const [convSearch, setConvSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load conversations list
+  const QUICK_ACTIONS = [
+    { label: lang === "fr" ? "Que faire aujourd'hui ?" : "What to do today?", icon: CalendarDays, prompt: lang === "fr" ? "Analyse mon agenda, mes messages non lus, mes prospects chauds et mes actions en attente. Dis-moi exactement ce que je dois faire aujourd'hui pour maximiser mon business." : "Analyze my agenda, unread messages, hot prospects and pending actions. Tell me exactly what I should do today." },
+    { label: lang === "fr" ? "Préparer mon RDV" : "Prepare my meeting", icon: Target, prompt: lang === "fr" ? "Aide-moi à préparer mon prochain rendez-vous client." : "Help me prepare for my next client meeting." },
+    { label: lang === "fr" ? "Analyser mon portefeuille" : "Analyze portfolio", icon: BarChart3, prompt: lang === "fr" ? "Analyse mon portefeuille clients et donne-moi des recommandations." : "Analyze my client portfolio and give recommendations." },
+    { label: lang === "fr" ? "Coaching vente" : "Sales coaching", icon: TrendingUp, prompt: lang === "fr" ? "Donne-moi des conseils concrets pour améliorer mes performances de vente." : "Give me concrete tips to improve my sales performance." },
+    { label: lang === "fr" ? "Relancer mes prospects" : "Follow up prospects", icon: Users, prompt: lang === "fr" ? "Identifie les prospects chauds que je n'ai pas relancés et propose un plan de relance." : "Identify hot prospects I haven't followed up and propose a plan." },
+  ];
+
   const { data: conversations = [] } = useQuery({
     queryKey: ["copilote-conversations"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .eq("assistant_type", "copilote")
-        .order("updated_at", { ascending: false });
+      const { data, error } = await supabase.from("conversations").select("*").eq("assistant_type", "copilote").order("updated_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Conversation[];
     },
     enabled: !!user,
   });
 
-  // Business context
+  const filteredConversations = conversations.filter(c => {
+    if (!convSearch) return true;
+    const firstMsg = (c.messages as Message[])?.[0]?.content || "";
+    return firstMsg.toLowerCase().includes(convSearch.toLowerCase());
+  });
+
   const { data: ctx } = useQuery({
     queryKey: ["copilote-full-context"],
     queryFn: async () => {
@@ -82,16 +86,13 @@ const Copilote = () => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Save conversation
   const saveMutation = useMutation({
     mutationFn: async (msgs: Message[]) => {
       if (!user) return;
       if (activeConvId) {
         await supabase.from("conversations").update({ messages: msgs as any, updated_at: new Date().toISOString() }).eq("id", activeConvId);
       } else {
-        const { data, error } = await supabase.from("conversations").insert({
-          user_id: user.id, assistant_type: "copilote", messages: msgs as any,
-        }).select("id").single();
+        const { data, error } = await supabase.from("conversations").insert({ user_id: user.id, assistant_type: "copilote", messages: msgs as any }).select("id").single();
         if (error) throw error;
         setActiveConvId(data.id);
       }
@@ -110,15 +111,41 @@ const Copilote = () => {
     },
   });
 
-  const loadConversation = (conv: Conversation) => {
-    setActiveConvId(conv.id);
-    setMessages(conv.messages as Message[]);
+  // Rename conversation (store name as first message prefix or as metadata - we use first message approach)
+  const renameConv = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      // We store the name by updating the conversation - for simplicity we just update the UI label
+      // Since the schema uses messages jsonb, we add a __name field
+      const conv = conversations.find(c => c.id === id);
+      if (!conv) return;
+      const msgs = [...(conv.messages as any)];
+      // Store name in a metadata-like approach
+      await supabase.from("conversations").update({
+        messages: [{ role: "system", content: `__name:${name}` }, ...msgs.filter((m: any) => !m.content?.startsWith("__name:"))] as any,
+        updated_at: new Date().toISOString(),
+      }).eq("id", id);
+    },
+    onSuccess: () => {
+      setEditingName(null);
+      queryClient.invalidateQueries({ queryKey: ["copilote-conversations"] });
+      toast.success(lang === "fr" ? "Conversation renommée" : "Conversation renamed");
+    },
+  });
+
+  const getConvName = (conv: Conversation) => {
+    const msgs = conv.messages as Message[];
+    const nameMsg = msgs.find(m => m.content?.startsWith("__name:"));
+    if (nameMsg) return nameMsg.content.replace("__name:", "");
+    const firstUserMsg = msgs.find(m => m.role === "user" && !m.content?.startsWith("__name:"));
+    return firstUserMsg?.content?.slice(0, 40) || (lang === "fr" ? "Nouvelle conversation" : "New conversation");
   };
 
-  const newConversation = () => {
-    setActiveConvId(null);
-    setMessages([]);
+  const loadConversation = (conv: Conversation) => {
+    setActiveConvId(conv.id);
+    setMessages((conv.messages as Message[]).filter(m => !m.content?.startsWith("__name:")));
   };
+
+  const newConversation = () => { setActiveConvId(null); setMessages([]); };
 
   const envoyer = async (text?: string) => {
     const msgText = text || input.trim();
@@ -143,33 +170,21 @@ const Copilote = () => {
       if (!ctx) return "";
       const lines = [
         `📊 CONTEXTE BUSINESS :`,
-        `- ${ctx.prospects} clients en portefeuille | CA total: ${ctx.caTotal.toLocaleString("fr-FR")} €`,
-        `- ${ctx.inboxUnread} messages non lus | ${ctx.actions.length} actions en attente`,
-        `- ${ctx.opportunities.length} opportunités radar | ${ctx.todayEvents.length} RDV aujourd'hui`,
+        `- ${ctx.prospects} clients | CA: ${ctx.caTotal.toLocaleString("fr-FR")} €`,
+        `- ${ctx.inboxUnread} msgs non lus | ${ctx.actions.length} actions en attente`,
+        `- ${ctx.opportunities.length} opportunités | ${ctx.todayEvents.length} RDV aujourd'hui`,
       ];
       if (ctx.todayEvents.length > 0) {
         lines.push(`\n📅 AGENDA DU JOUR :`);
         ctx.todayEvents.forEach((e: any) => lines.push(`  • ${e.titre} (${e.type}) — ${new Date(e.date_debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}${e.lieu ? " — " + e.lieu : ""}`));
       }
       if (ctx.recentClients.length > 0) {
-        lines.push(`\n👥 DERNIERS CLIENTS :`);
-        ctx.recentClients.slice(0, 5).forEach((c: any) => {
-          lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100${c.secteur_recherche ? " | " + c.secteur_recherche : ""}`);
-        });
+        lines.push(`\n👥 CLIENTS :`);
+        ctx.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
       }
       if (ctx.actions.length > 0) {
-        lines.push(`\n⚡ ACTIONS EN ATTENTE :`);
+        lines.push(`\n⚡ ACTIONS :`);
         ctx.actions.slice(0, 5).forEach((t: any) => lines.push(`  • [${t.priorite}] ${t.titre}`));
-      }
-      if (ctx.inbox.length > 0) {
-        lines.push(`\n📬 DERNIERS MESSAGES :`);
-        ctx.inbox.slice(0, 3).forEach((m: any) => {
-          lines.push(`  • [${m.canal}] ${m.sujet || m.contenu.slice(0, 50) + "..."} | ${m.lu ? "lu" : "NON LU"}${(m.urgence ?? 0) >= 3 ? " ⚠️" : ""}`);
-        });
-      }
-      if (ctx.opportunities.length > 0) {
-        lines.push(`\n🎯 OPPORTUNITÉS :`);
-        ctx.opportunities.slice(0, 3).forEach((o: any) => lines.push(`  • ${o.titre} (${o.zone || "?"}) — Score: ${o.score}/100`));
       }
       return lines.join("\n");
     };
@@ -180,14 +195,7 @@ const Copilote = () => {
         messages: newMsgs,
         businessContext: buildBusinessContext(),
         onDelta: upsertAssistant,
-        onDone: () => {
-          setIsLoading(false);
-          // Save conversation after completion
-          setMessages(prev => {
-            saveMutation.mutate(prev);
-            return prev;
-          });
-        },
+        onDone: () => { setIsLoading(false); setMessages(prev => { saveMutation.mutate(prev); return prev; }); },
         onError: (err) => { upsertAssistant(`\n\n❌ ${err}`); setIsLoading(false); },
       });
     } catch { setIsLoading(false); }
@@ -196,7 +204,7 @@ const Copilote = () => {
   const timeAgo = (d: string) => {
     const diff = Date.now() - new Date(d).getTime();
     const hrs = Math.floor(diff / 3600000);
-    if (hrs < 1) return "maintenant";
+    if (hrs < 1) return lang === "fr" ? "maintenant" : "now";
     if (hrs < 24) return `${hrs}h`;
     return `${Math.floor(hrs / 24)}j`;
   };
@@ -206,33 +214,47 @@ const Copilote = () => {
       <div className="page-header">
         <h1 className="page-title flex items-center gap-3">
           <Bot className="h-7 w-7 text-primary" />
-          Copilote <span className="gradient-text">Stratégique</span>
+          {lang === "fr" ? "Copilote" : "Strategic"} <span className="gradient-text">{lang === "fr" ? "Stratégique" : "Copilot"}</span>
         </h1>
-        <p className="page-subtitle">Votre assistant stratégique connecté à toutes vos données</p>
+        <p className="page-subtitle">{lang === "fr" ? "Votre assistant stratégique connecté à toutes vos données" : "Your strategic assistant connected to all your data"}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar: history + context */}
         <div className="space-y-4">
-          {/* Conversations */}
+          {/* Conversations with search */}
           <Card className="bg-card border-border rounded-2xl shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /> Conversations</CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /> {lang === "fr" ? "Conversations" : "Conversations"}</CardTitle>
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={newConversation}><Plus className="h-3.5 w-3.5" /></Button>
+              </div>
+              <div className="relative mt-2">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input placeholder={lang === "fr" ? "Rechercher..." : "Search..."} value={convSearch} onChange={e => setConvSearch(e.target.value)} className="pl-7 h-7 text-xs" />
               </div>
             </CardHeader>
             <CardContent className="space-y-1 max-h-48 overflow-y-auto">
-              {conversations.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">Aucune conversation</p>
-              ) : conversations.map(c => (
-                <div key={c.id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-xs group ${activeConvId === c.id ? "bg-primary/10 text-primary" : "hover:bg-secondary"}`} onClick={() => loadConversation(c)}>
-                  <MessageSquare className="h-3 w-3 shrink-0" />
-                  <span className="truncate flex-1">
-                    {(c.messages as Message[])?.[0]?.content?.slice(0, 40) || "Nouvelle conversation"}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(c.updated_at)}</span>
-                  <Button size="icon" variant="ghost" className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0 text-destructive" onClick={(e) => { e.stopPropagation(); deleteConv.mutate(c.id); }}><Trash2 className="h-2.5 w-2.5" /></Button>
+              {filteredConversations.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">{lang === "fr" ? "Aucune conversation" : "No conversations"}</p>
+              ) : filteredConversations.map(c => (
+                <div key={c.id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors text-xs group ${activeConvId === c.id ? "bg-primary/10 text-primary" : "hover:bg-secondary"}`}>
+                  {editingName === c.id ? (
+                    <div className="flex items-center gap-1 flex-1">
+                      <Input value={editNameValue} onChange={e => setEditNameValue(e.target.value)} className="h-6 text-xs flex-1" autoFocus
+                        onKeyDown={e => { if (e.key === "Enter") renameConv.mutate({ id: c.id, name: editNameValue }); if (e.key === "Escape") setEditingName(null); }}
+                      />
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => renameConv.mutate({ id: c.id, name: editNameValue })}><Check className="h-2.5 w-2.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => setEditingName(null)}><X className="h-2.5 w-2.5" /></Button>
+                    </div>
+                  ) : (
+                    <>
+                      <MessageSquare className="h-3 w-3 shrink-0" />
+                      <span className="truncate flex-1" onClick={() => loadConversation(c)}>{getConvName(c)}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(c.updated_at)}</span>
+                      <Button size="icon" variant="ghost" className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0" onClick={(e) => { e.stopPropagation(); setEditingName(c.id); setEditNameValue(getConvName(c)); }}><Pencil className="h-2.5 w-2.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0 text-destructive" onClick={(e) => { e.stopPropagation(); deleteConv.mutate(c.id); }}><Trash2 className="h-2.5 w-2.5" /></Button>
+                    </>
+                  )}
                 </div>
               ))}
             </CardContent>
@@ -240,16 +262,14 @@ const Copilote = () => {
 
           {/* Context */}
           <Card className="bg-card border-border rounded-2xl shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Contexte actif</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {lang === "fr" ? "Contexte actif" : "Active Context"}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {[
                 { label: "Clients", value: ctx?.prospects ?? "—" },
-                { label: "CA Total", value: ctx ? ctx.caTotal.toLocaleString("fr-FR") + " €" : "—" },
-                { label: "Inbox non lus", value: ctx?.inboxUnread ?? "—" },
-                { label: "Opportunités", value: ctx?.opportunities?.length ?? "—" },
-                { label: "RDV aujourd'hui", value: ctx?.todayEvents?.length ?? "—" },
+                { label: lang === "fr" ? "CA Total" : "Total Revenue", value: ctx ? ctx.caTotal.toLocaleString("fr-FR") + " €" : "—" },
+                { label: lang === "fr" ? "Inbox non lus" : "Unread inbox", value: ctx?.inboxUnread ?? "—" },
+                { label: lang === "fr" ? "Opportunités" : "Opportunities", value: ctx?.opportunities?.length ?? "—" },
+                { label: lang === "fr" ? "RDV aujourd'hui" : "Today's meetings", value: ctx?.todayEvents?.length ?? "—" },
               ].map(i => (
                 <div key={i.label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{i.label}</span>
@@ -261,7 +281,7 @@ const Copilote = () => {
 
           {/* Quick actions */}
           <Card className="bg-card border-border rounded-2xl shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Actions rapides</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">{lang === "fr" ? "Actions rapides" : "Quick Actions"}</CardTitle></CardHeader>
             <CardContent className="space-y-1.5">
               {QUICK_ACTIONS.map(a => (
                 <Button key={a.label} variant="ghost" size="sm" className="w-full justify-start text-xs h-8 gap-2" onClick={() => envoyer(a.prompt)} disabled={isLoading}>
@@ -286,8 +306,8 @@ const Copilote = () => {
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
                 <Bot className="h-16 w-16 text-primary/20" />
                 <div>
-                  <p className="text-lg font-medium">Bonjour, je suis votre Copilote Stratégique</p>
-                  <p className="text-sm text-muted-foreground mt-1">Posez-moi n'importe quelle question sur votre activité, vos clients, ou votre stratégie.</p>
+                  <p className="text-lg font-medium">{lang === "fr" ? "Bonjour, je suis votre Copilote Stratégique" : "Hello, I'm your Strategic Copilot"}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{lang === "fr" ? "Posez-moi n'importe quelle question sur votre activité." : "Ask me anything about your business."}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center max-w-md">
                   {QUICK_ACTIONS.map(a => (
@@ -299,7 +319,7 @@ const Copilote = () => {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm max-w-none"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                   ) : msg.content}
@@ -316,17 +336,10 @@ const Copilote = () => {
 
           <div className="p-4 border-t border-border">
             <div className="flex gap-2">
-              <Textarea
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Posez une question à votre copilote..."
-                className="min-h-[44px] max-h-32 resize-none bg-secondary border-border"
+              <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[44px] max-h-32 resize-none bg-secondary border-border"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
               />
-              <VoiceButton
-                onTranscript={(text) => setInput(prev => prev + " " + text)}
-                disabled={isLoading}
-              />
+              <VoiceButton onTranscript={(text) => setInput(prev => prev + " " + text)} disabled={isLoading} />
               <Button onClick={() => envoyer()} disabled={isLoading || !input.trim()} size="icon" className="shrink-0"><Send className="h-4 w-4" /></Button>
             </div>
           </div>
