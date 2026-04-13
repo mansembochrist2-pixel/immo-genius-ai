@@ -34,6 +34,16 @@ const Copilote = () => {
   const [convSearch, setConvSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Check for prefilled message from Radar
+  useEffect(() => {
+    const prefill = sessionStorage.getItem("copilote_prefill");
+    if (prefill) {
+      sessionStorage.removeItem("copilote_prefill");
+      setTimeout(() => envoyer(prefill), 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const QUICK_ACTIONS = [
     { label: lang === "fr" ? "Que faire aujourd'hui ?" : "What to do today?", icon: CalendarDays, prompt: lang === "fr" ? "Analyse mon agenda, mes messages non lus, mes prospects chauds et mes actions en attente. Dis-moi exactement ce que je dois faire aujourd'hui pour maximiser mon business." : "Analyze my agenda, unread messages, hot prospects and pending actions. Tell me exactly what I should do today." },
     { label: lang === "fr" ? "Préparer mon RDV" : "Prepare my meeting", icon: Target, prompt: lang === "fr" ? "Aide-moi à préparer mon prochain rendez-vous client." : "Help me prepare for my next client meeting." },
