@@ -33,7 +33,7 @@ const Signup = () => {
       toast.error(error);
     } else {
       toast.success("Vérifiez votre email pour confirmer votre inscription");
-      navigate("/login");
+      navigate("/onboarding");
     }
   };
 
