@@ -39,7 +39,8 @@ const Onboarding = () => {
       await supabase.from("profiles").update({
         agency_name: agentType === "agence" ? "Mon agence" : null,
         zone_principale: zone || null,
-      }).eq("id", user.id);
+        onboarding_completed: true,
+      } as any).eq("id", user.id);
     }
     navigate("/dashboard");
   };
