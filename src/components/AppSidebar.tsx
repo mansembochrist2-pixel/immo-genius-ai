@@ -16,7 +16,7 @@ export function AppSidebar() {
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
   const navItems = [
-    { title: t("nav.dashboard"), url: "/", icon: LayoutDashboard },
+    { title: t("nav.dashboard"), url: "/dashboard", icon: LayoutDashboard },
     { title: t("nav.inbox"), url: "/inbox", icon: Mail },
     { title: t("nav.agenda"), url: "/agenda", icon: CalendarDays },
     { title: t("nav.clients"), url: "/clients", icon: Users },
