@@ -377,6 +377,7 @@ export type Database = {
           id: string
           logo_url: string | null
           objectif_ca: number | null
+          onboarding_completed: boolean
           phone: string | null
           plan: string
           preferred_language: string
@@ -391,6 +392,7 @@ export type Database = {
           id: string
           logo_url?: string | null
           objectif_ca?: number | null
+          onboarding_completed?: boolean
           phone?: string | null
           plan?: string
           preferred_language?: string
@@ -405,6 +407,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           objectif_ca?: number | null
+          onboarding_completed?: boolean
           phone?: string | null
           plan?: string
           preferred_language?: string
