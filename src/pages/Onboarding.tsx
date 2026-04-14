@@ -41,7 +41,7 @@ const Onboarding = () => {
         zone_principale: zone || null,
       }).eq("id", user.id);
     }
-    navigate("/");
+    navigate("/dashboard");
   };
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));

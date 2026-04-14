@@ -45,7 +45,7 @@ const Index = () => {
           <span className="text-xl font-bold font-display gradient-text">Estate AI</span>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <Button onClick={() => navigate("/")} size="sm">
+              <Button onClick={() => navigate("/dashboard")} size="sm">
                 Mon dashboard <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
