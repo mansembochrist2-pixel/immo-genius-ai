@@ -69,7 +69,7 @@ const Pricing = () => {
       </Card>
 
       <div className="mt-8 text-center relative z-10">
-        <Button variant="link" className="text-muted-foreground hover:text-primary" onClick={() => navigate(user ? "/" : "/login")}>
+        <Button variant="link" className="text-muted-foreground hover:text-primary" onClick={() => navigate(user ? "/dashboard" : "/login")}>
           {user ? "Retour au dashboard" : "Déjà un compte ? Connectez-vous"}
         </Button>
       </div>
