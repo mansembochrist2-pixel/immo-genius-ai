@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -108,8 +109,8 @@ const EstimationIA = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">{lang === "fr" ? "Surface (m²)" : "Area (m²)"}</Label><Input type="number" value={form.surface} onChange={e => setForm({ ...form, surface: e.target.value })} className="mt-1 bg-muted/10 border-border/30" /></div>
-                <div><Label className="text-xs">{lang === "fr" ? "Nombre de pièces" : "Rooms"}</Label><Input type="number" value={form.pieces} onChange={e => setForm({ ...form, pieces: e.target.value })} className="mt-1 bg-muted/10 border-border/30" /></div>
+                <div><Label className="text-xs">{lang === "fr" ? "Surface (m²)" : "Area (m²)"}</Label><NumberInput value={form.surface} onChange={v => setForm({ ...form, surface: v })} className="mt-1 bg-muted/10 border-border/30" /></div>
+                <div><Label className="text-xs">{lang === "fr" ? "Nombre de pièces" : "Rooms"}</Label><NumberInput value={form.pieces} onChange={v => setForm({ ...form, pieces: v })} className="mt-1 bg-muted/10 border-border/30" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs">{lang === "fr" ? "Étage" : "Floor"}</Label><Input value={form.etage} onChange={e => setForm({ ...form, etage: e.target.value })} className="mt-1 bg-muted/10 border-border/30" placeholder="3ème" /></div>
@@ -135,7 +136,7 @@ const EstimationIA = () => {
                     <SelectContent>{["A", "B", "C", "D", "E", "F", "G"].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label className="text-xs">{lang === "fr" ? "Année construction" : "Year built"}</Label><Input value={form.annee_construction} onChange={e => setForm({ ...form, annee_construction: e.target.value })} className="mt-1 bg-muted/10 border-border/30" placeholder="1975" /></div>
+                <div><Label className="text-xs">{lang === "fr" ? "Année construction" : "Year built"}</Label><NumberInput value={form.annee_construction} onChange={v => setForm({ ...form, annee_construction: v })} format="plain" className="mt-1 bg-muted/10 border-border/30" placeholder="1975" /></div>
               </div>
 
               {/* Options Oui/Non */}
