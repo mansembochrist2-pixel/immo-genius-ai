@@ -236,6 +236,87 @@ const EstimationIA = () => {
               </CardContent>
             </Card>
 
+            {/* === SECTION SOURCES & DATA DVF === */}
+            <Card className="bg-card/60 border-border/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Database className="h-4 w-4 text-primary" /> {lang === "fr" ? "Sources & Données réelles" : "Sources & Real Data"}
+                  {dvfData?.source && (
+                    <Badge variant="outline" className="text-[9px] ml-auto gap-1">
+                      <a href={dvfData.url_source || "https://app.dvf.etalab.gouv.fr/"} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                        DVF data.gouv <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingDvf ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    {lang === "fr" ? "Récupération des ventes officielles DVF..." : "Fetching official DVF sales..."}
+                  </div>
+                ) : dvfData?.ventes && dvfData.ventes.length > 0 ? (
+                  <div className="space-y-3">
+                    {/* Indicateurs de tension */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-muted/10 rounded p-2 text-center">
+                        <p className="text-[9px] uppercase text-muted-foreground">{lang === "fr" ? "Prix m² médian" : "Median €/m²"}</p>
+                        <p className="text-sm font-bold mt-0.5">{dvfData.prix_m2_median?.toLocaleString("fr-FR") || "—"} €</p>
+                      </div>
+                      <div className="bg-muted/10 rounded p-2 text-center">
+                        <p className="text-[9px] uppercase text-muted-foreground">{lang === "fr" ? "Tension marché" : "Market tension"}</p>
+                        <p className="text-sm font-bold mt-0.5 flex items-center justify-center gap-1">
+                          <Activity className="h-3 w-3" />
+                          {dvfData.tension_marche || "—"}
+                        </p>
+                      </div>
+                      <div className="bg-muted/10 rounded p-2 text-center">
+                        <p className="text-[9px] uppercase text-muted-foreground">{lang === "fr" ? "Ventes 12 mois" : "Sales 12mo"}</p>
+                        <p className="text-sm font-bold mt-0.5">{dvfData.volume_12_mois || 0}</p>
+                      </div>
+                    </div>
+
+                    {/* 3 dernières ventes */}
+                    <div>
+                      <p className="text-[10px] uppercase text-muted-foreground mb-1.5">
+                        {lang === "fr" ? `3 ventes similaires récentes — ${dvfData.ville}` : `3 recent similar sales — ${dvfData.ville}`}
+                      </p>
+                      <div className="space-y-1.5">
+                        {dvfData.ventes.map((v: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between bg-muted/5 rounded px-2.5 py-1.5 text-xs">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">
+                                {[v.adresse_numero, v.adresse_nom_voie].filter(Boolean).join(" ") || v.type_local}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {v.surface_relle_bati} m² · {v.nombre_pieces_principales || "?"} p · {new Date(v.date_mutation).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0 ml-2">
+                              <p className="font-bold">{v.valeur_fonciere?.toLocaleString("fr-FR")} €</p>
+                              <p className="text-[10px] text-primary">{v.prix_m2?.toLocaleString("fr-FR")} €/m²</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-muted-foreground italic">
+                      {lang === "fr" ? "Données officielles publiées par la DGFiP via Etalab. Mise à jour : " : "Official data published by DGFiP via Etalab. Updated: "}
+                      {new Date(dvfData.date_extraction).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground italic py-2">
+                    {dvfData?.message || (lang === "fr"
+                      ? "Aucune vente DVF correspondante trouvée pour ce secteur — l'estimation reste basée sur l'analyse IA du marché."
+                      : "No matching DVF sales found — estimation relies on AI market analysis.")}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {[
               { key: "analyse_marche", title: lang === "fr" ? "Analyse du marché local" : "Local Market Analysis", icon: BarChart3 },
               { key: "comparaison_quartier", title: lang === "fr" ? "Comparaison quartier" : "Neighborhood Comparison", icon: MapPin },
