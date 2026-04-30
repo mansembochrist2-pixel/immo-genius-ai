@@ -81,10 +81,23 @@ const EstimationIA = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-card/60 border-border/30">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               <Home className="h-4 w-4 text-primary" /> {lang === "fr" ? "Informations du bien" : "Property Information"}
             </CardTitle>
+            <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+              setForm({
+                adresse: "24 rue Oberkampf, 75011 Paris",
+                surface: "62", pieces: "3", etage: "4ème", etat: "bon",
+                dpe: "D", annee_construction: "1925",
+                parking: false, cave: true, balcon: true,
+                type_bien: "appartement", ascenseur: true, gardien: false,
+                details_supplementaires: "Vue dégagée, double exposition, proche métro Parmentier (ligne 3), travaux de rafraîchissement récents.",
+              });
+              toast.success(lang === "fr" ? "Secteur de test chargé" : "Test sector loaded");
+            }}>
+              <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un secteur de test" : "Load test sector"}
+            </Button>
           </CardHeader>
           <CardContent>
             <form onSubmit={estimer} className="space-y-4">
