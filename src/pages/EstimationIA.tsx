@@ -21,6 +21,7 @@ import { toast } from "sonner";
 const EstimationIA = () => {
   const { user } = useAuth();
   const { lang } = useLanguage();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [editableResult, setEditableResult] = useState<any>(null);
