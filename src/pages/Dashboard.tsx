@@ -206,11 +206,10 @@ const Dashboard = () => {
             </div>
             {editingCA ? (
               <div className="mt-2 space-y-2">
-                <Input
-                  type="number"
+                <NumberInput
                   value={caInput}
-                  onChange={e => setCaInput(e.target.value)}
-                  placeholder="50000"
+                  onChange={v => setCaInput(v)}
+                  placeholder="50 000"
                   className="h-8 text-sm"
                   autoFocus
                   onKeyDown={e => { if (e.key === "Enter") updateCaMutation.mutate(Number(caInput)); if (e.key === "Escape") setEditingCA(false); }}
