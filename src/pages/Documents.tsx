@@ -11,7 +11,7 @@ import {
   Palette, FileText, Mail, Sparkles, Wand2, Copy, Save, MessageSquare,
   Hash, Lightbulb, Loader2, Download, Send, FileSignature, Upload, Pencil,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
