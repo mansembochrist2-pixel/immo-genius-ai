@@ -228,8 +228,18 @@ const EstimationIA = () => {
               </Card>
             ))}
 
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={downloadPDF}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger le rapport" : "Download report"}</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button className="flex-1 min-w-[180px]" onClick={downloadPDF}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger le rapport" : "Download report"}</Button>
+              <Button variant="default" className="flex-1 min-w-[180px] bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => {
+                sessionStorage.setItem("annonce_prefill", JSON.stringify({
+                  adresse: form.adresse,
+                  prix: editableResult.recommandation_prix?.toString() || editableResult.prix_moyen?.toString() || "",
+                  surface: form.surface,
+                  description: `${form.type_bien} ${form.pieces ? form.pieces + " pièces" : ""}${form.etage ? ", étage " + form.etage : ""}, état ${form.etat}${form.dpe ? ", DPE " + form.dpe : ""}. ${[form.parking && "Parking", form.cave && "Cave", form.balcon && "Balcon/Terrasse", form.ascenseur && "Ascenseur", form.gardien && "Gardien"].filter(Boolean).join(", ")}. ${form.details_supplementaires || ""}`.trim(),
+                }));
+                toast.success(lang === "fr" ? "Estimation envoyée vers Documents" : "Estimation sent to Documents");
+                navigate("/documents");
+              }}><Wand2 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</Button>
               <Button variant="outline" onClick={() => toast.info(lang === "fr" ? "Sauvegarde liée au client à venir" : "Client-linked save coming soon")}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
             </div>
           </div>
