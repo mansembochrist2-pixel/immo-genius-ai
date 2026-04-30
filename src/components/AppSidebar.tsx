@@ -9,21 +9,22 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function AppSidebar() {
   const { logout, user } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
   const navItems = [
-    { title: t("nav.dashboard"), url: "/dashboard", icon: LayoutDashboard },
-    { title: t("nav.inbox"), url: "/inbox", icon: Mail },
-    { title: t("nav.agenda"), url: "/agenda", icon: CalendarDays },
-    { title: t("nav.clients"), url: "/clients", icon: Users },
-    { title: t("nav.documents"), url: "/documents", icon: FileEdit },
-    { title: t("nav.estimation"), url: "/estimation", icon: TrendingUp },
-    { title: t("nav.radar"), url: "/radar", icon: Radar },
-    { title: t("nav.copilote"), url: "/copilote", icon: Bot },
+    { title: t("nav.dashboard"), url: "/dashboard", icon: LayoutDashboard, hint: lang === "fr" ? "Vue d'ensemble : KPIs, ventes, prospects chauds, actions du jour." : "Overview: KPIs, sales, hot prospects, today's actions." },
+    { title: t("nav.inbox"), url: "/inbox", icon: Mail, hint: lang === "fr" ? "Boîte unifiée email/SMS analysée par l'IA (intention, urgence, réponses)." : "Unified inbox analyzed by AI (intent, urgency, replies)." },
+    { title: t("nav.agenda"), url: "/agenda", icon: CalendarDays, hint: lang === "fr" ? "Agenda intelligent avec briefs IA avant chaque RDV." : "Smart calendar with AI briefs before each meeting." },
+    { title: t("nav.clients"), url: "/clients", icon: Users, hint: lang === "fr" ? "CRM enrichi : scores IA, motivation, freins, prochaine action." : "Enriched CRM: AI scores, motivation, blockers, next action." },
+    { title: t("nav.documents"), url: "/documents", icon: FileEdit, hint: lang === "fr" ? "Mandats, annonces et marketing générés par l'IA, modifiables." : "AI-generated mandates, listings and marketing, editable." },
+    { title: t("nav.estimation"), url: "/estimation", icon: TrendingUp, hint: lang === "fr" ? "Estimation IA basée sur DVF, INSEE et données locales." : "AI estimation based on DVF, INSEE and local data." },
+    { title: t("nav.radar"), url: "/radar", icon: Radar, hint: lang === "fr" ? "Détection d'opportunités vendeurs et plans d'attaque commerciaux." : "Detect seller opportunities and sales attack plans." },
+    { title: t("nav.copilote"), url: "/copilote", icon: Bot, hint: lang === "fr" ? "Copilote stratégique connecté à toutes vos données business." : "Strategic copilot connected to all your business data." },
   ];
 
   const legalItems = [
