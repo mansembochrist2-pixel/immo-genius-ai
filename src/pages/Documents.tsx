@@ -51,6 +51,22 @@ const Studio = () => {
   const [loadingAnnonce, setLoadingAnnonce] = useState(false);
   const [editableAnnonce, setEditableAnnonce] = useState<Record<string, string>>({});
   const [editingAnnonceField, setEditingAnnonceField] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("mandats");
+
+  // Prefill from Estimation
+  useEffect(() => {
+    const raw = sessionStorage.getItem("annonce_prefill");
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        setAnnonceForm(prev => ({ ...prev, ...data }));
+        setActiveTab("annonces");
+        toast.success(lang === "fr" ? "Données d'estimation chargées" : "Estimation data loaded");
+      } catch {}
+      sessionStorage.removeItem("annonce_prefill");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- Marketing state ---
   const [marketingForm, setMarketingForm] = useState({ type: "email", bien: "", cible: "", ton: "professionnel" });
