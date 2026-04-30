@@ -1,10 +1,7 @@
-import { ReactNode, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { ReactNode } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
-import { supabase } from "@/integrations/supabase/client";
 import realEstateBg from "@/assets/real-estate-bg.jpg";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
