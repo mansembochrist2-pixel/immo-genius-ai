@@ -412,6 +412,14 @@ const Studio = () => {
                               </div>
                             </div>
                           )}
+                          <div className="flex gap-2 pt-2 border-t border-border/20">
+                            <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => downloadAnnonceDocx(v as any)}>
+                              <Download className="h-3 w-3" /> {lang === "fr" ? "Word .docx" : "Word .docx"}
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => openInCanva(v as any)}>
+                              <Palette className="h-3 w-3" /> {lang === "fr" ? "Ouvrir dans Canva" : "Open in Canva"}
+                            </Button>
+                          </div>
                         </div>
                       </TabsContent>
                     ))}
