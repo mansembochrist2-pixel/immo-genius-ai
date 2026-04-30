@@ -11,7 +11,7 @@ import {
   Palette, FileText, Mail, Sparkles, Wand2, Copy, Save, MessageSquare,
   Hash, Lightbulb, Loader2, Download, Send, FileSignature, Upload, Pencil,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -51,6 +51,22 @@ const Studio = () => {
   const [loadingAnnonce, setLoadingAnnonce] = useState(false);
   const [editableAnnonce, setEditableAnnonce] = useState<Record<string, string>>({});
   const [editingAnnonceField, setEditingAnnonceField] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("mandats");
+
+  // Prefill from Estimation
+  useEffect(() => {
+    const raw = sessionStorage.getItem("annonce_prefill");
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        setAnnonceForm(prev => ({ ...prev, ...data }));
+        setActiveTab("annonces");
+        toast.success(lang === "fr" ? "Données d'estimation chargées" : "Estimation data loaded");
+      } catch {}
+      sessionStorage.removeItem("annonce_prefill");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- Marketing state ---
   const [marketingForm, setMarketingForm] = useState({ type: "email", bien: "", cible: "", ton: "professionnel" });
@@ -173,7 +189,7 @@ const Studio = () => {
         <p className="page-subtitle">{t("docs.subtitle")}</p>
       </div>
 
-      <Tabs defaultValue="mandats" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-card/60">
           <TabsTrigger value="mandats" className="flex items-center gap-2 text-xs"><FileSignature className="h-3.5 w-3.5" /> {t("docs.mandats")}</TabsTrigger>
           <TabsTrigger value="annonces" className="flex items-center gap-2 text-xs"><FileText className="h-3.5 w-3.5" /> {t("docs.annonces")}</TabsTrigger>

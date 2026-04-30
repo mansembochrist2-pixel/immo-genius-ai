@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   TrendingUp, MapPin, Loader2, Sparkles, Download, Save, Pencil,
-  Home, BarChart3, Target, ArrowRight,
+  Home, BarChart3, Target, ArrowRight, Wand2,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -20,6 +21,7 @@ import { toast } from "sonner";
 const EstimationIA = () => {
   const { user } = useAuth();
   const { lang } = useLanguage();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [editableResult, setEditableResult] = useState<any>(null);
@@ -79,10 +81,23 @@ const EstimationIA = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-card/60 border-border/30">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               <Home className="h-4 w-4 text-primary" /> {lang === "fr" ? "Informations du bien" : "Property Information"}
             </CardTitle>
+            <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+              setForm({
+                adresse: "24 rue Oberkampf, 75011 Paris",
+                surface: "62", pieces: "3", etage: "4ème", etat: "bon",
+                dpe: "D", annee_construction: "1925",
+                parking: false, cave: true, balcon: true,
+                type_bien: "appartement", ascenseur: true, gardien: false,
+                details_supplementaires: "Vue dégagée, double exposition, proche métro Parmentier (ligne 3), travaux de rafraîchissement récents.",
+              });
+              toast.success(lang === "fr" ? "Secteur de test chargé" : "Test sector loaded");
+            }}>
+              <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un secteur de test" : "Load test sector"}
+            </Button>
           </CardHeader>
           <CardContent>
             <form onSubmit={estimer} className="space-y-4">
@@ -226,8 +241,18 @@ const EstimationIA = () => {
               </Card>
             ))}
 
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={downloadPDF}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger le rapport" : "Download report"}</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button className="flex-1 min-w-[180px]" onClick={downloadPDF}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger le rapport" : "Download report"}</Button>
+              <Button variant="default" className="flex-1 min-w-[180px] bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => {
+                sessionStorage.setItem("annonce_prefill", JSON.stringify({
+                  adresse: form.adresse,
+                  prix: editableResult.recommandation_prix?.toString() || editableResult.prix_moyen?.toString() || "",
+                  surface: form.surface,
+                  description: `${form.type_bien} ${form.pieces ? form.pieces + " pièces" : ""}${form.etage ? ", étage " + form.etage : ""}, état ${form.etat}${form.dpe ? ", DPE " + form.dpe : ""}. ${[form.parking && "Parking", form.cave && "Cave", form.balcon && "Balcon/Terrasse", form.ascenseur && "Ascenseur", form.gardien && "Gardien"].filter(Boolean).join(", ")}. ${form.details_supplementaires || ""}`.trim(),
+                }));
+                toast.success(lang === "fr" ? "Estimation envoyée vers Documents" : "Estimation sent to Documents");
+                navigate("/documents");
+              }}><Wand2 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</Button>
               <Button variant="outline" onClick={() => toast.info(lang === "fr" ? "Sauvegarde liée au client à venir" : "Client-linked save coming soon")}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
             </div>
           </div>

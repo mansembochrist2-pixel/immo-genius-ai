@@ -219,7 +219,23 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" className="flex-1 text-xs gap-1" onClick={() => navigate("/copilote")}><Play className="h-3 w-3" /> {lang === "fr" ? "Lancer l'action" : "Launch action"}</Button>
+            <Button size="sm" className="flex-1 text-xs gap-1" onClick={() => {
+              const ctx = `Contexte client : ${client.nom}\n` +
+                `- Statut : ${client.statut}\n` +
+                (client.type_projet ? `- Projet : ${client.type_projet}\n` : "") +
+                (client.budget_min || client.budget_max ? `- Budget : ${client.budget_min?.toLocaleString("fr-FR") || "?"} – ${client.budget_max?.toLocaleString("fr-FR") || "?"} €\n` : "") +
+                (client.secteur_recherche ? `- Secteur : ${client.secteur_recherche}\n` : "") +
+                (client.type_bien_recherche ? `- Type de bien : ${client.type_bien_recherche}\n` : "") +
+                (client.delai_projet ? `- Délai : ${client.delai_projet}\n` : "") +
+                (client.motivation ? `- Motivation : ${client.motivation}\n` : "") +
+                (client.freins ? `- Freins : ${client.freins}\n` : "") +
+                (client.score_ia != null ? `- Score IA : ${client.score_ia}/100\n` : "") +
+                (client.taux_signature != null ? `- Probabilité signature : ${client.taux_signature}%\n` : "") +
+                (client.resume_ia ? `\nRésumé IA précédent : ${client.resume_ia}\n` : "") +
+                `\nQuelle est la prochaine meilleure action commerciale à mener avec ce client ? Donne-moi un plan concret.`;
+              sessionStorage.setItem("copilote_prefill", ctx);
+              navigate("/copilote");
+            }}><Brain className="h-3 w-3" /> {lang === "fr" ? "Demander au Copilote" : "Ask Copilot"}</Button>
             <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate("/documents")}><FileText className="h-3 w-3" /> {lang === "fr" ? "Générer document" : "Generate doc"}</Button>
             <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate("/agenda")}><CalendarDays className="h-3 w-3" /> {t("common.agenda")}</Button>
           </div>
