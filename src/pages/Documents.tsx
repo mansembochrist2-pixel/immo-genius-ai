@@ -317,7 +317,7 @@ const Studio = () => {
                     className="bg-muted/5 border-border/20 text-sm min-h-[400px] font-mono leading-relaxed"
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" className="flex-1 gap-1" onClick={downloadMandatPDF}><Download className="h-3.5 w-3.5" /> {t("docs.download_pdf")}</Button>
+                    <Button size="sm" className="flex-1 gap-1" onClick={downloadMandatDocx}><Download className="h-3.5 w-3.5" /> {lang === "fr" ? "Télécharger .docx" : "Download .docx"}</Button>
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => copier(mandatContent)}><Copy className="h-3.5 w-3.5" /> {t("docs.copy")}</Button>
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => toast.info(lang === "fr" ? "Envoi par email — connecteur à configurer" : "Email sending — connector to configure")}><Send className="h-3.5 w-3.5" /> {lang === "fr" ? "Envoyer" : "Send"}</Button>
                   </div>
