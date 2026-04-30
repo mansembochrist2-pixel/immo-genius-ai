@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp, MapPin, Loader2, Sparkles, Download, Save, Pencil,
-  Home, BarChart3, Target, ArrowRight, Wand2,
+  Home, BarChart3, Target, ArrowRight, Wand2, Database, ExternalLink, Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,8 @@ const EstimationIA = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [editableResult, setEditableResult] = useState<any>(null);
+  const [dvfData, setDvfData] = useState<any>(null);
+  const [loadingDvf, setLoadingDvf] = useState(false);
   const [form, setForm] = useState({
     adresse: "", surface: "", pieces: "", etage: "", etat: "bon",
     dpe: "", annee_construction: "", parking: false, cave: false, balcon: false,
@@ -36,6 +39,18 @@ const EstimationIA = () => {
     e.preventDefault();
     if (!form.adresse) { toast.error(lang === "fr" ? "Adresse requise" : "Address required"); return; }
     setLoading(true);
+    setDvfData(null);
+    setLoadingDvf(true);
+
+    // Lance l'estimation IA et la requête DVF en parallèle
+    const dvfPromise = supabase.functions
+      .invoke("dvf-lookup", {
+        body: { adresse: form.adresse, surface: form.surface ? Number(form.surface) : undefined, type_bien: form.type_bien },
+      })
+      .then(({ data }) => { setDvfData(data); })
+      .catch((err) => { console.error("DVF lookup failed", err); })
+      .finally(() => setLoadingDvf(false));
+
     try {
       const { data, error } = await supabase.functions.invoke("generate-estimation", {
         body: {
@@ -53,6 +68,7 @@ const EstimationIA = () => {
       toast.error(e.message || (lang === "fr" ? "Erreur lors de l'estimation" : "Estimation error"));
     } finally {
       setLoading(false);
+      await dvfPromise;
     }
   };
 
