@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { streamChat } from "@/lib/ai-stream";
+import { exportTextToDocx } from "@/lib/docx-export";
 import { VoiceButton } from "@/components/VoiceButton";
 
 const MANDAT_TYPES = [
@@ -92,16 +93,49 @@ const Studio = () => {
     }
   };
 
-  const downloadMandatPDF = () => {
+  const downloadMandatDocx = async () => {
     if (!mandatContent) return;
-    const blob = new Blob([mandatContent], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${mandatType.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Document téléchargé");
+    try {
+      await exportTextToDocx(
+        mandatContent,
+        `${mandatType.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.docx`,
+        {
+          title: mandatType,
+          subtitle: `Document généré le ${new Date().toLocaleDateString("fr-FR")} — Estate AI`,
+        }
+      );
+      toast.success(lang === "fr" ? "Mandat .docx téléchargé" : "Mandate .docx downloaded");
+    } catch (e: any) {
+      toast.error(e.message || "Erreur d'export");
+    }
+  };
+
+  const downloadAnnonceDocx = async (version: "courte" | "longue" | "premium") => {
+    const content = editableAnnonce[`version_${version}`] || annonce?.[`version_${version}`];
+    if (!content) return;
+    try {
+      await exportTextToDocx(
+        content,
+        `Annonce_${version}_${(annonceForm.adresse || "bien").replace(/[^a-zA-Z0-9]/g, "_").slice(0, 30)}.docx`,
+        {
+          title: annonce?.titre_accrocheur || `Annonce immobilière — ${version}`,
+          subtitle: `${annonceForm.adresse}${annonceForm.surface ? " · " + annonceForm.surface + " m²" : ""}${annonceForm.prix ? " · " + Number(annonceForm.prix).toLocaleString("fr-FR") + " €" : ""}`,
+        }
+      );
+      toast.success(lang === "fr" ? "Annonce .docx téléchargée" : "Listing .docx downloaded");
+    } catch (e: any) {
+      toast.error(e.message || "Erreur d'export");
+    }
+  };
+
+  const openInCanva = (version: "courte" | "longue" | "premium") => {
+    const content = editableAnnonce[`version_${version}`] || annonce?.[`version_${version}`];
+    if (!content) return;
+    const fullText = `${annonce?.titre_accrocheur || ""}\n\n${content}\n\n${annonceForm.adresse}${annonceForm.prix ? "\n" + Number(annonceForm.prix).toLocaleString("fr-FR") + " €" : ""}`;
+    navigator.clipboard.writeText(fullText).then(() => {
+      toast.success(lang === "fr" ? "Texte copié — Canva s'ouvre, collez avec Cmd/Ctrl+V" : "Text copied — Canva is opening, paste with Cmd/Ctrl+V");
+      window.open("https://www.canva.com/create/real-estate-flyers/", "_blank", "noopener,noreferrer");
+    });
   };
 
   const genererAnnonce = async (e: React.FormEvent) => {
@@ -283,7 +317,7 @@ const Studio = () => {
                     className="bg-muted/5 border-border/20 text-sm min-h-[400px] font-mono leading-relaxed"
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" className="flex-1 gap-1" onClick={downloadMandatPDF}><Download className="h-3.5 w-3.5" /> {t("docs.download_pdf")}</Button>
+                    <Button size="sm" className="flex-1 gap-1" onClick={downloadMandatDocx}><Download className="h-3.5 w-3.5" /> {lang === "fr" ? "Télécharger .docx" : "Download .docx"}</Button>
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => copier(mandatContent)}><Copy className="h-3.5 w-3.5" /> {t("docs.copy")}</Button>
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => toast.info(lang === "fr" ? "Envoi par email — connecteur à configurer" : "Email sending — connector to configure")}><Send className="h-3.5 w-3.5" /> {lang === "fr" ? "Envoyer" : "Send"}</Button>
                   </div>
@@ -378,6 +412,14 @@ const Studio = () => {
                               </div>
                             </div>
                           )}
+                          <div className="flex gap-2 pt-2 border-t border-border/20">
+                            <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => downloadAnnonceDocx(v as any)}>
+                              <Download className="h-3 w-3" /> {lang === "fr" ? "Word .docx" : "Word .docx"}
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => openInCanva(v as any)}>
+                              <Palette className="h-3 w-3" /> {lang === "fr" ? "Ouvrir dans Canva" : "Open in Canva"}
+                            </Button>
+                          </div>
                         </div>
                       </TabsContent>
                     ))}
