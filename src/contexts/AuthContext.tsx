@@ -33,9 +33,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Mode démo : auto-connexion sur le compte démo si aucune session active
+    // Permet à toute personne (ou IA) d'explorer la plateforme avec données pré-remplies
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: "demo@estate-ai.app",
+          password: "DemoEstate2026!",
+        });
+        if (!error && data.session) {
+          setSession(data.session);
+          setUser(data.user);
+        }
+      } else {
+        setSession(session);
+        setUser(session.user);
+      }
       setLoading(false);
     });
 
