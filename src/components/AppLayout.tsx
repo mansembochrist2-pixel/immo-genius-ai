@@ -1,43 +1,11 @@
-import { ReactNode, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { ReactNode } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
-import { supabase } from "@/integrations/supabase/client";
 import realEstateBg from "@/assets/real-estate-bg.jpg";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated, user, loading } = useAuth();
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      supabase.from("profiles").select("onboarding_completed").eq("id", user.id).single()
-        .then(({ data }) => {
-          setNeedsOnboarding(!data?.onboarding_completed);
-          setOnboardingChecked(true);
-        });
-    }
-  }, [user]);
-
-  if (loading || (isAuthenticated && !onboardingChecked)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (needsOnboarding) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
+  // Mode audit : authentification désactivée, tous les modules sont publics
   return (
     <SidebarProvider>
       <div
