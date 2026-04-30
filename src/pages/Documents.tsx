@@ -319,7 +319,7 @@ const Studio = () => {
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loadingAnnonce}>
-                    {loadingAnnonce ? t("docs.generating") : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</>}
+                    {loadingAnnonce ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {lang === "fr" ? "L'IA rédige votre annonce..." : "AI is writing your listing..."}</> : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</>}
                   </Button>
                 </form>
               </CardContent>
@@ -432,7 +432,7 @@ const Studio = () => {
                     <Input placeholder={lang === "fr" ? "Décrivez votre style souhaité..." : "Describe your desired style..."} value={(marketingForm as any).ton_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, ton_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
                   )}
                   <Button type="submit" className="w-full" disabled={loadingMarketing}>
-                    {loadingMarketing ? t("docs.generating") : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer le contenu" : "Generate content"}</>}
+                    {loadingMarketing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {lang === "fr" ? "Création du contenu marketing..." : "Crafting marketing content..."}</> : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer le contenu" : "Generate content"}</>}
                   </Button>
                 </form>
               </CardContent>

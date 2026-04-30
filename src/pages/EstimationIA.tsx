@@ -171,7 +171,7 @@ const EstimationIA = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {lang === "fr" ? "Estimation en cours..." : "Estimating..."}</> : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Estimer ce bien" : "Estimate this property"}</>}
+                {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {lang === "fr" ? "L'IA analyse les prix du quartier..." : "AI is analyzing local prices..."}</> : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Estimer ce bien" : "Estimate this property"}</>}
               </Button>
             </form>
           </CardContent>
