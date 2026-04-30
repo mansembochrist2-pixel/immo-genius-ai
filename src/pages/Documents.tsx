@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -295,8 +296,8 @@ const Studio = () => {
                 <form onSubmit={genererAnnonce} className="space-y-4">
                   <Input placeholder={lang === "fr" ? "Adresse du bien *" : "Property address *"} value={annonceForm.adresse} onChange={(e) => setAnnonceForm({...annonceForm, adresse: e.target.value})} className="bg-muted/10 border-border/30" />
                   <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder={lang === "fr" ? "Prix (€)" : "Price (€)"} type="number" value={annonceForm.prix} onChange={(e) => setAnnonceForm({...annonceForm, prix: e.target.value})} className="bg-muted/10 border-border/30" />
-                    <Input placeholder="Surface (m²)" type="number" value={annonceForm.surface} onChange={(e) => setAnnonceForm({...annonceForm, surface: e.target.value})} className="bg-muted/10 border-border/30" />
+                    <NumberInput placeholder={lang === "fr" ? "Prix (€)" : "Price (€)"} value={annonceForm.prix} onChange={(v) => setAnnonceForm({...annonceForm, prix: v})} className="bg-muted/10 border-border/30" />
+                    <NumberInput placeholder="Surface (m²)" value={annonceForm.surface} onChange={(v) => setAnnonceForm({...annonceForm, surface: v})} className="bg-muted/10 border-border/30" />
                   </div>
                   <Textarea placeholder={lang === "fr" ? "Description du bien (pièces, étage, vue, parking...)" : "Property description..."} value={annonceForm.description} onChange={(e) => setAnnonceForm({...annonceForm, description: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
                   
@@ -318,7 +319,7 @@ const Studio = () => {
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loadingAnnonce}>
-                    {loadingAnnonce ? t("docs.generating") : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</>}
+                    {loadingAnnonce ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {lang === "fr" ? "L'IA rédige votre annonce..." : "AI is writing your listing..."}</> : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</>}
                   </Button>
                 </form>
               </CardContent>
@@ -431,7 +432,7 @@ const Studio = () => {
                     <Input placeholder={lang === "fr" ? "Décrivez votre style souhaité..." : "Describe your desired style..."} value={(marketingForm as any).ton_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, ton_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
                   )}
                   <Button type="submit" className="w-full" disabled={loadingMarketing}>
-                    {loadingMarketing ? t("docs.generating") : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer le contenu" : "Generate content"}</>}
+                    {loadingMarketing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {lang === "fr" ? "Création du contenu marketing..." : "Crafting marketing content..."}</> : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer le contenu" : "Generate content"}</>}
                   </Button>
                 </form>
               </CardContent>

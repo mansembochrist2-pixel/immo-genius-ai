@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -206,11 +207,10 @@ const Dashboard = () => {
             </div>
             {editingCA ? (
               <div className="mt-2 space-y-2">
-                <Input
-                  type="number"
+                <NumberInput
                   value={caInput}
-                  onChange={e => setCaInput(e.target.value)}
-                  placeholder="50000"
+                  onChange={v => setCaInput(v)}
+                  placeholder="50 000"
                   className="h-8 text-sm"
                   autoFocus
                   onKeyDown={e => { if (e.key === "Enter") updateCaMutation.mutate(Number(caInput)); if (e.key === "Escape") setEditingCA(false); }}

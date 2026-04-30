@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -256,8 +257,8 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
                   </Select>
                 </div>
                 <div><Label className="text-xs">{lang === "fr" ? "Secteur" : "Area"}</Label><Input value={form.secteur_recherche} onChange={e => setForm({ ...form, secteur_recherche: e.target.value })} className="bg-muted/10 mt-1" /></div>
-                <div><Label className="text-xs">Budget min (€)</Label><Input type="number" value={form.budget_min} onChange={e => setForm({ ...form, budget_min: e.target.value })} className="bg-muted/10 mt-1" /></div>
-                <div><Label className="text-xs">Budget max (€)</Label><Input type="number" value={form.budget_max} onChange={e => setForm({ ...form, budget_max: e.target.value })} className="bg-muted/10 mt-1" /></div>
+                <div><Label className="text-xs">Budget min (€)</Label><NumberInput value={form.budget_min} onChange={v => setForm({ ...form, budget_min: v })} className="bg-muted/10 mt-1" /></div>
+                <div><Label className="text-xs">Budget max (€)</Label><NumberInput value={form.budget_max} onChange={v => setForm({ ...form, budget_max: v })} className="bg-muted/10 mt-1" /></div>
                 <div><Label className="text-xs">{lang === "fr" ? "Type de bien" : "Property type"}</Label><Input value={form.type_bien_recherche} onChange={e => setForm({ ...form, type_bien_recherche: e.target.value })} className="bg-muted/10 mt-1" /></div>
                 <div><Label className="text-xs">{lang === "fr" ? "Délai" : "Timeline"}</Label>
                   <Select value={form.delai_projet} onValueChange={v => setForm({ ...form, delai_projet: v })}>

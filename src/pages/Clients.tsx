@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -229,8 +230,8 @@ const Clients = () => {
             </div>
             <div><Label className="text-xs">Source</Label><Input value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} className="mt-1" placeholder="SeLoger, bouche-à-oreille..." /></div>
             <div><Label className="text-xs">Secteur recherché</Label><Input value={form.secteur_recherche} onChange={e => setForm({ ...form, secteur_recherche: e.target.value })} className="mt-1" placeholder="Paris 11..." /></div>
-            <div><Label className="text-xs">Budget min (€)</Label><Input type="number" value={form.budget_min} onChange={e => setForm({ ...form, budget_min: e.target.value })} className="mt-1" /></div>
-            <div><Label className="text-xs">Budget max (€)</Label><Input type="number" value={form.budget_max} onChange={e => setForm({ ...form, budget_max: e.target.value })} className="mt-1" /></div>
+            <div><Label className="text-xs">Budget min (€)</Label><NumberInput value={form.budget_min} onChange={v => setForm({ ...form, budget_min: v })} className="mt-1" placeholder="100 000" /></div>
+            <div><Label className="text-xs">Budget max (€)</Label><NumberInput value={form.budget_max} onChange={v => setForm({ ...form, budget_max: v })} className="mt-1" placeholder="500 000" /></div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowAddDialog(false)}>Annuler</Button>
