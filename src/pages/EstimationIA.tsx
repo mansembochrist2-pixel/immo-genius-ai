@@ -203,7 +203,10 @@ const EstimationIA = () => {
 
               {/* Details supplementaires */}
               <div>
-                <Label className="text-xs">{lang === "fr" ? "Détails supplémentaires" : "Additional details"}</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">{lang === "fr" ? "Détails supplémentaires" : "Additional details"}</Label>
+                  <VoiceButton onTranscript={(text) => setForm(f => ({ ...f, details_supplementaires: (f.details_supplementaires + " " + text).trim() }))} />
+                </div>
                 <Textarea
                   value={form.details_supplementaires}
                   onChange={e => setForm({ ...form, details_supplementaires: e.target.value })}
