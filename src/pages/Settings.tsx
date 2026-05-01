@@ -28,6 +28,62 @@ const Settings = () => {
   const [hubspotInfo, setHubspotInfo] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
+
+  const { data: integrations, refetch: refetchIntegrations } = useQuery({
+    queryKey: ["user_integrations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_integrations").select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const connectProvider = async (provider: "gmail" | "outlook") => {
+    setConnecting(provider);
+    try {
+      const { data, error } = await supabase.functions.invoke("oauth-init", { body: { provider, redirect_origin: window.location.origin } });
+      if (error) throw error;
+      if (data?.missing_secret) {
+        toast.error(lang === "fr" ? `Configuration manquante : ${data.missing_secret}. Contactez l'admin.` : `Missing config: ${data.missing_secret}`);
+        return;
+      }
+      if (data?.url) {
+        const popup = window.open(data.url, "oauth", "width=520,height=640");
+        const timer = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(timer);
+            setTimeout(() => refetchIntegrations(), 800);
+          }
+        }, 500);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const syncProvider = async (provider: "gmail" | "outlook") => {
+    setSyncing(provider);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-emails", { body: { provider } });
+      if (error) throw error;
+      toast.success(lang === "fr" ? `${data.inserted} email(s) importé(s)` : `${data.inserted} email(s) imported`);
+      refetchIntegrations();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const disconnectProvider = async (provider: "gmail" | "outlook") => {
+    await supabase.from("user_integrations").delete().eq("user_id", user!.id).eq("provider", provider);
+    toast.success(lang === "fr" ? "Déconnecté" : "Disconnected");
+    refetchIntegrations();
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
