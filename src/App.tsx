@@ -20,6 +20,7 @@ import Radar from "./pages/Radar";
 import Clients from "./pages/Clients";
 import Documents from "./pages/Documents";
 import EstimationIA from "./pages/EstimationIA";
+import Sauvegardes from "./pages/Sauvegardes";
 import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import MentionsLegales from "./pages/MentionsLegales";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/clients" element={<Clients />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/estimation" element={<EstimationIA />} />
+              <Route path="/sauvegardes" element={<Sauvegardes />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
