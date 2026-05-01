@@ -28,6 +28,62 @@ const Settings = () => {
   const [hubspotInfo, setHubspotInfo] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
+
+  const { data: integrations, refetch: refetchIntegrations } = useQuery({
+    queryKey: ["user_integrations"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_integrations").select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const connectProvider = async (provider: "gmail" | "outlook") => {
+    setConnecting(provider);
+    try {
+      const { data, error } = await supabase.functions.invoke("oauth-init", { body: { provider, redirect_origin: window.location.origin } });
+      if (error) throw error;
+      if (data?.missing_secret) {
+        toast.error(lang === "fr" ? `Configuration manquante : ${data.missing_secret}. Contactez l'admin.` : `Missing config: ${data.missing_secret}`);
+        return;
+      }
+      if (data?.url) {
+        const popup = window.open(data.url, "oauth", "width=520,height=640");
+        const timer = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(timer);
+            setTimeout(() => refetchIntegrations(), 800);
+          }
+        }, 500);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const syncProvider = async (provider: "gmail" | "outlook") => {
+    setSyncing(provider);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-emails", { body: { provider } });
+      if (error) throw error;
+      toast.success(lang === "fr" ? `${data.inserted} email(s) importé(s)` : `${data.inserted} email(s) imported`);
+      refetchIntegrations();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const disconnectProvider = async (provider: "gmail" | "outlook") => {
+    await supabase.from("user_integrations").delete().eq("user_id", user!.id).eq("provider", provider);
+    toast.success(lang === "fr" ? "Déconnecté" : "Disconnected");
+    refetchIntegrations();
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -227,23 +283,50 @@ const Settings = () => {
 
         <TabsContent value="integrations">
           <div className="space-y-4">
-            {[
-              { name: "Gmail", desc: lang === "fr" ? "Synchronisez vos emails et leads" : "Sync your emails and leads", icon: "📧" },
-              { name: "Outlook", desc: lang === "fr" ? "Importez vos contacts et emails" : "Import your contacts and emails", icon: "📬" },
-            ].map((integ) => (
-              <Card key={integ.name}>
-                <CardContent className="py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{integ.icon}</span>
-                    <div>
-                      <p className="font-medium text-sm">{integ.name}</p>
-                      <p className="text-xs text-muted-foreground">{integ.desc}</p>
+            {(["gmail", "outlook"] as const).map((provider) => {
+              const integ = integrations?.find((i) => i.provider === provider);
+              const meta = provider === "gmail"
+                ? { label: "Gmail", desc: lang === "fr" ? "Synchronisez vos emails entrants" : "Sync incoming emails", icon: "📧" }
+                : { label: "Outlook", desc: lang === "fr" ? "Importez vos emails Microsoft" : "Import your Microsoft emails", icon: "📬" };
+              return (
+                <Card key={provider}>
+                  <CardContent className="py-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-2xl">{meta.icon}</span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm flex items-center gap-2">
+                          {meta.label}
+                          {integ?.status === "connected" && <Badge variant="secondary" className="text-xs">✓ {integ.email || (lang === "fr" ? "Connecté" : "Connected")}</Badge>}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {integ?.last_sync_at
+                            ? `${lang === "fr" ? "Dernière sync :" : "Last sync:"} ${new Date(integ.last_sync_at).toLocaleString(lang === "fr" ? "fr-FR" : "en-US")}`
+                            : meta.desc}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <Button variant="outline" size="sm" disabled><Plug className="h-3.5 w-3.5 mr-1" /> {lang === "fr" ? "Configurer" : "Configure"}</Button>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex gap-2 shrink-0">
+                      {integ?.status === "connected" ? (
+                        <>
+                          <Button variant="outline" size="sm" disabled={syncing === provider} onClick={() => syncProvider(provider)}>
+                            {syncing === provider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5 mr-1" />}
+                            {lang === "fr" ? "Synchroniser" : "Sync"}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => disconnectProvider(provider)}>
+                            {lang === "fr" ? "Déconnecter" : "Disconnect"}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="outline" size="sm" disabled={connecting === provider} onClick={() => connectProvider(provider)}>
+                          {connecting === provider ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plug className="h-3.5 w-3.5 mr-1" />}
+                          {lang === "fr" ? "Connecter" : "Connect"}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
 
             <Card>
               <CardContent className="py-4 space-y-3">
