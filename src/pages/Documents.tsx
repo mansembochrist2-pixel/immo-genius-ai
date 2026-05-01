@@ -170,7 +170,9 @@ const Studio = () => {
         contenu_genere: { ...annonce, ...editableAnnonce },
       });
       if (error) throw error;
-      toast.success("Annonce sauvegardée !");
+      toast.success(lang === "fr" ? "Annonce sauvegardée" : "Listing saved", {
+        action: { label: lang === "fr" ? "Voir" : "View", onClick: () => window.location.assign("/sauvegardes") },
+      });
     } catch (err: any) {
       toast.error(err.message || "Erreur de sauvegarde");
     }
