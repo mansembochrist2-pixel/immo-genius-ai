@@ -389,10 +389,54 @@ const EstimationIA = () => {
                 toast.success(lang === "fr" ? "Estimation envoyée vers Documents" : "Estimation sent to Documents");
                 navigate("/documents");
               }}><Wand2 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</Button>
-              <Button variant="outline" onClick={() => toast.info(lang === "fr" ? "Sauvegarde liée au client à venir" : "Client-linked save coming soon")}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
+              <Button variant="outline" onClick={sauvegarderEstimation}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
             </div>
           </div>
         ) : (
+          <Card className="bg-card/60 border-border/30 flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-2">
+              <TrendingUp className="h-12 w-12 text-muted-foreground/20 mx-auto" />
+              <p className="text-sm text-muted-foreground">{lang === "fr" ? "Votre estimation apparaîtra ici" : "Your estimation will appear here"}</p>
+              <p className="text-xs text-muted-foreground/60">{lang === "fr" ? "Basée sur DVF, INSEE et observatoires locaux" : "Based on DVF, INSEE and local data"}</p>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {/* Validation dialog before launching estimation */}
+      <AlertDialog open={showValidation} onOpenChange={setShowValidation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lang === "fr" ? "Vérifiez les informations du bien" : "Please verify property information"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                {lang === "fr"
+                  ? "Merci de vérifier attentivement les informations renseignées concernant le bien. Toute erreur ou approximation pourrait impacter significativement la précision de l'estimation."
+                  : "Please carefully review the property information you entered. Any error or approximation may significantly impact estimation accuracy."}
+              </span>
+              <span className="block bg-muted/30 rounded p-2 text-xs">
+                <strong>{form.adresse}</strong> — {form.type_bien}
+                {form.surface ? ` · ${form.surface} m²` : ""}
+                {form.pieces ? ` · ${form.pieces} p` : ""}
+                {form.dpe ? ` · DPE ${form.dpe}` : ""}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{lang === "fr" ? "Modifier" : "Edit"}</AlertDialogCancel>
+            <AlertDialogAction onClick={estimer}>
+              {lang === "fr" ? "C'est correct, lancer l'estimation" : "It's correct, launch estimation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AppLayout>
+  );
+};
+
+export default EstimationIA;
           <Card className="bg-card/60 border-border/30 flex items-center justify-center min-h-[400px]">
             <div className="text-center space-y-2">
               <TrendingUp className="h-12 w-12 text-muted-foreground/20 mx-auto" />
