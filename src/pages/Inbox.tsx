@@ -141,7 +141,7 @@ const Inbox = () => {
     const matchSearch = !search || m.contenu.toLowerCase().includes(search.toLowerCase()) || (m.sujet && m.sujet.toLowerCase().includes(search.toLowerCase()));
     if (tab === "non-lus") return matchSearch && !m.lu;
     if (tab === "urgents") return matchSearch && (m.urgence ?? 0) >= 3;
-    if (tab === "entrants") return matchSearch && m.direction === "entrant";
+    // "entrants" tab removed (redundant with main view)
     if (tab === "envoyes") return matchSearch && m.direction === "sortant";
     return matchSearch;
   });
@@ -195,7 +195,6 @@ const Inbox = () => {
               <TabsTrigger value="tous" className="flex-1 text-xs">{t("inbox.all")}</TabsTrigger>
               <TabsTrigger value="non-lus" className="flex-1 text-xs">{t("inbox.unread")}</TabsTrigger>
               <TabsTrigger value="urgents" className="flex-1 text-xs">{t("inbox.urgent")}</TabsTrigger>
-              <TabsTrigger value="entrants" className="flex-1 text-xs">{t("inbox.incoming")}</TabsTrigger>
               <TabsTrigger value="envoyes" className="flex-1 text-xs">{lang === "fr" ? "Envoyés" : "Sent"}</TabsTrigger>
             </TabsList>
           </Tabs>

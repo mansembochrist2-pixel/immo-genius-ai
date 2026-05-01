@@ -18,6 +18,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
+import { VoiceButton } from "@/components/VoiceButton";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const EstimationIA = () => {
   const { user } = useAuth();
@@ -35,9 +40,16 @@ const EstimationIA = () => {
     details_supplementaires: "",
   });
 
-  const estimer = async (e: React.FormEvent) => {
+  const [showValidation, setShowValidation] = useState(false);
+
+  const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.adresse) { toast.error(lang === "fr" ? "Adresse requise" : "Address required"); return; }
+    setShowValidation(true);
+  };
+
+  const estimer = async () => {
+    setShowValidation(false);
     setLoading(true);
     setDvfData(null);
     setLoadingDvf(true);
@@ -116,7 +128,7 @@ const EstimationIA = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <form onSubmit={estimer} className="space-y-4">
+            <form onSubmit={onSubmit} className="space-y-4">
               <div>
                 <Label className="text-xs">{lang === "fr" ? "Adresse *" : "Address *"}</Label>
                 <Input value={form.adresse} onChange={e => setForm({ ...form, adresse: e.target.value })} className="mt-1 bg-muted/10 border-border/30" placeholder="12 rue de Rivoli, 75001 Paris" />
@@ -191,7 +203,10 @@ const EstimationIA = () => {
 
               {/* Details supplementaires */}
               <div>
-                <Label className="text-xs">{lang === "fr" ? "Détails supplémentaires" : "Additional details"}</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">{lang === "fr" ? "Détails supplémentaires" : "Additional details"}</Label>
+                  <VoiceButton onTranscript={(text) => setForm(f => ({ ...f, details_supplementaires: (f.details_supplementaires + " " + text).trim() }))} />
+                </div>
                 <Textarea
                   value={form.details_supplementaires}
                   onChange={e => setForm({ ...form, details_supplementaires: e.target.value })}
