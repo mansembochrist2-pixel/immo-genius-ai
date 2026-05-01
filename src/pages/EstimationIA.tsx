@@ -437,17 +437,3 @@ const EstimationIA = () => {
 };
 
 export default EstimationIA;
-          <Card className="bg-card/60 border-border/30 flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-2">
-              <TrendingUp className="h-12 w-12 text-muted-foreground/20 mx-auto" />
-              <p className="text-sm text-muted-foreground">{lang === "fr" ? "Votre estimation apparaîtra ici" : "Your estimation will appear here"}</p>
-              <p className="text-xs text-muted-foreground/60">{lang === "fr" ? "Basée sur DVF, INSEE et observatoires locaux" : "Based on DVF, INSEE and local data"}</p>
-            </div>
-          </Card>
-        )}
-      </div>
-    </AppLayout>
-  );
-};
-
-export default EstimationIA;
