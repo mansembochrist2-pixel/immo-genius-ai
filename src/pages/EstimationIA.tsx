@@ -23,6 +23,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { exportTextToDocx } from "@/lib/docx-export";
 
 const EstimationIA = () => {
   const { user } = useAuth();
@@ -84,17 +85,40 @@ const EstimationIA = () => {
     }
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
     if (!editableResult) return;
-    const content = `RAPPORT D'ESTIMATION IMMOBILIÈRE\n\nBien estimé : ${form.adresse}\nType : ${form.type_bien}\nSurface : ${form.surface || "N/C"} m² | Pièces : ${form.pieces || "N/C"} | DPE : ${form.dpe || "N/C"}\n\n${"═".repeat(40)}\n\nFOURCHETTE DE PRIX\nPrix minimum : ${editableResult.prix_min?.toLocaleString("fr-FR")} €\nPrix moyen estimé : ${editableResult.prix_moyen?.toLocaleString("fr-FR")} €\nPrix maximum : ${editableResult.prix_max?.toLocaleString("fr-FR")} €\nPrix au m² du secteur : ${editableResult.prix_m2_secteur?.toLocaleString("fr-FR")} €/m²\n\n${"═".repeat(40)}\n\nANALYSE DU MARCHÉ LOCAL\n${editableResult.analyse_marche}\n\n${"═".repeat(40)}\n\nCOMPARAISON QUARTIER\n${editableResult.comparaison_quartier}\n\n${"═".repeat(40)}\n\nHISTORIQUE DES VENTES RÉCENTES\n${editableResult.historique_ventes}\n\n${"═".repeat(40)}\n\nTENDANCE DU MARCHÉ (12 MOIS)\n${editableResult.tendance_12_mois}\n\n${"═".repeat(40)}\n\nRECOMMANDATION DE PRIX\nPrix recommandé : ${editableResult.recommandation_prix?.toLocaleString("fr-FR")} €\n${editableResult.argumentaire_prix}\n\n${"═".repeat(40)}\n\nCONCLUSION\n${editableResult.conclusion}\n\n───────────────────────────────────────\nGénéré par Estate AI`;
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `estimation-${form.adresse.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(lang === "fr" ? "Rapport téléchargé" : "Report downloaded");
+    const content = `RAPPORT D'ESTIMATION IMMOBILIÈRE\n\nBien estimé : ${form.adresse}\nType : ${form.type_bien}\nSurface : ${form.surface || "N/C"} m² | Pièces : ${form.pieces || "N/C"} | DPE : ${form.dpe || "N/C"}\n\nFOURCHETTE DE PRIX\nPrix minimum : ${editableResult.prix_min?.toLocaleString("fr-FR")} €\nPrix moyen estimé : ${editableResult.prix_moyen?.toLocaleString("fr-FR")} €\nPrix maximum : ${editableResult.prix_max?.toLocaleString("fr-FR")} €\nPrix au m² du secteur : ${editableResult.prix_m2_secteur?.toLocaleString("fr-FR")} €/m²\n\nANALYSE DU MARCHÉ LOCAL\n${editableResult.analyse_marche || ""}\n\nCOMPARAISON QUARTIER\n${editableResult.comparaison_quartier || ""}\n\nHISTORIQUE DES VENTES RÉCENTES\n${editableResult.historique_ventes || ""}\n\nTENDANCE DU MARCHÉ (12 MOIS)\n${editableResult.tendance_12_mois || ""}\n\nRECOMMANDATION DE PRIX\nPrix recommandé : ${editableResult.recommandation_prix?.toLocaleString("fr-FR")} €\n${editableResult.argumentaire_prix || ""}\n\nCONCLUSION\n${editableResult.conclusion || ""}`;
+    try {
+      await exportTextToDocx(
+        content,
+        `Estimation_${form.adresse.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30)}.docx`,
+        { title: "Rapport d'estimation immobilière", subtitle: form.adresse }
+      );
+      toast.success(lang === "fr" ? "Rapport .docx téléchargé" : "Report .docx downloaded");
+    } catch (e: any) {
+      toast.error(e.message || "Erreur d'export");
+    }
+  };
+
+  const sauvegarderEstimation = async () => {
+    if (!editableResult || !user) return;
+    try {
+      const { error } = await supabase.from("analyses_zone").insert({
+        user_id: user.id,
+        adresse: form.adresse,
+        secteur: form.adresse,
+        resultat: { ...editableResult, form, dvfData },
+      });
+      if (error) throw error;
+      toast.success(lang === "fr" ? "Estimation sauvegardée" : "Estimation saved", {
+        action: {
+          label: lang === "fr" ? "Voir" : "View",
+          onClick: () => navigate("/sauvegardes"),
+        },
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Erreur de sauvegarde");
+    }
   };
 
   return (
@@ -365,7 +389,7 @@ const EstimationIA = () => {
                 toast.success(lang === "fr" ? "Estimation envoyée vers Documents" : "Estimation sent to Documents");
                 navigate("/documents");
               }}><Wand2 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</Button>
-              <Button variant="outline" onClick={() => toast.info(lang === "fr" ? "Sauvegarde liée au client à venir" : "Client-linked save coming soon")}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
+              <Button variant="outline" onClick={sauvegarderEstimation}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
             </div>
           </div>
         ) : (
@@ -378,6 +402,36 @@ const EstimationIA = () => {
           </Card>
         )}
       </div>
+
+      {/* Validation dialog before launching estimation */}
+      <AlertDialog open={showValidation} onOpenChange={setShowValidation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lang === "fr" ? "Vérifiez les informations du bien" : "Please verify property information"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                {lang === "fr"
+                  ? "Merci de vérifier attentivement les informations renseignées concernant le bien. Toute erreur ou approximation pourrait impacter significativement la précision de l'estimation."
+                  : "Please carefully review the property information you entered. Any error or approximation may significantly impact estimation accuracy."}
+              </span>
+              <span className="block bg-muted/30 rounded p-2 text-xs">
+                <strong>{form.adresse}</strong> — {form.type_bien}
+                {form.surface ? ` · ${form.surface} m²` : ""}
+                {form.pieces ? ` · ${form.pieces} p` : ""}
+                {form.dpe ? ` · DPE ${form.dpe}` : ""}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{lang === "fr" ? "Modifier" : "Edit"}</AlertDialogCancel>
+            <AlertDialogAction onClick={estimer}>
+              {lang === "fr" ? "C'est correct, lancer l'estimation" : "It's correct, launch estimation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
