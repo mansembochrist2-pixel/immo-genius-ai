@@ -480,7 +480,13 @@ const Studio = () => {
                   {marketingForm.type === "autre" && (
                     <Input placeholder={lang === "fr" ? "Décrivez le type de contenu souhaité..." : "Describe desired content type..."} value={(marketingForm as any).type_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, type_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
                   )}
-                  <Textarea placeholder={lang === "fr" ? "Décrivez le bien ou le sujet *" : "Describe the property or subject *"} value={marketingForm.bien} onChange={(e) => setMarketingForm({...marketingForm, bien: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">{lang === "fr" ? "Bien ou sujet *" : "Property or subject *"}</p>
+                      <VoiceButton onTranscript={(text) => setMarketingForm(f => ({ ...f, bien: (f.bien + " " + text).trim() }))} />
+                    </div>
+                    <Textarea placeholder={lang === "fr" ? "Décrivez le bien ou le sujet *" : "Describe the property or subject *"} value={marketingForm.bien} onChange={(e) => setMarketingForm({...marketingForm, bien: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
+                  </div>
                   <Input placeholder={lang === "fr" ? "Cible (ex: primo-accédants...)" : "Target audience..."} value={marketingForm.cible} onChange={(e) => setMarketingForm({...marketingForm, cible: e.target.value})} className="bg-muted/10 border-border/30" />
                   <Select value={marketingForm.ton} onValueChange={(v) => setMarketingForm({...marketingForm, ton: v})}>
                     <SelectTrigger className="bg-muted/10 border-border/30"><SelectValue /></SelectTrigger>
