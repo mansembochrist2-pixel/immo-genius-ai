@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import jsPDF from "jspdf";
+import { ScoreExplainer } from "@/components/ScoreExplainer";
 
 const STATUTS = [
   { value: "nouveau", label: "Nouveau" },
@@ -207,15 +208,19 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
             </div>
             <div className="bg-muted/10 rounded-lg p-3 text-center">
               <p className="text-[10px] text-muted-foreground uppercase">{lang === "fr" ? "Prob. signature" : "Close prob."}</p>
-              <p className={`text-lg font-bold mt-1 ${(client.taux_signature ?? 0) >= 60 ? "text-success" : (client.taux_signature ?? 0) >= 30 ? "text-warning" : "text-destructive"}`}>
-                {client.taux_signature != null ? `${client.taux_signature}%` : "—"}
-              </p>
+              <ScoreExplainer type="taux_signature" value={client.taux_signature} client={client}>
+                <p className={`text-lg font-bold mt-1 ${(client.taux_signature ?? 0) >= 60 ? "text-success" : (client.taux_signature ?? 0) >= 30 ? "text-warning" : "text-destructive"}`}>
+                  {client.taux_signature != null ? `${client.taux_signature}%` : "—"}
+                </p>
+              </ScoreExplainer>
             </div>
             <div className="bg-muted/10 rounded-lg p-3 text-center">
               <p className="text-[10px] text-muted-foreground uppercase">{lang === "fr" ? "Risque perte" : "Loss risk"}</p>
-              <p className={`text-lg font-bold mt-1 ${(client.score_urgence ?? 0) >= 7 ? "text-destructive" : (client.score_urgence ?? 0) >= 4 ? "text-warning" : "text-success"}`}>
-                {client.score_urgence ?? "—"}<span className="text-xs font-normal text-muted-foreground">/10</span>
-              </p>
+              <ScoreExplainer type="score_urgence" value={client.score_urgence} client={client}>
+                <p className={`text-lg font-bold mt-1 ${(client.score_urgence ?? 0) >= 7 ? "text-destructive" : (client.score_urgence ?? 0) >= 4 ? "text-warning" : "text-success"}`}>
+                  {client.score_urgence ?? "—"}<span className="text-xs font-normal text-muted-foreground">/10</span>
+                </p>
+              </ScoreExplainer>
             </div>
           </div>
           <div className="flex gap-2">
@@ -324,15 +329,21 @@ export const ClientDetail = ({ client, interactions, enrichingId, onEnrich, onDe
         </CardContent></Card>
         <Card className="bg-card/60 border-border/30 card-shimmer"><CardContent className="p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Brain className="h-3 w-3" /> Score IA</p>
-          <p className="text-sm font-bold mt-1">{client.score_ia ?? "—"}<span className="text-muted-foreground font-normal">/100</span></p>
+          <ScoreExplainer type="score_ia" value={client.score_ia} client={client}>
+            <p className="text-sm font-bold mt-1">{client.score_ia ?? "—"}<span className="text-muted-foreground font-normal">/100</span></p>
+          </ScoreExplainer>
         </CardContent></Card>
         <Card className="bg-card/60 border-border/30 card-shimmer"><CardContent className="p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Signature</p>
-          <p className="text-sm font-bold mt-1">{client.taux_signature != null ? `${client.taux_signature}%` : "—"}</p>
+          <ScoreExplainer type="taux_signature" value={client.taux_signature} client={client}>
+            <p className="text-sm font-bold mt-1">{client.taux_signature != null ? `${client.taux_signature}%` : "—"}</p>
+          </ScoreExplainer>
         </CardContent></Card>
         <Card className="bg-card/60 border-border/30 card-shimmer"><CardContent className="p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {lang === "fr" ? "Urgence" : "Urgency"}</p>
-          <p className={`text-sm font-bold mt-1 ${(client.score_urgence ?? 0) >= 7 ? "text-warning" : ""}`}>{client.score_urgence ?? "—"}<span className="text-muted-foreground font-normal">/10</span></p>
+          <ScoreExplainer type="score_urgence" value={client.score_urgence} client={client}>
+            <p className={`text-sm font-bold mt-1 ${(client.score_urgence ?? 0) >= 7 ? "text-warning" : ""}`}>{client.score_urgence ?? "—"}<span className="text-muted-foreground font-normal">/10</span></p>
+          </ScoreExplainer>
         </CardContent></Card>
       </div>
 
