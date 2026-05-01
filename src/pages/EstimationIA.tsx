@@ -123,7 +123,7 @@ const EstimationIA = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <form onSubmit={estimer} className="space-y-4">
+            <form onSubmit={onSubmit} className="space-y-4">
               <div>
                 <Label className="text-xs">{lang === "fr" ? "Adresse *" : "Address *"}</Label>
                 <Input value={form.adresse} onChange={e => setForm({ ...form, adresse: e.target.value })} className="mt-1 bg-muted/10 border-border/30" placeholder="12 rue de Rivoli, 75001 Paris" />

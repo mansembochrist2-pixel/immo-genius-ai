@@ -141,7 +141,7 @@ const Inbox = () => {
     const matchSearch = !search || m.contenu.toLowerCase().includes(search.toLowerCase()) || (m.sujet && m.sujet.toLowerCase().includes(search.toLowerCase()));
     if (tab === "non-lus") return matchSearch && !m.lu;
     if (tab === "urgents") return matchSearch && (m.urgence ?? 0) >= 3;
-    if (tab === "entrants") return matchSearch && m.direction === "entrant";
+    // "entrants" tab removed (redundant with main view)
     if (tab === "envoyes") return matchSearch && m.direction === "sortant";
     return matchSearch;
   });
