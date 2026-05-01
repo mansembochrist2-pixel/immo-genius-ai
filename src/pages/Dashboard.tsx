@@ -15,6 +15,7 @@ import {
   AlertTriangle, Play, CalendarDays, Clock, SkipForward, X, DollarSign, Radar,
   Search, FileText, BarChart3, MessageSquare, Pencil, Check,
 } from "lucide-react";
+import { ScoreExplainer } from "@/components/ScoreExplainer";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -373,14 +374,20 @@ const Dashboard = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {hotProspects.map((p: any) => (
-                <div key={p.id} className="flex items-center justify-between bg-secondary/50 rounded-xl p-3.5 cursor-pointer hover:bg-secondary transition-colors" onClick={() => navigate("/clients")}>
-                  <div className="min-w-0">
+                <div key={p.id} className="flex items-center justify-between bg-secondary/50 rounded-xl p-3.5 hover:bg-secondary transition-colors">
+                  <button className="min-w-0 flex-1 text-left" onClick={() => navigate("/clients")}>
                     <p className="text-xs font-medium truncate text-foreground">{p.nom}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      <span className="text-primary font-medium">{p.score_ia}/100</span> • Signature: {p.taux_signature ?? 0}%
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <ScoreExplainer type="score_ia" value={p.score_ia} client={p}>
+                        <span className="text-primary font-medium">{p.score_ia}/100</span>
+                      </ScoreExplainer>
+                      <span>•</span>
+                      <ScoreExplainer type="taux_signature" value={p.taux_signature} client={p}>
+                        <span>Signature: {p.taux_signature ?? 0}%</span>
+                      </ScoreExplainer>
                     </p>
-                  </div>
-                  <TrendingUp className="h-4 w-4 text-primary shrink-0" />
+                  </button>
+                  <TrendingUp className="h-4 w-4 text-primary shrink-0 ml-2" />
                 </div>
               ))}
             </div>
