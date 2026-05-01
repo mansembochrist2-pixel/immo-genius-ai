@@ -351,8 +351,13 @@ const Studio = () => {
                     <NumberInput placeholder={lang === "fr" ? "Prix (€)" : "Price (€)"} value={annonceForm.prix} onChange={(v) => setAnnonceForm({...annonceForm, prix: v})} className="bg-muted/10 border-border/30" />
                     <NumberInput placeholder="Surface (m²)" value={annonceForm.surface} onChange={(v) => setAnnonceForm({...annonceForm, surface: v})} className="bg-muted/10 border-border/30" />
                   </div>
-                  <Textarea placeholder={lang === "fr" ? "Description du bien (pièces, étage, vue, parking...)" : "Property description..."} value={annonceForm.description} onChange={(e) => setAnnonceForm({...annonceForm, description: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
-                  
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">{lang === "fr" ? "Description du bien" : "Property description"}</p>
+                      <VoiceButton onTranscript={(text) => setAnnonceForm(f => ({ ...f, description: (f.description + " " + text).trim() }))} />
+                    </div>
+                    <Textarea placeholder={lang === "fr" ? "Description du bien (pièces, étage, vue, parking...)" : "Property description..."} value={annonceForm.description} onChange={(e) => setAnnonceForm({...annonceForm, description: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
+                  </div>
                   {/* 3 tone styles */}
                   <div>
                     <p className="text-xs text-muted-foreground mb-2">{lang === "fr" ? "Style de ton" : "Tone style"}</p>
