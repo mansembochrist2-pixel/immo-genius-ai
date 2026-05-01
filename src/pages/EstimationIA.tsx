@@ -35,9 +35,16 @@ const EstimationIA = () => {
     details_supplementaires: "",
   });
 
-  const estimer = async (e: React.FormEvent) => {
+  const [showValidation, setShowValidation] = useState(false);
+
+  const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.adresse) { toast.error(lang === "fr" ? "Adresse requise" : "Address required"); return; }
+    setShowValidation(true);
+  };
+
+  const estimer = async () => {
+    setShowValidation(false);
     setLoading(true);
     setDvfData(null);
     setLoadingDvf(true);

@@ -195,7 +195,6 @@ const Inbox = () => {
               <TabsTrigger value="tous" className="flex-1 text-xs">{t("inbox.all")}</TabsTrigger>
               <TabsTrigger value="non-lus" className="flex-1 text-xs">{t("inbox.unread")}</TabsTrigger>
               <TabsTrigger value="urgents" className="flex-1 text-xs">{t("inbox.urgent")}</TabsTrigger>
-              <TabsTrigger value="entrants" className="flex-1 text-xs">{t("inbox.incoming")}</TabsTrigger>
               <TabsTrigger value="envoyes" className="flex-1 text-xs">{lang === "fr" ? "Envoyés" : "Sent"}</TabsTrigger>
             </TabsList>
           </Tabs>
