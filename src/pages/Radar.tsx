@@ -181,16 +181,40 @@ const Radar = () => {
 
           {analyseResult && (
             <div className="mt-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
-              </h3>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
+                </h3>
+                {analyseResult.classification && (
+                  <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
+                    {analyseResult.classification} · Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
+                  </Badge>
+                )}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {analyseResult.prix_m2_moyen && <div><p className="text-[10px] text-muted-foreground uppercase">Prix/m²</p><p className="font-bold text-sm">{analyseResult.prix_m2_moyen}</p></div>}
                 {analyseResult.tendance && <div><p className="text-[10px] text-muted-foreground uppercase">Tendance</p><p className="font-bold text-sm">{analyseResult.tendance}</p></div>}
                 {analyseResult.delai_vente && <div><p className="text-[10px] text-muted-foreground uppercase">Délai vente</p><p className="font-bold text-sm">{analyseResult.delai_vente}</p></div>}
                 {analyseResult.nb_biens_estimes && <div><p className="text-[10px] text-muted-foreground uppercase">Biens estimés</p><p className="font-bold text-sm">{analyseResult.nb_biens_estimes}</p></div>}
               </div>
-              {analyseResult.strategie && <p className="text-xs text-muted-foreground">{analyseResult.strategie}</p>}
+              {analyseResult.justification_score && <p className="text-xs text-muted-foreground italic">{analyseResult.justification_score}</p>}
+              {analyseResult.plan_action && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-primary/10">
+                  <div>
+                    <p className="text-[10px] text-success uppercase font-semibold mb-1">✓ Si opportunité</p>
+                    <ul className="space-y-1">{(analyseResult.plan_action.si_opportunite || []).map((a: string, i: number) => <li key={i} className="text-xs flex gap-1"><span className="text-success">→</span>{a}</li>)}</ul>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-destructive uppercase font-semibold mb-1">⚠ Si risque</p>
+                    <ul className="space-y-1">{(analyseResult.plan_action.si_risque || []).map((a: string, i: number) => <li key={i} className="text-xs flex gap-1"><span className="text-destructive">→</span>{a}</li>)}</ul>
+                  </div>
+                </div>
+              )}
+              {analyseResult.sources?.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {analyseResult.sources.map((s: string) => <Badge key={s} variant="outline" className="text-[9px]">{s}</Badge>)}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
