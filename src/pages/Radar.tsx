@@ -63,22 +63,23 @@ const Radar = () => {
       if (data?.error) throw new Error(data.error);
       setAnalyseResult(data);
       if (user) {
-        // Classification & scoring viennent désormais de l'IA basée sur DVF/INSEE
         const classification = data.classification || (data.score_opportunite >= data.score_risque ? "opportunite" : "risque");
         const score = classification === "opportunite" ? (data.score_opportunite ?? 60) : (data.score_risque ?? 40);
         await supabase.from("opportunites").insert({
           user_id: user.id,
-          titre: `${classification === "opportunite" ? "Opportunité" : classification === "risque" ? "Risque" : "Analyse"} — ${adresse}`,
+          titre: `${data.niveau_global || (classification === "opportunite" ? "Opportunité" : "Risque")} — ${adresse}`,
           zone: adresse,
-          type: classification === "neutre" ? "opportunite" : classification,
+          type: classification,
           score,
-          description: data.justification_score || data.strategie?.substring(0, 300) || "Analyse IA de zone",
-          sources: data.sources || ["DVF", "INSEE"],
+          description: data.justification_score || data.strategie?.substring(0, 300) || "Analyse DVF de zone",
+          sources: data.sources || ["DVF (data.gouv.fr / Etalab)"],
           donnees: {
             prix_m2: data.prix_m2_moyen, tendance: data.tendance, delai_vente: data.delai_vente,
-            nb_biens: data.nb_biens_estimes,
+            nb_biens: data.nb_biens_estimes, volume_ventes: data.volume_ventes, liquidite: data.liquidite,
             score_opportunite: data.score_opportunite, score_risque: data.score_risque,
-            plan_action: data.plan_action, secteur,
+            score_global: data.score_global, niveau_global: data.niveau_global,
+            plan_action: data.plan_action, analyse_strategique: data.analyse_strategique,
+            fraicheur_donnees: data.fraicheur_donnees, dvf_raw: data.dvf_raw, secteur,
           },
           statut: "nouvelle",
         });
