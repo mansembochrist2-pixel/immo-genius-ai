@@ -107,9 +107,17 @@ ${(dvfData.ventes || []).map((v: any, i: number) =>
 ).join("\n") || "Aucune"}
 
 Date d'extraction : ${dvfData.date_extraction || new Date().toISOString()}`
-      : `=== DONNÉES DVF INDISPONIBLES ===
-Raison : ${dvfError || dvfData?.message || dvfData?.error || "Aucune donnée trouvée pour cette zone"}
-Tu dois indiquer clairement que l'analyse est basée sur des estimations marché général sans données DVF spécifiques. Marque les chiffres "Donnée à vérifier" et baisse la confiance des scores.`;
+      : `=== DONNÉES DVF INDISPONIBLES — MODE FALLBACK INTELLIGENT ACTIVÉ ===
+Raison technique : ${dvfError || dvfData?.message || dvfData?.error || "Aucune transaction DVF trouvée pour cette parcelle exacte"}
+
+Tu dois IMPÉRATIVEMENT produire une analyse complète en mode estimation :
+- Élargis automatiquement le périmètre (rayon parcelle → quartier → ville → région).
+- Utilise tes connaissances du marché immobilier français 2024-2025 pour la zone "${adresse}" / secteur "${secteur || 'non précisé'}".
+- Estime prix au m² avec une fourchette réaliste cohérente avec la ville/région concernée.
+- Calcule TOUS les scores (opportunité, risque) en t'appuyant sur : attractivité connue de la zone, dynamique régionale, typologie urbaine/rurale, tendances générales.
+- Marque fraicheur_donnees = "Mode estimation - fiabilité moyenne (pas de DVF spécifique)".
+- Sources alternatives à citer : "Estimations marché secteur", "Tendances marché immobilier France", "Connaissance zone".
+- INTERDIT d'écrire "donnée indisponible" ou de laisser un champ vide. Formule plutôt : "estimation basée sur données de zone (fiabilité moyenne)".`;
 
     const userPrompt = `Analyse cette zone de prospection immobilière :
 - Adresse / Quartier : ${adresse}
