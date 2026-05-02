@@ -187,18 +187,38 @@ const Radar = () => {
                   <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
                 </h3>
                 {analyseResult.classification && (
-                  <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
-                    {analyseResult.classification} · Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {analyseResult.niveau_global && (
+                      <Badge variant="outline" className="text-[10px] uppercase">{analyseResult.niveau_global}</Badge>
+                    )}
+                    <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
+                      Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
+                    </Badge>
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {analyseResult.prix_m2_moyen && <div><p className="text-[10px] text-muted-foreground uppercase">Prix/m²</p><p className="font-bold text-sm">{analyseResult.prix_m2_moyen}</p></div>}
                 {analyseResult.tendance && <div><p className="text-[10px] text-muted-foreground uppercase">Tendance</p><p className="font-bold text-sm">{analyseResult.tendance}</p></div>}
                 {analyseResult.delai_vente && <div><p className="text-[10px] text-muted-foreground uppercase">Délai vente</p><p className="font-bold text-sm">{analyseResult.delai_vente}</p></div>}
+                {analyseResult.volume_ventes && <div><p className="text-[10px] text-muted-foreground uppercase">Volume ventes</p><p className="font-bold text-sm">{analyseResult.volume_ventes}</p></div>}
+                {analyseResult.liquidite && <div><p className="text-[10px] text-muted-foreground uppercase">Liquidité</p><p className="font-bold text-sm">{analyseResult.liquidite}</p></div>}
                 {analyseResult.nb_biens_estimes && <div><p className="text-[10px] text-muted-foreground uppercase">Biens estimés</p><p className="font-bold text-sm">{analyseResult.nb_biens_estimes}</p></div>}
               </div>
+              {analyseResult.fraicheur_donnees && (
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{analyseResult.fraicheur_donnees}</p>
+              )}
               {analyseResult.justification_score && <p className="text-xs text-muted-foreground italic">{analyseResult.justification_score}</p>}
+              {analyseResult.analyse_strategique && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-primary/10">
+                  {Object.entries(analyseResult.analyse_strategique).map(([k, v]: any) => (
+                    <div key={k} className="bg-muted/10 rounded p-2">
+                      <p className="text-[9px] uppercase text-muted-foreground mb-0.5">{k.replace(/_/g, " ")}</p>
+                      <p className="text-xs">{v}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
               {analyseResult.plan_action && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-primary/10">
                   <div>
