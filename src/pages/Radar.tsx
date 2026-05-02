@@ -132,10 +132,7 @@ const Radar = () => {
             <p className="page-subtitle">Détectez les opportunités vendeurs • Plans d'attaque commerciaux</p>
           </div>
           {opportunites.length === 0 && (
-            <Button variant="outline" size="sm" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
-              {seedMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              Charger données démo
-            </Button>
+            <Badge variant="outline" className="text-xs">Aucune analyse — lancez votre première recherche ↓</Badge>
           )}
         </div>
       </div>
