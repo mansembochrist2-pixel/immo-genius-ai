@@ -5,13 +5,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Tu es un expert en analyse de marché immobilier français avec accès aux données DVF (data.gouv.fr), INSEE et bases notariales.
+const SYSTEM_PROMPT = `Tu es un expert senior en analyse de marché immobilier français.
+Tu t'appuies exclusivement sur des sources publiques vérifiables : DVF (data.gouv.fr), INSEE, bases notariales, observatoires locaux.
 
-Règles :
-- Fournis des estimations réalistes basées sur ta connaissance du marché
-- Cite systématiquement tes sources : "Sources : DVF (data.gouv.fr), INSEE, bases notariales"
-- Structure l'analyse avec des sections claires
-- Utilise la fonction analyze_zone pour structurer ta réponse`;
+Méthode obligatoire :
+1. Analyser les données du marché local (prix, volumes, délais)
+2. Calculer un SCORE D'OPPORTUNITÉ (0-100) — potentiel commercial pour un agent
+3. Calculer un SCORE DE RISQUE (0-100) — probabilité de marché défavorable
+4. Classer : "opportunite" si score_opportunite > score_risque + 15, "risque" si l'inverse, sinon "neutre"
+5. Produire un PLAN D'ACTION concret et différencié selon la classification
+
+Règles strictes :
+- Ne jamais inventer de chiffres : si une donnée n'est pas inférable du marché, mets "Donnée à vérifier"
+- Cite TOUJOURS les sources réelles utilisées
+- Le plan d'action doit être opérationnel (pas générique)
+- Utilise OBLIGATOIREMENT la fonction analyze_zone`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -47,16 +55,29 @@ Fournis une analyse complète avec prix estimés, tendances, opportunités et st
             parameters: {
               type: "object",
               properties: {
-                prix_m2_moyen: { type: "string", description: "Prix moyen au m² estimé" },
-                tendance: { type: "string", description: "Tendance du marché (hausse/baisse/stable avec %)" },
-                nb_biens_estimes: { type: "string", description: "Nombre estimé de biens en vente" },
-                delai_vente: { type: "string", description: "Délai de vente moyen estimé" },
-                opportunites: { type: "array", items: { type: "string" }, description: "Liste des opportunités identifiées" },
-                risques: { type: "array", items: { type: "string" }, description: "Liste des risques" },
-                strategie: { type: "string", description: "Stratégie de prospection recommandée (détaillée)" },
-                sources: { type: "array", items: { type: "string" }, description: "Sources utilisées" },
+                prix_m2_moyen: { type: "string", description: "Prix moyen au m² estimé (DVF)" },
+                tendance: { type: "string", description: "Tendance 12 mois avec %" },
+                nb_biens_estimes: { type: "string", description: "Volume de biens en vente estimé" },
+                delai_vente: { type: "string", description: "Délai moyen de vente" },
+                score_opportunite: { type: "number", description: "Score 0-100 du potentiel commercial" },
+                score_risque: { type: "number", description: "Score 0-100 du risque marché" },
+                classification: { type: "string", enum: ["opportunite", "risque", "neutre"] },
+                justification_score: { type: "string", description: "2-3 phrases justifiant les scores avec données chiffrées" },
+                opportunites: { type: "array", items: { type: "string" } },
+                risques: { type: "array", items: { type: "string" } },
+                plan_action: {
+                  type: "object",
+                  properties: {
+                    si_opportunite: { type: "array", items: { type: "string" }, description: "3-5 actions concrètes : prospection vendeurs, campagnes estimation, ciblage" },
+                    si_risque: { type: "array", items: { type: "string" }, description: "3-5 actions de prudence : ciblage spécifique, repositionnement, attentisme" },
+                  },
+                  required: ["si_opportunite", "si_risque"],
+                  additionalProperties: false,
+                },
+                strategie: { type: "string", description: "Synthèse stratégique recommandée" },
+                sources: { type: "array", items: { type: "string" }, description: "Sources publiques réellement utilisées" },
               },
-              required: ["prix_m2_moyen", "tendance", "nb_biens_estimes", "delai_vente", "opportunites", "strategie", "sources"],
+              required: ["prix_m2_moyen", "tendance", "nb_biens_estimes", "delai_vente", "score_opportunite", "score_risque", "classification", "justification_score", "opportunites", "risques", "plan_action", "strategie", "sources"],
               additionalProperties: false,
             },
           },
