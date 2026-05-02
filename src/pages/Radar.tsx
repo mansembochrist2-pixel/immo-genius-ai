@@ -63,22 +63,23 @@ const Radar = () => {
       if (data?.error) throw new Error(data.error);
       setAnalyseResult(data);
       if (user) {
-        // Classification & scoring viennent désormais de l'IA basée sur DVF/INSEE
         const classification = data.classification || (data.score_opportunite >= data.score_risque ? "opportunite" : "risque");
         const score = classification === "opportunite" ? (data.score_opportunite ?? 60) : (data.score_risque ?? 40);
         await supabase.from("opportunites").insert({
           user_id: user.id,
-          titre: `${classification === "opportunite" ? "Opportunité" : classification === "risque" ? "Risque" : "Analyse"} — ${adresse}`,
+          titre: `${data.niveau_global || (classification === "opportunite" ? "Opportunité" : "Risque")} — ${adresse}`,
           zone: adresse,
-          type: classification === "neutre" ? "opportunite" : classification,
+          type: classification,
           score,
-          description: data.justification_score || data.strategie?.substring(0, 300) || "Analyse IA de zone",
-          sources: data.sources || ["DVF", "INSEE"],
+          description: data.justification_score || data.strategie?.substring(0, 300) || "Analyse DVF de zone",
+          sources: data.sources || ["DVF (data.gouv.fr / Etalab)"],
           donnees: {
             prix_m2: data.prix_m2_moyen, tendance: data.tendance, delai_vente: data.delai_vente,
-            nb_biens: data.nb_biens_estimes,
+            nb_biens: data.nb_biens_estimes, volume_ventes: data.volume_ventes, liquidite: data.liquidite,
             score_opportunite: data.score_opportunite, score_risque: data.score_risque,
-            plan_action: data.plan_action, secteur,
+            score_global: data.score_global, niveau_global: data.niveau_global,
+            plan_action: data.plan_action, analyse_strategique: data.analyse_strategique,
+            fraicheur_donnees: data.fraicheur_donnees, dvf_raw: data.dvf_raw, secteur,
           },
           statut: "nouvelle",
         });
@@ -186,18 +187,38 @@ const Radar = () => {
                   <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
                 </h3>
                 {analyseResult.classification && (
-                  <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
-                    {analyseResult.classification} · Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {analyseResult.niveau_global && (
+                      <Badge variant="outline" className="text-[10px] uppercase">{analyseResult.niveau_global}</Badge>
+                    )}
+                    <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
+                      Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
+                    </Badge>
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {analyseResult.prix_m2_moyen && <div><p className="text-[10px] text-muted-foreground uppercase">Prix/m²</p><p className="font-bold text-sm">{analyseResult.prix_m2_moyen}</p></div>}
                 {analyseResult.tendance && <div><p className="text-[10px] text-muted-foreground uppercase">Tendance</p><p className="font-bold text-sm">{analyseResult.tendance}</p></div>}
                 {analyseResult.delai_vente && <div><p className="text-[10px] text-muted-foreground uppercase">Délai vente</p><p className="font-bold text-sm">{analyseResult.delai_vente}</p></div>}
+                {analyseResult.volume_ventes && <div><p className="text-[10px] text-muted-foreground uppercase">Volume ventes</p><p className="font-bold text-sm">{analyseResult.volume_ventes}</p></div>}
+                {analyseResult.liquidite && <div><p className="text-[10px] text-muted-foreground uppercase">Liquidité</p><p className="font-bold text-sm">{analyseResult.liquidite}</p></div>}
                 {analyseResult.nb_biens_estimes && <div><p className="text-[10px] text-muted-foreground uppercase">Biens estimés</p><p className="font-bold text-sm">{analyseResult.nb_biens_estimes}</p></div>}
               </div>
+              {analyseResult.fraicheur_donnees && (
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{analyseResult.fraicheur_donnees}</p>
+              )}
               {analyseResult.justification_score && <p className="text-xs text-muted-foreground italic">{analyseResult.justification_score}</p>}
+              {analyseResult.analyse_strategique && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-primary/10">
+                  {Object.entries(analyseResult.analyse_strategique).map(([k, v]: any) => (
+                    <div key={k} className="bg-muted/10 rounded p-2">
+                      <p className="text-[9px] uppercase text-muted-foreground mb-0.5">{k.replace(/_/g, " ")}</p>
+                      <p className="text-xs">{v}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
               {analyseResult.plan_action && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-primary/10">
                   <div>
