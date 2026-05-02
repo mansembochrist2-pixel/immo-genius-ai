@@ -234,6 +234,56 @@ const Radar = () => {
                   </div>
                 </div>
               )}
+              {(analyseResult.score_vendeur != null || analyseResult.signaux_vendeurs?.length > 0) && (
+                <div className="pt-2 border-t border-primary/10 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-[10px] uppercase font-semibold text-primary">🎯 Détection vendeurs potentiels</p>
+                    {analyseResult.score_vendeur != null && (
+                      <Badge className="bg-primary text-primary-foreground text-[10px]">Score vendeur : {analyseResult.score_vendeur}/100</Badge>
+                    )}
+                    {analyseResult.confiance_vendeur && (
+                      <Badge variant="outline" className="text-[10px]">Confiance {analyseResult.confiance_vendeur}</Badge>
+                    )}
+                  </div>
+                  {analyseResult.signaux_vendeurs?.length > 0 && (
+                    <ul className="space-y-1">
+                      {analyseResult.signaux_vendeurs.map((s: string, i: number) => (
+                        <li key={i} className="text-xs flex gap-1"><span className="text-primary">•</span>{s}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+              {analyseResult.micro_secteurs?.length > 0 && (
+                <div className="pt-2 border-t border-primary/10 space-y-2">
+                  <p className="text-[10px] uppercase font-semibold">🗺 Micro-secteurs prioritaires</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {analyseResult.micro_secteurs.map((m: any, i: number) => (
+                      <div key={i} className="bg-muted/10 rounded p-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-semibold">{m.nom}</p>
+                          <Badge variant="outline" className="text-[9px]">{m.niveau_opportunite}</Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{m.justification}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {analyseResult.profils_vendeurs_probables?.length > 0 && (
+                <div className="pt-2 border-t border-primary/10 space-y-2">
+                  <p className="text-[10px] uppercase font-semibold">👤 Profils vendeurs probables</p>
+                  <div className="space-y-2">
+                    {analyseResult.profils_vendeurs_probables.map((p: any, i: number) => (
+                      <div key={i} className="bg-muted/10 rounded p-2 space-y-1">
+                        <p className="text-xs font-semibold">{p.type_bien}</p>
+                        <p className="text-[11px] text-muted-foreground"><span className="font-medium">Situation probable :</span> {p.situation_probable}</p>
+                        <p className="text-[11px] text-primary"><span className="font-medium">Approche :</span> {p.argument_approche}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {analyseResult.sources?.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
                   {analyseResult.sources.map((s: string) => <Badge key={s} variant="outline" className="text-[9px]">{s}</Badge>)}
