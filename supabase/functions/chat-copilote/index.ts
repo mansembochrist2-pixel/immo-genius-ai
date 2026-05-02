@@ -67,7 +67,6 @@ serve(async (req) => {
         model: "openai/gpt-5.2",
         messages: [{ role: "system", content: fullSystemPrompt }, ...messages],
         stream: true,
-        reasoning: { effort: "high" },
       }),
     });
 
