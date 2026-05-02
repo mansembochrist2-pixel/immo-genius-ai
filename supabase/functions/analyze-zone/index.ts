@@ -37,6 +37,12 @@ STRUCTURE OBLIGATOIRE :
 2. Analyse structurée (prix, dynamique, liquidité, concurrence, attractivité)
 3. Plan d'action différencié (opportunité vs risque) — concret, opérationnel, jamais générique.
 
+DÉTECTION VENDEURS POTENTIELS (obligatoire) :
+- Calcule un score_vendeur (0-100) à partir des signaux : baisse prix, faible liquidité, délais longs, dispersion forte des prix, présence de biens anciens / grandes surfaces / DPE faibles.
+- Découpe la zone en 3-5 micro-secteurs (rues, quartiers homogènes) avec niveau d'opportunité.
+- Identifie 2-4 profils-types de vendeurs probables (typologie de bien + situation probable type succession, mutation, revente investisseur). JAMAIS de noms ou données personnelles : uniquement des probabilités de marché.
+- Fournis pour chaque profil un argument d'approche / angle de prospection.
+
 Utilise OBLIGATOIREMENT la fonction analyze_zone.`;
 
 serve(async (req) => {
