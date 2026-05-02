@@ -53,6 +53,8 @@ const Studio = () => {
   const [editableAnnonce, setEditableAnnonce] = useState<Record<string, string>>({});
   const [editingAnnonceField, setEditingAnnonceField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("mandats");
+  // Format choisi par l'utilisateur (courte | longue | premium) — pilote l'affichage actif et la sauvegarde
+  const [activeAnnonceFormat, setActiveAnnonceFormat] = useState<"courte" | "longue" | "premium">("longue");
 
   // Prefill from Estimation
   useEffect(() => {
@@ -164,13 +166,17 @@ const Studio = () => {
   const sauvegarderAnnonce = async () => {
     if (!annonce || !user) return;
     try {
+      const merged = { ...annonce, ...editableAnnonce };
+      // Le format actuellement affiché est celui que l'utilisateur a choisi → on le persiste comme version principale
+      const formatChoisi = activeAnnonceFormat;
+      const contenuPrincipal = merged[`version_${formatChoisi}`] || "";
       const { error } = await supabase.from("annonces").insert({
         user_id: user.id, adresse: annonceForm.adresse, prix: annonceForm.prix ? Number(annonceForm.prix) : null,
         surface: annonceForm.surface ? Number(annonceForm.surface) : null, description: annonceForm.description,
-        contenu_genere: { ...annonce, ...editableAnnonce },
+        contenu_genere: { ...merged, format_principal: formatChoisi, contenu_principal: contenuPrincipal, style_ton: annonceForm.style },
       });
       if (error) throw error;
-      toast.success(lang === "fr" ? "Annonce sauvegardée" : "Listing saved", {
+      toast.success(lang === "fr" ? `Annonce sauvegardée (${formatChoisi})` : `Listing saved (${formatChoisi})`, {
         action: { label: lang === "fr" ? "Voir" : "View", onClick: () => window.location.assign("/sauvegardes") },
       });
     } catch (err: any) {
@@ -386,13 +392,14 @@ const Studio = () => {
               <Card className="bg-card/60 border-border/30">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-sm">{annonce.titre_accrocheur || (lang === "fr" ? "Annonce générée" : "Generated listing")}</CardTitle>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onClick={() => copier(editableAnnonce.version_longue || annonce.version_longue)} className="gap-1 text-xs"><Copy className="h-3 w-3" /> {t("docs.copy")}</Button>
+                  <div className="flex gap-1 items-center">
+                    <Badge variant="outline" className="text-[9px] mr-1">{lang === "fr" ? "Format actif" : "Active"} : {activeAnnonceFormat}</Badge>
+                    <Button size="sm" variant="outline" onClick={() => copier(editableAnnonce[`version_${activeAnnonceFormat}`] || annonce[`version_${activeAnnonceFormat}`])} className="gap-1 text-xs"><Copy className="h-3 w-3" /> {t("docs.copy")}</Button>
                     <Button size="sm" variant="outline" onClick={sauvegarderAnnonce} className="gap-1 text-xs"><Save className="h-3 w-3" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Tabs defaultValue="courte">
+                  <Tabs value={activeAnnonceFormat} onValueChange={(v) => setActiveAnnonceFormat(v as any)}>
                     <TabsList className="w-full bg-muted/10">
                       <TabsTrigger value="courte" className="flex-1 text-xs">{lang === "fr" ? "Courte" : "Short"}</TabsTrigger>
                       <TabsTrigger value="longue" className="flex-1 text-xs">{lang === "fr" ? "Longue" : "Long"}</TabsTrigger>
