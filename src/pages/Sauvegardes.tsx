@@ -82,12 +82,14 @@ const Sauvegardes = () => {
 
   const downloadAnnonce = async (a: any) => {
     const cg = a.contenu_genere || {};
-    const text = cg.version_longue || cg.version_courte || cg.version_premium || a.description || "";
+    // Respecter le format choisi par l'utilisateur lors de la sauvegarde
+    const format = cg.format_principal as ("courte" | "longue" | "premium") | undefined;
+    const text = (format && cg[`version_${format}`]) || cg.contenu_principal || cg.version_premium || cg.version_longue || cg.version_courte || a.description || "";
     if (!text) { toast.error("Contenu vide"); return; }
     await exportTextToDocx(
       text,
-      `Annonce_${(a.adresse || "bien").replace(/[^a-zA-Z0-9]/g, "_").slice(0, 30)}.docx`,
-      { title: cg.titre_accrocheur || "Annonce immobilière", subtitle: a.adresse }
+      `Annonce_${format || "doc"}_${(a.adresse || "bien").replace(/[^a-zA-Z0-9]/g, "_").slice(0, 30)}.docx`,
+      { title: cg.titre_accrocheur || "Annonce immobilière", subtitle: `${a.adresse}${format ? " · format " + format : ""}` }
     );
     toast.success("Annonce téléchargée");
   };
@@ -144,7 +146,8 @@ const Sauvegardes = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredAnnonces.map((a: any) => {
                 const cg = a.contenu_genere || {};
-                const txt = cg.version_courte || cg.version_longue || a.description || "";
+                const format = cg.format_principal as ("courte" | "longue" | "premium") | undefined;
+                const txt = (format && cg[`version_${format}`]) || cg.contenu_principal || cg.version_longue || cg.version_courte || a.description || "";
                 return (
                   <Card key={a.id} className="bg-card/60 border-border/30 hover:border-primary/30 transition-all">
                     <CardHeader className="pb-2">
@@ -157,9 +160,12 @@ const Sauvegardes = () => {
                             {a.adresse}{a.surface ? ` · ${a.surface} m²` : ""}{a.prix ? ` · ${Number(a.prix).toLocaleString("fr-FR")} €` : ""}
                           </p>
                         </div>
-                        <Badge variant="outline" className="text-[9px] shrink-0">
-                          {new Date(a.created_at).toLocaleDateString("fr-FR")}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge variant="outline" className="text-[9px]">
+                            {new Date(a.created_at).toLocaleDateString("fr-FR")}
+                          </Badge>
+                          {format && <Badge variant="secondary" className="text-[9px] capitalize">{format}</Badge>}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
