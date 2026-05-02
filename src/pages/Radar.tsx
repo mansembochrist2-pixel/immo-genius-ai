@@ -63,18 +63,32 @@ const Radar = () => {
       if (data?.error) throw new Error(data.error);
       setAnalyseResult(data);
       if (user) {
-        const score = data.tendance?.includes("+") ? 75 : data.tendance?.includes("-") ? 35 : 55;
+        // Classification & scoring viennent désormais de l'IA basée sur DVF/INSEE
+        const classification = data.classification || (data.score_opportunite >= data.score_risque ? "opportunite" : "risque");
+        const score = classification === "opportunite" ? (data.score_opportunite ?? 60) : (data.score_risque ?? 40);
         await supabase.from("opportunites").insert({
-          user_id: user.id, titre: `Analyse IA — ${adresse}`, zone: adresse,
-          type: data.tendance?.includes("-") ? "risque" : "opportunite", score,
-          description: data.strategie?.substring(0, 300) || "Analyse IA de zone",
-          sources: data.sources || ["IA Lovable"],
-          donnees: { prix_m2: data.prix_m2_moyen, tendance: data.tendance, delai_vente: data.delai_vente, nb_biens: data.nb_biens_estimes },
+          user_id: user.id,
+          titre: `${classification === "opportunite" ? "Opportunité" : classification === "risque" ? "Risque" : "Analyse"} — ${adresse}`,
+          zone: adresse,
+          type: classification === "neutre" ? "opportunite" : classification,
+          score,
+          description: data.justification_score || data.strategie?.substring(0, 300) || "Analyse IA de zone",
+          sources: data.sources || ["DVF", "INSEE"],
+          donnees: {
+            prix_m2: data.prix_m2_moyen, tendance: data.tendance, delai_vente: data.delai_vente,
+            nb_biens: data.nb_biens_estimes,
+            score_opportunite: data.score_opportunite, score_risque: data.score_risque,
+            plan_action: data.plan_action, secteur,
+          },
           statut: "nouvelle",
+        });
+        // Sauvegarde aussi dans analyses_zone (historique complet)
+        await supabase.from("analyses_zone").insert({
+          user_id: user.id, adresse, secteur, resultat: data, sources_utilisees: data.sources || [],
         });
         queryClient.invalidateQueries({ queryKey: ["opportunites"] });
       }
-      toast.success("Analyse terminée !");
+      toast.success("Analyse sauvegardée");
     } catch (e: any) {
       toast.error(e.message || "Erreur lors de l'analyse");
     } finally {
