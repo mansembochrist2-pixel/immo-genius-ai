@@ -43,7 +43,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { adresse, secteur } = await req.json();
+    const { adresse: adresseRaw, secteur } = await req.json();
+    // Normalisation d'adresse : trim, espaces multiples, casse
+    const adresse = String(adresseRaw || "")
+      .replace(/\s+/g, " ")
+      .replace(/,\s*,/g, ",")
+      .trim();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
