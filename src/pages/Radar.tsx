@@ -17,45 +17,6 @@ import { useNavigate } from "react-router-dom";
 
 const SECTEURS = ["Résidentiel", "Commercial", "Luxe", "Investissement locatif", "Neuf", "Ancien"];
 
-const DEMO_OPPORTUNITIES = [
-  {
-    titre: "Quartier en gentrification — Paris 20e",
-    zone: "Belleville / Ménilmontant",
-    type: "opportunite",
-    score: 87,
-    description: "Hausse de 12% des prix sur 12 mois, nouvelle ligne de tramway prévue en 2026. Fort potentiel de plus-value à moyen terme.",
-    sources: ["DVF Etalab", "Data.gouv", "Observatoire local"],
-    donnees: { prix_m2: "6 200 €", tendance: "+12%", delai_vente: "45 jours" },
-  },
-  {
-    titre: "Tension locative forte — Lyon 3e",
-    zone: "Part-Dieu / Villette",
-    type: "opportunite",
-    score: 92,
-    description: "Taux de vacance < 2%, demande locative en hausse de 18%. Idéal investissement locatif.",
-    sources: ["INSEE", "Notaires de France"],
-    donnees: { prix_m2: "4 800 €", tendance: "+8%", delai_vente: "32 jours" },
-  },
-  {
-    titre: "Risque de baisse — Bordeaux Centre",
-    zone: "Chartrons / Saint-Michel",
-    type: "risque",
-    score: 35,
-    description: "Suroffre détectée (+25% d'annonces vs N-1), délais de vente en hausse à 95 jours.",
-    sources: ["DVF Etalab", "SeLoger Data"],
-    donnees: { prix_m2: "4 950 €", tendance: "-3%", delai_vente: "95 jours" },
-  },
-  {
-    titre: "Marché dynamique — Nantes Île de Nantes",
-    zone: "Île de Nantes / Beaulieu",
-    type: "opportunite",
-    score: 78,
-    description: "Projets urbains majeurs en cours, prix encore accessibles vs grandes métropoles.",
-    sources: ["DVF Etalab", "INSEE", "Métropole Nantes"],
-    donnees: { prix_m2: "3 900 €", tendance: "+6%", delai_vente: "52 jours" },
-  },
-];
-
 const Radar = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -81,22 +42,6 @@ const Radar = () => {
     enabled: !!user,
   });
 
-  const seedMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Non connecté");
-      const rows = DEMO_OPPORTUNITIES.map((o) => ({
-        user_id: user.id, titre: o.titre, zone: o.zone, type: o.type, score: o.score,
-        description: o.description, sources: o.sources, donnees: o.donnees, statut: "nouvelle",
-      }));
-      const { error } = await supabase.from("opportunites").insert(rows);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["opportunites"] });
-      toast.success("Données de démo chargées !");
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("opportunites").delete().eq("id", id);
@@ -118,18 +63,32 @@ const Radar = () => {
       if (data?.error) throw new Error(data.error);
       setAnalyseResult(data);
       if (user) {
-        const score = data.tendance?.includes("+") ? 75 : data.tendance?.includes("-") ? 35 : 55;
+        // Classification & scoring viennent désormais de l'IA basée sur DVF/INSEE
+        const classification = data.classification || (data.score_opportunite >= data.score_risque ? "opportunite" : "risque");
+        const score = classification === "opportunite" ? (data.score_opportunite ?? 60) : (data.score_risque ?? 40);
         await supabase.from("opportunites").insert({
-          user_id: user.id, titre: `Analyse IA — ${adresse}`, zone: adresse,
-          type: data.tendance?.includes("-") ? "risque" : "opportunite", score,
-          description: data.strategie?.substring(0, 300) || "Analyse IA de zone",
-          sources: data.sources || ["IA Lovable"],
-          donnees: { prix_m2: data.prix_m2_moyen, tendance: data.tendance, delai_vente: data.delai_vente, nb_biens: data.nb_biens_estimes },
+          user_id: user.id,
+          titre: `${classification === "opportunite" ? "Opportunité" : classification === "risque" ? "Risque" : "Analyse"} — ${adresse}`,
+          zone: adresse,
+          type: classification === "neutre" ? "opportunite" : classification,
+          score,
+          description: data.justification_score || data.strategie?.substring(0, 300) || "Analyse IA de zone",
+          sources: data.sources || ["DVF", "INSEE"],
+          donnees: {
+            prix_m2: data.prix_m2_moyen, tendance: data.tendance, delai_vente: data.delai_vente,
+            nb_biens: data.nb_biens_estimes,
+            score_opportunite: data.score_opportunite, score_risque: data.score_risque,
+            plan_action: data.plan_action, secteur,
+          },
           statut: "nouvelle",
+        });
+        // Sauvegarde aussi dans analyses_zone (historique complet)
+        await supabase.from("analyses_zone").insert({
+          user_id: user.id, adresse, secteur, resultat: data, sources_utilisees: data.sources || [],
         });
         queryClient.invalidateQueries({ queryKey: ["opportunites"] });
       }
-      toast.success("Analyse terminée !");
+      toast.success("Analyse sauvegardée");
     } catch (e: any) {
       toast.error(e.message || "Erreur lors de l'analyse");
     } finally {
@@ -173,10 +132,7 @@ const Radar = () => {
             <p className="page-subtitle">Détectez les opportunités vendeurs • Plans d'attaque commerciaux</p>
           </div>
           {opportunites.length === 0 && (
-            <Button variant="outline" size="sm" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
-              {seedMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              Charger données démo
-            </Button>
+            <Badge variant="outline" className="text-xs">Aucune analyse — lancez votre première recherche ↓</Badge>
           )}
         </div>
       </div>
@@ -225,16 +181,40 @@ const Radar = () => {
 
           {analyseResult && (
             <div className="mt-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
-              </h3>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
+                </h3>
+                {analyseResult.classification && (
+                  <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
+                    {analyseResult.classification} · Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
+                  </Badge>
+                )}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {analyseResult.prix_m2_moyen && <div><p className="text-[10px] text-muted-foreground uppercase">Prix/m²</p><p className="font-bold text-sm">{analyseResult.prix_m2_moyen}</p></div>}
                 {analyseResult.tendance && <div><p className="text-[10px] text-muted-foreground uppercase">Tendance</p><p className="font-bold text-sm">{analyseResult.tendance}</p></div>}
                 {analyseResult.delai_vente && <div><p className="text-[10px] text-muted-foreground uppercase">Délai vente</p><p className="font-bold text-sm">{analyseResult.delai_vente}</p></div>}
                 {analyseResult.nb_biens_estimes && <div><p className="text-[10px] text-muted-foreground uppercase">Biens estimés</p><p className="font-bold text-sm">{analyseResult.nb_biens_estimes}</p></div>}
               </div>
-              {analyseResult.strategie && <p className="text-xs text-muted-foreground">{analyseResult.strategie}</p>}
+              {analyseResult.justification_score && <p className="text-xs text-muted-foreground italic">{analyseResult.justification_score}</p>}
+              {analyseResult.plan_action && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-primary/10">
+                  <div>
+                    <p className="text-[10px] text-success uppercase font-semibold mb-1">✓ Si opportunité</p>
+                    <ul className="space-y-1">{(analyseResult.plan_action.si_opportunite || []).map((a: string, i: number) => <li key={i} className="text-xs flex gap-1"><span className="text-success">→</span>{a}</li>)}</ul>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-destructive uppercase font-semibold mb-1">⚠ Si risque</p>
+                    <ul className="space-y-1">{(analyseResult.plan_action.si_risque || []).map((a: string, i: number) => <li key={i} className="text-xs flex gap-1"><span className="text-destructive">→</span>{a}</li>)}</ul>
+                  </div>
+                </div>
+              )}
+              {analyseResult.sources?.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {analyseResult.sources.map((s: string) => <Badge key={s} variant="outline" className="text-[9px]">{s}</Badge>)}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
