@@ -17,45 +17,6 @@ import { useNavigate } from "react-router-dom";
 
 const SECTEURS = ["Résidentiel", "Commercial", "Luxe", "Investissement locatif", "Neuf", "Ancien"];
 
-const DEMO_OPPORTUNITIES = [
-  {
-    titre: "Quartier en gentrification — Paris 20e",
-    zone: "Belleville / Ménilmontant",
-    type: "opportunite",
-    score: 87,
-    description: "Hausse de 12% des prix sur 12 mois, nouvelle ligne de tramway prévue en 2026. Fort potentiel de plus-value à moyen terme.",
-    sources: ["DVF Etalab", "Data.gouv", "Observatoire local"],
-    donnees: { prix_m2: "6 200 €", tendance: "+12%", delai_vente: "45 jours" },
-  },
-  {
-    titre: "Tension locative forte — Lyon 3e",
-    zone: "Part-Dieu / Villette",
-    type: "opportunite",
-    score: 92,
-    description: "Taux de vacance < 2%, demande locative en hausse de 18%. Idéal investissement locatif.",
-    sources: ["INSEE", "Notaires de France"],
-    donnees: { prix_m2: "4 800 €", tendance: "+8%", delai_vente: "32 jours" },
-  },
-  {
-    titre: "Risque de baisse — Bordeaux Centre",
-    zone: "Chartrons / Saint-Michel",
-    type: "risque",
-    score: 35,
-    description: "Suroffre détectée (+25% d'annonces vs N-1), délais de vente en hausse à 95 jours.",
-    sources: ["DVF Etalab", "SeLoger Data"],
-    donnees: { prix_m2: "4 950 €", tendance: "-3%", delai_vente: "95 jours" },
-  },
-  {
-    titre: "Marché dynamique — Nantes Île de Nantes",
-    zone: "Île de Nantes / Beaulieu",
-    type: "opportunite",
-    score: 78,
-    description: "Projets urbains majeurs en cours, prix encore accessibles vs grandes métropoles.",
-    sources: ["DVF Etalab", "INSEE", "Métropole Nantes"],
-    donnees: { prix_m2: "3 900 €", tendance: "+6%", delai_vente: "52 jours" },
-  },
-];
-
 const Radar = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -79,22 +40,6 @@ const Radar = () => {
       return data;
     },
     enabled: !!user,
-  });
-
-  const seedMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Non connecté");
-      const rows = DEMO_OPPORTUNITIES.map((o) => ({
-        user_id: user.id, titre: o.titre, zone: o.zone, type: o.type, score: o.score,
-        description: o.description, sources: o.sources, donnees: o.donnees, statut: "nouvelle",
-      }));
-      const { error } = await supabase.from("opportunites").insert(rows);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["opportunites"] });
-      toast.success("Données de démo chargées !");
-    },
   });
 
   const deleteMutation = useMutation({
