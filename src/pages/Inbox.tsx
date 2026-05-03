@@ -271,6 +271,9 @@ const Inbox = () => {
                     <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => toggleReadMutation.mutate({ id: selected.id, lu: !selected.lu })}>
                       {selected.lu ? (<><EyeOff className="h-3 w-3 mr-1" /> {lang === "fr" ? "Non lu" : "Unread"}</>) : (<><Eye className="h-3 w-3 mr-1" /> {lang === "fr" ? "Lu" : "Read"}</>)}
                     </Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => archiveMutation.mutate(selected.id)} disabled={archiveMutation.isPending}>
+                      <Archive className="h-3 w-3 mr-1" /> {lang === "fr" ? "Archiver" : "Archive"}
+                    </Button>
                     <Badge variant="outline" className={`text-xs ${urgenceColors[selected.urgence ?? 0]}`}>
                       {lang === "fr" ? "Urgence" : "Urgency"} {selected.urgence ?? 0}/4
                     </Badge>
