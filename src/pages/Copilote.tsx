@@ -16,10 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { VoiceButton } from "@/components/VoiceButton";
+import { Switch } from "@/components/ui/switch";
+import { Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useBusinessData } from "@/contexts/BusinessContext";
 
-interface Message { role: "user" | "assistant"; content: string; }
+interface Message { role: "user" | "assistant"; content: string; actions?: string[]; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
 
 const Copilote = () => {
@@ -34,6 +36,7 @@ const Copilote = () => {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [convSearch, setConvSearch] = useState("");
+  const [agentMode, setAgentMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Check for prefilled message from Radar
@@ -74,15 +77,19 @@ const Copilote = () => {
   const { data: ctxExtras } = useQuery({
     queryKey: ["copilote-extras"],
     queryFn: async () => {
-      const [oppsRes, recentClientsRes, eventsRes] = await Promise.all([
+      const [oppsRes, recentClientsRes, eventsRes, inboxRes, prospectsIdsRes] = await Promise.all([
         supabase.from("opportunites").select("titre, zone, score, type, description").order("score", { ascending: false }).limit(5),
         supabase.from("prospects").select("nom, statut, motivation, freins, budget_min, budget_max, secteur_recherche, score_ia, derniere_interaction").order("updated_at", { ascending: false }).limit(10),
         supabase.from("events").select("titre, type, date_debut, lieu").gte("date_debut", new Date().toISOString().split("T")[0] + "T00:00:00").order("date_debut").limit(5),
+        supabase.from("inbox_messages").select("id, sujet, canal, intention, urgence, lu, created_at").order("created_at", { ascending: false }).limit(15),
+        supabase.from("prospects").select("id, nom, statut").order("updated_at", { ascending: false }).limit(20),
       ]);
       return {
         opportunities: oppsRes.data || [],
         recentClients: recentClientsRes.data || [],
         todayEvents: eventsRes.data || [],
+        inbox: inboxRes.data || [],
+        prospectIds: prospectsIdsRes.data || [],
       };
     },
     enabled: !!user,
@@ -186,18 +193,45 @@ const Copilote = () => {
         lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
         ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
+      if (agentMode && ctxExtras?.inbox?.length) {
+        lines.push(`\n📨 INBOX (IDs pour outils) :`);
+        ctxExtras.inbox.forEach((m: any) => lines.push(`  • id=${m.id} | ${m.canal} | ${m.lu ? "lu" : "non-lu"} | urgence=${m.urgence ?? 0} | "${(m.sujet || "").slice(0, 60)}"`));
+      }
+      if (agentMode && ctxExtras?.prospectIds?.length) {
+        lines.push(`\n👤 PROSPECTS (IDs) :`);
+        ctxExtras.prospectIds.forEach((p: any) => lines.push(`  • id=${p.id} | ${p.nom} (${p.statut})`));
+      }
       return lines.join("\n");
     };
 
     try {
-      await streamChat({
-        functionName: "chat-copilote",
-        messages: newMsgs,
-        businessContext: buildBusinessContext(),
-        onDelta: upsertAssistant,
-        onDone: () => { setIsLoading(false); setMessages(prev => { saveMutation.mutate(prev); return prev; }); },
-        onError: (err) => { upsertAssistant(`\n\n❌ ${err}`); setIsLoading(false); },
-      });
+      if (agentMode) {
+        const { data, error } = await supabase.functions.invoke("copilote-agent", {
+          body: { messages: newMsgs, businessContext: buildBusinessContext() },
+        });
+        if (error || data?.error) {
+          upsertAssistant(`\n\n❌ ${data?.error || error?.message || "Erreur"}`);
+        } else {
+          let content = data?.content || "";
+          if (data?.actions?.length) {
+            content = `**✅ Actions exécutées :**\n${data.actions.map((a: string) => `- ${a}`).join("\n")}\n\n${content}`;
+            toast.success(`${data.actions.length} action(s) exécutée(s)`);
+            queryClient.invalidateQueries();
+          }
+          upsertAssistant(content);
+        }
+        setIsLoading(false);
+        setMessages(prev => { saveMutation.mutate(prev); return prev; });
+      } else {
+        await streamChat({
+          functionName: "chat-copilote",
+          messages: newMsgs,
+          businessContext: buildBusinessContext(),
+          onDelta: upsertAssistant,
+          onDone: () => { setIsLoading(false); setMessages(prev => { saveMutation.mutate(prev); return prev; }); },
+          onError: (err) => { upsertAssistant(`\n\n❌ ${err}`); setIsLoading(false); },
+        });
+      }
     } catch { setIsLoading(false); }
   };
 
@@ -295,9 +329,16 @@ const Copilote = () => {
         {/* Chat */}
         <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-140px)] min-h-[700px]">
           <CardHeader className="pb-2 border-b border-border">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
-              <Badge variant="outline" className="text-[10px] border-success/30 text-success">{lang === "fr" ? "Connecté" : "Connected"}</Badge>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs cursor-pointer" title={lang === "fr" ? "Permet au copilote d'agir : archiver/trier emails, créer tâches & RDV" : "Lets the copilot take actions"}>
+                  <Wand2 className={`h-3.5 w-3.5 ${agentMode ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className={agentMode ? "font-medium text-primary" : "text-muted-foreground"}>{lang === "fr" ? "Mode Agent" : "Agent mode"}</span>
+                  <Switch checked={agentMode} onCheckedChange={setAgentMode} />
+                </label>
+                <Badge variant="outline" className="text-[10px] border-success/30 text-success">{lang === "fr" ? "Connecté" : "Connected"}</Badge>
+              </div>
             </div>
           </CardHeader>
 
