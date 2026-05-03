@@ -24,7 +24,7 @@ interface InboxMessage {
   contenu: string; client_id: string | null; urgence: number | null;
   intention: string | null; lu: boolean | null; repondu: boolean | null;
   analyse_ia: any; reponses_suggerees: any; created_at: string;
-  updated_at: string; user_id: string;
+  updated_at: string; user_id: string; archived_at: string | null;
 }
 
 interface AIAnalysis {
