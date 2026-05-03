@@ -50,17 +50,25 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
-      const [prospectsRes, salesRes, tasksRes, recentProspectsRes, recentSalesRes] = await Promise.all([
+      const todayIso = new Date().toISOString().split("T")[0];
+      const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate() + 7);
+      const [prospectsRes, salesRes, tasksRes, recentProspectsRes, recentSalesRes, inboxRes, oppsRes, eventsRes] = await Promise.all([
         supabase.from("prospects").select("statut", { count: "exact" }),
         supabase.from("sales").select("montant, date_vente, description"),
         supabase.from("tasks").select("done, priorite, due_date"),
         supabase.from("prospects").select("nom, statut, created_at").order("created_at", { ascending: false }).limit(5),
         supabase.from("sales").select("montant, date_vente, description").order("date_vente", { ascending: false }).limit(5),
+        supabase.from("inbox_messages").select("lu, urgence, intention, direction"),
+        supabase.from("opportunites").select("score"),
+        supabase.from("events").select("date_debut").gte("date_debut", `${todayIso}T00:00:00`).lte("date_debut", weekEnd.toISOString()),
       ]);
 
       const prospects = prospectsRes.data || [];
       const sales = salesRes.data || [];
       const tasks = tasksRes.data || [];
+      const inbox = inboxRes.data || [];
+      const opps = oppsRes.data || [];
+      const events = eventsRes.data || [];
       const now = new Date();
       const debutMois = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
@@ -70,6 +78,7 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
           nouveaux: prospects.filter(p => p.statut === "nouveau").length,
           chauds: prospects.filter(p => ["offre", "visite"].includes(p.statut)).length,
           signes: prospects.filter(p => p.statut === "signe").length,
+          actifs: prospects.filter(p => ["contacte", "visite", "offre"].includes(p.statut)).length,
         },
         sales: {
           total: sales.length,
@@ -80,6 +89,18 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
           enCours: tasks.filter((t: any) => !t.done).length,
           urgentes: tasks.filter((t: any) => !t.done && t.priorite === "urgente").length,
           enRetard: tasks.filter((t: any) => !t.done && t.due_date && new Date(t.due_date) < new Date(now.toDateString())).length,
+        },
+        inbox: {
+          unread: inbox.filter((m: any) => !m.lu && m.direction === "entrant").length,
+          urgent: inbox.filter((m: any) => !m.lu && m.direction === "entrant" && ((m.urgence ?? 0) >= 7 || ["chaud", "offre", "urgent"].includes((m.intention ?? "").toLowerCase()))).length,
+        },
+        opportunites: {
+          total: opps.length,
+          topScore: opps.length > 0 ? Math.max(...opps.map((o: any) => Number(o.score) || 0)) : 0,
+        },
+        events: {
+          aujourdhui: events.filter((e: any) => e.date_debut.startsWith(todayIso)).length,
+          semaine: events.length,
         },
         recentProspects: (recentProspectsRes.data || []).map(p => ({ nom: p.nom, statut: p.statut, created_at: p.created_at })),
         recentSales: (recentSalesRes.data || []).map(s => ({ montant: Number(s.montant), date_vente: s.date_vente, description: s.description })),
