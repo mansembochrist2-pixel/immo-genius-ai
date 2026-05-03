@@ -20,12 +20,15 @@ export const AgendaDayView = ({ date, events, onEventClick, onSlotClick }: Agend
   const [dragOverHour, setDragOverHour] = useState<number | null>(null);
 
   const dayEvents = useMemo(
-    () => events.filter((e: any) => formatDate(new Date(e.date_debut)) === dayStr),
-    [events, dayStr]
+    () => events.filter((e: any) => eventCoversDay(e, date)),
+    [events, date]
   );
 
+  const allDayEvents = useMemo(() => dayEvents.filter(isMultiDay), [dayEvents]);
+  const singleDayEvents = useMemo(() => dayEvents.filter(e => !isMultiDay(e)), [dayEvents]);
+
   const getEventsForHour = (hour: number) =>
-    dayEvents.filter((e: any) => new Date(e.date_debut).getHours() === hour);
+    singleDayEvents.filter((e: any) => new Date(e.date_debut).getHours() === hour);
 
   const handleDragStart = (e: React.DragEvent, evt: any) => {
     e.dataTransfer.setData("text/plain", JSON.stringify({ id: evt.id, date_debut: evt.date_debut, date_fin: evt.date_fin }));
