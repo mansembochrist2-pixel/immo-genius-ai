@@ -255,7 +255,7 @@ const Inbox = () => {
               filtered.map((msg) => {
                 const Icon = canalIcons[msg.canal] || Mail;
                 const u = msg.urgence ?? 0;
-                const ub = urgenceBadge[u];
+                const ub = urgenceBadge[Math.max(0, Math.min(4, u))] || urgenceBadge[0];
                 return (
                   <Card key={msg.id} className={`cursor-pointer transition-all hover:border-primary/40 ${selectedId === msg.id ? "border-primary/60 bg-primary/5" : "bg-card/60 border-border/30"} ${!msg.lu ? "border-l-2 border-l-primary" : ""} ${u >= 4 ? "ring-1 ring-destructive/30" : ""}`} onClick={() => setSelectedId(msg.id)}>
                     <CardContent className="p-3">
