@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AgendaEventCard, formatDate } from "./AgendaEventCard";
+import { AgendaEventCard, formatDate, eventCoversDay, isMultiDay } from "./AgendaEventCard";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,13 +22,21 @@ export const AgendaWeekView = ({ weekDays, events, onEventClick, onSlotClick }: 
 
   const eventsByDay = useMemo(() => {
     const map: Record<string, any[]> = {};
-    weekDays.forEach(d => { map[formatDate(d)] = []; });
-    events.forEach(e => {
-      const key = formatDate(new Date(e.date_debut));
-      if (map[key]) map[key].push(e);
+    weekDays.forEach(d => {
+      map[formatDate(d)] = events.filter(e => eventCoversDay(e, d) && !isMultiDay(e));
     });
     return map;
   }, [events, weekDays]);
+
+  const allDayByDay = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    weekDays.forEach(d => {
+      map[formatDate(d)] = events.filter(e => eventCoversDay(e, d) && isMultiDay(e));
+    });
+    return map;
+  }, [events, weekDays]);
+
+  const hasAllDay = Object.values(allDayByDay).some(arr => arr.length > 0);
 
   const handleDragStart = (e: React.DragEvent, evt: any) => {
     e.dataTransfer.setData("text/plain", JSON.stringify({ id: evt.id, date_debut: evt.date_debut, date_fin: evt.date_fin }));
@@ -76,6 +84,25 @@ export const AgendaWeekView = ({ weekDays, events, onEventClick, onSlotClick }: 
           );
         })}
       </div>
+      {/* All-day / multi-day strip */}
+      {hasAllDay && (
+        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/30 bg-muted/10 min-h-[36px]">
+          <div className="text-[9px] text-muted-foreground py-1 pr-2 text-right border-r border-border/20 font-medium uppercase">
+            All-day
+          </div>
+          {weekDays.map((d, i) => {
+            const dayStr = formatDate(d);
+            const evts = allDayByDay[dayStr] || [];
+            return (
+              <div key={i} className="border-r border-border/20 last:border-r-0 px-0.5 py-0.5 space-y-0.5">
+                {evts.map((evt: any) => (
+                  <AgendaEventCard key={`${evt.id}-${dayStr}`} event={evt} compact onClick={() => onEventClick(evt)} />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {/* Hourly grid */}
       <div className="max-h-[calc(100vh-340px)] overflow-y-auto">
         {HOURS.map(hour => (

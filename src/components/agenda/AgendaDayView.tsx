@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AgendaEventCard, formatDate } from "./AgendaEventCard";
+import { AgendaEventCard, formatDate, eventCoversDay, isMultiDay } from "./AgendaEventCard";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,12 +20,15 @@ export const AgendaDayView = ({ date, events, onEventClick, onSlotClick }: Agend
   const [dragOverHour, setDragOverHour] = useState<number | null>(null);
 
   const dayEvents = useMemo(
-    () => events.filter((e: any) => formatDate(new Date(e.date_debut)) === dayStr),
-    [events, dayStr]
+    () => events.filter((e: any) => eventCoversDay(e, date)),
+    [events, date]
   );
 
+  const allDayEvents = useMemo(() => dayEvents.filter(isMultiDay), [dayEvents]);
+  const singleDayEvents = useMemo(() => dayEvents.filter(e => !isMultiDay(e)), [dayEvents]);
+
   const getEventsForHour = (hour: number) =>
-    dayEvents.filter((e: any) => new Date(e.date_debut).getHours() === hour);
+    singleDayEvents.filter((e: any) => new Date(e.date_debut).getHours() === hour);
 
   const handleDragStart = (e: React.DragEvent, evt: any) => {
     e.dataTransfer.setData("text/plain", JSON.stringify({ id: evt.id, date_debut: evt.date_debut, date_fin: evt.date_fin }));
@@ -66,6 +69,15 @@ export const AgendaDayView = ({ date, events, onEventClick, onSlotClick }: Agend
           {date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
         </p>
       </div>
+      {/* All-day / multi-day events strip */}
+      {allDayEvents.length > 0 && (
+        <div className="px-2 py-1.5 border-b border-border/30 bg-muted/10 space-y-1">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Toute la journée</p>
+          {allDayEvents.map((evt: any) => (
+            <AgendaEventCard key={evt.id} event={evt} compact onClick={() => onEventClick(evt)} />
+          ))}
+        </div>
+      )}
       {/* Hourly grid */}
       <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
         {HOURS.map(hour => {
