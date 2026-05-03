@@ -435,6 +435,7 @@ const Inbox = () => {
           )}
         </div>
       </div>
+      </TooltipProvider>
     </AppLayout>
   );
 };
