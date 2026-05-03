@@ -4,9 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface BusinessStats {
-  prospects: { total: number; nouveaux: number; chauds: number; signes: number };
+  prospects: { total: number; nouveaux: number; chauds: number; signes: number; actifs: number };
   sales: { total: number; montantTotal: number; ceMois: number };
   tasks: { enCours: number; urgentes: number; enRetard: number };
+  inbox: { unread: number; urgent: number };
+  opportunites: { total: number; topScore: number };
+  events: { aujourdhui: number; semaine: number };
   recentProspects: Array<{ nom: string; statut: string; created_at: string }>;
   recentSales: Array<{ montant: number; date_vente: string; description: string | null }>;
 }
