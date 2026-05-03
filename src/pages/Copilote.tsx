@@ -303,7 +303,7 @@ const Copilote = () => {
         </div>
 
         {/* Chat */}
-        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-220px)]">
+        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-140px)] min-h-[700px]">
           <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
