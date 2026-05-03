@@ -77,15 +77,19 @@ const Copilote = () => {
   const { data: ctxExtras } = useQuery({
     queryKey: ["copilote-extras"],
     queryFn: async () => {
-      const [oppsRes, recentClientsRes, eventsRes] = await Promise.all([
+      const [oppsRes, recentClientsRes, eventsRes, inboxRes, prospectsIdsRes] = await Promise.all([
         supabase.from("opportunites").select("titre, zone, score, type, description").order("score", { ascending: false }).limit(5),
         supabase.from("prospects").select("nom, statut, motivation, freins, budget_min, budget_max, secteur_recherche, score_ia, derniere_interaction").order("updated_at", { ascending: false }).limit(10),
         supabase.from("events").select("titre, type, date_debut, lieu").gte("date_debut", new Date().toISOString().split("T")[0] + "T00:00:00").order("date_debut").limit(5),
+        supabase.from("inbox_messages").select("id, sujet, canal, intention, urgence, lu, created_at").order("created_at", { ascending: false }).limit(15),
+        supabase.from("prospects").select("id, nom, statut").order("updated_at", { ascending: false }).limit(20),
       ]);
       return {
         opportunities: oppsRes.data || [],
         recentClients: recentClientsRes.data || [],
         todayEvents: eventsRes.data || [],
+        inbox: inboxRes.data || [],
+        prospectIds: prospectsIdsRes.data || [],
       };
     },
     enabled: !!user,
