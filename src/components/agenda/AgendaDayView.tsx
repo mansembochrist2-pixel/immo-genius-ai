@@ -69,6 +69,15 @@ export const AgendaDayView = ({ date, events, onEventClick, onSlotClick }: Agend
           {date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
         </p>
       </div>
+      {/* All-day / multi-day events strip */}
+      {allDayEvents.length > 0 && (
+        <div className="px-2 py-1.5 border-b border-border/30 bg-muted/10 space-y-1">
+          <p className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Toute la journée</p>
+          {allDayEvents.map((evt: any) => (
+            <AgendaEventCard key={evt.id} event={evt} compact onClick={() => onEventClick(evt)} />
+          ))}
+        </div>
+      )}
       {/* Hourly grid */}
       <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
         {HOURS.map(hour => {
