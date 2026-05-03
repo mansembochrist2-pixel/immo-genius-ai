@@ -38,13 +38,13 @@ export const AgendaMonthView = ({ currentDate, events, onEventClick, onDayClick 
 
   const eventsByDay = useMemo(() => {
     const map: Record<string, any[]> = {};
-    events.forEach(e => {
-      const key = formatDate(new Date(e.date_debut));
-      if (!map[key]) map[key] = [];
-      map[key].push(e);
+    weeks.flat().forEach(d => {
+      if (!d) return;
+      const key = formatDate(d);
+      map[key] = events.filter(e => eventCoversDay(e, d));
     });
     return map;
-  }, [events]);
+  }, [events, weeks]);
 
   return (
     <div className="border border-border/30 rounded-lg overflow-hidden bg-card/40">
