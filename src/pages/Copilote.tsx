@@ -36,6 +36,7 @@ const Copilote = () => {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [convSearch, setConvSearch] = useState("");
+  const [agentMode, setAgentMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Check for prefilled message from Radar
