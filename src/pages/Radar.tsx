@@ -470,19 +470,31 @@ const Radar = () => {
                         </Badge>
                       ))}
                     </div>
-                    {!isRisque && (
+                    <div className="flex gap-1 shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs h-7 gap-1 shrink-0"
-                        disabled={generatingPlan === opp.id}
-                        onClick={() => generatePlanAttaque(opp)}
+                        className="text-xs h-7 gap-1"
+                        onClick={() => sendToCopilote(opp, opp.titre)}
                       >
-                        {generatingPlan === opp.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <><Crosshair className="h-3 w-3" /> Plan d'attaque</>
-                        )}
+                        <Bot className="h-3 w-3" /> Copilote
+                      </Button>
+                      {!isRisque && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 gap-1"
+                          disabled={generatingPlan === opp.id}
+                          onClick={() => generatePlanAttaque(opp)}
+                        >
+                          {generatingPlan === opp.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <><Crosshair className="h-3 w-3" /> Plan</>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                       </Button>
                     )}
                   </div>
