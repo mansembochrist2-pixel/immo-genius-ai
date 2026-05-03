@@ -308,15 +308,22 @@ const Studio = () => {
                         </div>
                       </div>
                     ))}
-                    {/* Custom templates */}
+                    {/* Custom templates — sélectionnables */}
                     {customTemplates.map((ct, i) => (
-                      <div key={i} className="p-3 rounded-lg border border-border/30 bg-muted/5">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-medium">{ct.name}</p>
+                      <div
+                        key={i}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${mandatType === ct.name ? "border-primary/60 bg-primary/5" : "border-border/30 bg-muted/5 hover:border-border/60"}`}
+                        onClick={() => setMandatType(ct.name)}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate">{ct.name}</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">{lang === "fr" ? "Template personnalisé" : "Custom template"}</p>
                           </div>
-                          <Badge variant="secondary" className="text-[8px] px-1.5">{lang === "fr" ? "Perso" : "Custom"}</Badge>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Badge variant="secondary" className="text-[8px] px-1.5">{lang === "fr" ? "Perso" : "Custom"}</Badge>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeTemplate(i); if (mandatType === ct.name) setMandatType(MANDAT_TYPES[0].value); }}>×</Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -325,7 +332,7 @@ const Studio = () => {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat" : "Mandate details"}</p>
+                    <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat (dictée vocale ou saisie)" : "Mandate details (voice or text)"}</p>
                     <VoiceButton
                       onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
                       onInterim={(text) => setVoiceInterim(text)}
@@ -337,6 +344,20 @@ const Studio = () => {
                     className="bg-muted/10 border-border/30 min-h-[140px]"
                     placeholder={"Dictez ou écrivez les informations :\n\nVendeur : Jean Dupont\nAdresse du bien : 12 rue de la Paix, 75002 Paris\nType : Appartement T3\nSurface : 65 m²\nPrix : 450 000 €"}
                   />
+                  {hasExtracted && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                      <p className="text-[10px] text-primary font-medium uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Champs détectés automatiquement" : "Auto-detected fields"}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(extractedFields).filter(([,v]) => v).map(([k, v]) => (
+                          <Badge key={k} variant="outline" className="text-[10px] bg-background/60">
+                            <span className="text-muted-foreground mr-1 capitalize">{k}:</span><span className="font-medium">{v}</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Button className="w-full" onClick={genererMandat} disabled={loadingMandat}>
