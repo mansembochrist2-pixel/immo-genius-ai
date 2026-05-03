@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, MessageSquare, Phone, Search, Zap, Clock, AlertTriangle,
   CheckCircle, Send, Loader2, Eye, EyeOff, Sparkles, Copy, PhoneCall,
-  Users, Target, Brain,
+  Users, Target, Brain, Archive,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
