@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AgendaEventCard, formatDate } from "./AgendaEventCard";
+import { AgendaEventCard, formatDate, eventCoversDay, isMultiDay } from "./AgendaEventCard";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
