@@ -70,28 +70,22 @@ const Copilote = () => {
     return firstMsg.toLowerCase().includes(convSearch.toLowerCase());
   });
 
-  const { data: ctx } = useQuery({
-    queryKey: ["copilote-full-context"],
+  // Données complémentaires pour la sidebar (détails non couverts par BusinessContext)
+  const { data: ctxExtras } = useQuery({
+    queryKey: ["copilote-extras"],
     queryFn: async () => {
-      const [prospectsRes, salesRes, tasksRes, inboxRes, oppsRes, recentClientsRes, eventsRes] = await Promise.all([
-        supabase.from("prospects").select("*", { count: "exact", head: true }),
-        supabase.from("sales").select("montant, date_vente, description").order("date_vente", { ascending: false }).limit(5),
-        supabase.from("actions_recommandees").select("titre, priorite, date_suggeree, statut").eq("statut", "en_attente").order("score_pertinence", { ascending: false }).limit(10),
-        supabase.from("inbox_messages").select("canal, sujet, contenu, intention, urgence, lu, repondu, created_at, direction").order("created_at", { ascending: false }).limit(10),
+      const [oppsRes, recentClientsRes, eventsRes] = await Promise.all([
         supabase.from("opportunites").select("titre, zone, score, type, description").order("score", { ascending: false }).limit(5),
         supabase.from("prospects").select("nom, statut, motivation, freins, budget_min, budget_max, secteur_recherche, score_ia, derniere_interaction").order("updated_at", { ascending: false }).limit(10),
         supabase.from("events").select("titre, type, date_debut, lieu").gte("date_debut", new Date().toISOString().split("T")[0] + "T00:00:00").order("date_debut").limit(5),
       ]);
-      const salesData = salesRes.data || [];
-      const caTotal = salesData.reduce((s, v) => s + Number(v.montant), 0);
       return {
-        prospects: prospectsRes.count ?? 0, sales: salesData.length, caTotal,
-        actions: tasksRes.data || [], inbox: inboxRes.data || [],
-        opportunities: oppsRes.data || [], recentClients: recentClientsRes.data || [],
-        recentSales: salesData, inboxUnread: (inboxRes.data || []).filter((m: any) => !m.lu).length,
+        opportunities: oppsRes.data || [],
+        recentClients: recentClientsRes.data || [],
         todayEvents: eventsRes.data || [],
       };
     },
+    enabled: !!user,
   });
 
   useEffect(() => {
