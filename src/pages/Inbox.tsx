@@ -67,11 +67,24 @@ const Inbox = () => {
   const { data: messages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ["inbox-messages"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("inbox_messages").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("inbox_messages").select("*").is("archived_at", null).order("created_at", { ascending: false });
       if (error) throw error;
       return data as InboxMessage[];
     },
     enabled: !!user,
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("inbox_messages").update({ archived_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-messages"] });
+      setSelectedId(null);
+      toast.success(lang === "fr" ? "Message archivé" : "Message archived");
+    },
   });
 
   const seedMutation = useMutation({
