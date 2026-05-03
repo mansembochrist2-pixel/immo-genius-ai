@@ -100,21 +100,28 @@ const Studio = () => {
   const [loadingMarketing, setLoadingMarketing] = useState(false);
 
   const genererMandat = async () => {
-    if (!mandatInfo.trim()) { toast.error("Décrivez les informations du mandat"); return; }
+    if (!mandatInfo.trim()) { toast.error(lang === "fr" ? "Décrivez les informations du mandat" : "Describe the mandate details"); return; }
     setLoadingMandat(true);
     setMandatContent("");
     try {
+      const customTpl = customTemplates.find(c => c.name === mandatType);
+      const businessContext = customTpl
+        ? `${mandatType}\n\nUTILISE STRICTEMENT LE TEMPLATE PERSONNALISÉ SUIVANT (respecte sa structure, ses titres et sa mise en forme) et remplis les champs avec les informations fournies. Conserve les sections vides du template avec des "________" si l'information manque.\n\n--- TEMPLATE ---\n${customTpl.content || "(template fourni par l'utilisateur — adopte une structure professionnelle proche)"}\n--- FIN TEMPLATE ---`
+        : mandatType;
+      const fieldsBlock = hasExtracted
+        ? `\n\n[Champs extraits automatiquement]\n${Object.entries(extractedFields).filter(([,v]) => v).map(([k,v]) => `- ${k}: ${v}`).join("\n")}\n`
+        : "";
       await streamChat({
         functionName: "generate-mandat",
-        messages: [{ role: "user", content: mandatInfo }],
-        businessContext: mandatType,
+        messages: [{ role: "user", content: mandatInfo + fieldsBlock }],
+        businessContext,
         onDelta: (chunk) => setMandatContent(prev => prev + chunk),
-        onDone: () => { setLoadingMandat(false); toast.success("Mandat généré"); },
+        onDone: () => { setLoadingMandat(false); toast.success(lang === "fr" ? "Mandat généré" : "Mandate generated"); },
         onError: (err) => { setLoadingMandat(false); toast.error(err); },
       });
     } catch {
       setLoadingMandat(false);
-      toast.error("Erreur de génération");
+      toast.error(lang === "fr" ? "Erreur de génération" : "Generation error");
     }
   };
 
