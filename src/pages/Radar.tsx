@@ -118,7 +118,34 @@ const Radar = () => {
     }
   };
 
-  const filtered = opportunites.filter((o: any) => filter === "all" || o.type === filter);
+  const [search, setSearch] = useState("");
+
+  const sendToCopilote = (source: any, label: string) => {
+    const d = source.donnees || source;
+    const lines = [
+      `Analyse Radar à expertiser : "${label}"`,
+      `Zone : ${source.zone || source.adresse || label}`,
+      `Classification : ${source.type || d.classification || "?"} — ${d.niveau_global || ""}`,
+      `Scores : opportunité ${d.score_opportunite ?? "?"}/100 · risque ${d.score_risque ?? "?"}/100 · vendeur ${d.score_vendeur ?? "?"}/100`,
+      `Marché : prix ${d.prix_m2 || d.prix_m2_moyen || "?"} · tendance ${d.tendance || "?"} · liquidité ${d.liquidite || "?"} · délai ${d.delai_vente || "?"}`,
+      d.analyse_strategique?.resume_marche ? `Résumé marché : ${d.analyse_strategique.resume_marche}` : "",
+      d.plan_action?.si_opportunite?.length ? `Plan opportunité : ${d.plan_action.si_opportunite.join(" · ")}` : "",
+      d.plan_action?.si_risque?.length ? `Plan risque : ${d.plan_action.si_risque.join(" · ")}` : "",
+      d.signaux_vendeurs?.length ? `Signaux vendeurs : ${d.signaux_vendeurs.join(" · ")}` : "",
+      "",
+      "Donne-moi ton avis stratégique d'expert : valide ou critique cette analyse, complète-la, et propose 3 actions commerciales prioritaires que je peux lancer cette semaine.",
+    ].filter(Boolean).join("\n");
+    sessionStorage.setItem("copilote_prefill", lines);
+    navigate("/copilote");
+  };
+
+  const filtered = opportunites
+    .filter((o: any) => filter === "all" || o.type === filter)
+    .filter((o: any) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return [o.titre, o.zone, o.description, o.donnees?.secteur].filter(Boolean).some((v: string) => v.toLowerCase().includes(q));
+    });
   const totalOpps = opportunites.length;
   const avgScore = totalOpps ? Math.round(opportunites.reduce((s: number, o: any) => s + (o.score || 0), 0) / totalOpps) : 0;
   const nbOpportunites = opportunites.filter((o: any) => o.type === "opportunite").length;
