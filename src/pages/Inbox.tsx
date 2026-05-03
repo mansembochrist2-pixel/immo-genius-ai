@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, MessageSquare, Phone, Search, Zap, Clock, AlertTriangle,
   CheckCircle, Send, Loader2, Eye, EyeOff, Sparkles, Copy, PhoneCall,
-  Users, Target, Brain, Archive,
+  Users, Target, Brain, Archive, Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -35,6 +36,13 @@ interface AIAnalysis {
 
 const canalIcons: Record<string, typeof Mail> = { email: Mail, whatsapp: MessageSquare, sms: Phone, appel: PhoneCall };
 const urgenceColors: Record<number, string> = { 0: "text-muted-foreground", 1: "text-muted-foreground", 2: "text-info", 3: "text-warning", 4: "text-destructive" };
+const urgenceBadge: Record<number, { label: string; className: string; tooltip: string }> = {
+  0: { label: "Info", className: "bg-muted/40 text-muted-foreground border-muted", tooltip: "Aucune urgence détectée — message informatif" },
+  1: { label: "Faible", className: "bg-muted/40 text-muted-foreground border-muted", tooltip: "Faible urgence — peut attendre quelques jours" },
+  2: { label: "Normal", className: "bg-info/15 text-info border-info/40", tooltip: "Urgence normale — répondre sous 24-48h" },
+  3: { label: "Important", className: "bg-warning/15 text-warning border-warning/40", tooltip: "Important — répondre dans la journée pour ne pas perdre l'opportunité" },
+  4: { label: "Urgent", className: "bg-destructive/15 text-destructive border-destructive/40 animate-pulse", tooltip: "URGENT — action immédiate requise (closing, litige, deadline critique)" },
+};
 
 const timeAgo = (dateStr: string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -160,7 +168,8 @@ const Inbox = () => {
   });
 
   const selected = messages.find((m) => m.id === selectedId);
-  const unreadCount = messages.filter((m) => !m.lu).length;
+  const unreadCount = messages.filter((m) => !m.lu && m.direction === "entrant").length;
+  const urgentCount = messages.filter((m) => (m.urgence ?? 0) >= 3 && m.direction === "entrant" && !m.archived_at).length;
   const analysis: AIAnalysis | null = selected?.analyse_ia as AIAnalysis | null;
   const suggestions = selected?.reponses_suggerees as AIAnalysis["reponses"] | null;
 
@@ -177,6 +186,7 @@ const Inbox = () => {
 
   return (
     <AppLayout>
+      <TooltipProvider delayDuration={200}>
       <div className="page-header">
         <div className="flex items-center justify-between">
           <div>
@@ -186,12 +196,30 @@ const Inbox = () => {
             </h1>
             <p className="page-subtitle">{t("inbox.subtitle")}</p>
           </div>
-          {unreadCount > 0 && (
-            <Badge variant="outline" className="border-warning/30 text-warning">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              {unreadCount} {lang === "fr" ? `non lu${unreadCount > 1 ? "s" : ""}` : "unread"}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {urgentCount > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 cursor-help" onClick={() => setTab("urgents")}>
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {urgentCount} {lang === "fr" ? "urgent" + (urgentCount > 1 ? "s" : "") : "urgent"}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>{lang === "fr" ? "Messages nécessitant une action immédiate" : "Messages requiring immediate action"}</TooltipContent>
+              </Tooltip>
+            )}
+            {unreadCount > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="border-warning/30 text-warning cursor-help" onClick={() => setTab("non-lus")}>
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {unreadCount} {lang === "fr" ? `non lu${unreadCount > 1 ? "s" : ""}` : "unread"}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>{lang === "fr" ? "Messages reçus non encore consultés" : "Received messages not yet read"}</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </div>
 
@@ -206,8 +234,14 @@ const Inbox = () => {
           <Tabs value={tab} onValueChange={setTab} className="w-full">
             <TabsList className="w-full bg-card/60">
               <TabsTrigger value="tous" className="flex-1 text-xs">{t("inbox.all")}</TabsTrigger>
-              <TabsTrigger value="non-lus" className="flex-1 text-xs">{t("inbox.unread")}</TabsTrigger>
-              <TabsTrigger value="urgents" className="flex-1 text-xs">{t("inbox.urgent")}</TabsTrigger>
+              <TabsTrigger value="non-lus" className="flex-1 text-xs gap-1">
+                {t("inbox.unread")}
+                {unreadCount > 0 && <span className="ml-1 inline-flex items-center justify-center rounded-full bg-warning/20 text-warning text-[9px] px-1.5 min-w-[16px] h-4">{unreadCount}</span>}
+              </TabsTrigger>
+              <TabsTrigger value="urgents" className="flex-1 text-xs gap-1">
+                {t("inbox.urgent")}
+                {urgentCount > 0 && <span className="ml-1 inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive text-[9px] px-1.5 min-w-[16px] h-4">{urgentCount}</span>}
+              </TabsTrigger>
               <TabsTrigger value="envoyes" className="flex-1 text-xs">{lang === "fr" ? "Envoyés" : "Sent"}</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -220,12 +254,14 @@ const Inbox = () => {
             ) : (
               filtered.map((msg) => {
                 const Icon = canalIcons[msg.canal] || Mail;
+                const u = msg.urgence ?? 0;
+                const ub = urgenceBadge[u];
                 return (
-                  <Card key={msg.id} className={`cursor-pointer transition-all hover:border-primary/40 ${selectedId === msg.id ? "border-primary/60 bg-primary/5" : "bg-card/60 border-border/30"} ${!msg.lu ? "border-l-2 border-l-primary" : ""}`} onClick={() => setSelectedId(msg.id)}>
+                  <Card key={msg.id} className={`cursor-pointer transition-all hover:border-primary/40 ${selectedId === msg.id ? "border-primary/60 bg-primary/5" : "bg-card/60 border-border/30"} ${!msg.lu ? "border-l-2 border-l-primary" : ""} ${u >= 4 ? "ring-1 ring-destructive/30" : ""}`} onClick={() => setSelectedId(msg.id)}>
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Icon className={`h-4 w-4 shrink-0 ${urgenceColors[msg.urgence ?? 0]}`} />
+                          <Icon className={`h-4 w-4 shrink-0 ${urgenceColors[u]}`} />
                           <span className={`text-sm truncate ${!msg.lu ? "font-semibold" : ""}`}>
                             {getSenderName(msg)}
                           </span>
@@ -235,10 +271,27 @@ const Inbox = () => {
                       </div>
                       {msg.sujet && <p className="text-xs text-muted-foreground mt-1 truncate">{msg.sujet}</p>}
                       <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">{msg.contenu}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        {msg.intention && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{msg.intention}</Badge>}
-                        {msg.repondu && <CheckCircle className="h-3 w-3 text-success" />}
-                        {(msg.urgence ?? 0) >= 3 && <AlertTriangle className={`h-3 w-3 ${urgenceColors[msg.urgence ?? 0]}`} />}
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 cursor-help ${ub.className}`}>{ub.label}</Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs"><p className="text-xs">{ub.tooltip}</p></TooltipContent>
+                        </Tooltip>
+                        {msg.intention && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 cursor-help">{msg.intention}</Badge>
+                            </TooltipTrigger>
+                            <TooltipContent><p className="text-xs">{lang === "fr" ? `Intention détectée par l'IA : ${msg.intention}` : `AI-detected intent: ${msg.intention}`}</p></TooltipContent>
+                          </Tooltip>
+                        )}
+                        {msg.repondu && (
+                          <Tooltip>
+                            <TooltipTrigger asChild><CheckCircle className="h-3 w-3 text-success" /></TooltipTrigger>
+                            <TooltipContent><p className="text-xs">{lang === "fr" ? "Vous avez déjà répondu" : "Already replied"}</p></TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -382,6 +435,7 @@ const Inbox = () => {
           )}
         </div>
       </div>
+      </TooltipProvider>
     </AppLayout>
   );
 };

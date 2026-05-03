@@ -43,8 +43,31 @@ const Studio = () => {
   const [mandatContent, setMandatContent] = useState("");
   const [loadingMandat, setLoadingMandat] = useState(false);
   const mandatRef = useRef<HTMLTextAreaElement>(null);
-  const [customTemplates, setCustomTemplates] = useState<{ name: string; file: File }[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<{ name: string; content: string }[]>(() => {
+    try { return JSON.parse(localStorage.getItem("estate_custom_templates") || "[]"); } catch { return []; }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist custom templates
+  useEffect(() => {
+    localStorage.setItem("estate_custom_templates", JSON.stringify(customTemplates));
+  }, [customTemplates]);
+
+  // Auto-extraction des champs du mandat depuis le texte (dictée ou saisie)
+  const extractedFields = (() => {
+    const txt = mandatInfo;
+    const get = (re: RegExp) => txt.match(re)?.[1]?.trim() || "";
+    const prix = get(/(?:prix|montant)[^\d€]*([\d\s.,]+)\s*(?:€|euros?|k€?)?/i);
+    const surface = get(/(\d+(?:[.,]\d+)?)\s*m(?:²|2)/i);
+    const adresse = get(/(?:adresse|bien (?:situé|à)|sis(?:e)? à?)[^:]*[:\s]+([^\n]{5,120})/i);
+    const vendeur = get(/(?:vendeur|mandant|propriétaire)[^:]*[:\s]+([A-ZÀ-Ü][^\n,]{2,60})/i);
+    const acquereur = get(/(?:acquéreur|acheteur)[^:]*[:\s]+([A-ZÀ-Ü][^\n,]{2,60})/i);
+    const type = get(/(?:type|bien)\s*[:\s]+(appartement|maison|villa|studio|loft|terrain|local|immeuble|t[1-6])/i);
+    const duree = get(/(?:durée|pour une durée de)\s*[:\s]*(\d+\s*(?:mois|an(?:née)?s?|jours))/i);
+    const honoraires = get(/(?:honoraires|commission|frais)[^\d%]*([\d.,]+)\s*(?:%|€|euros?)/i);
+    return { vendeur, acquereur, adresse, type, surface, prix, duree, honoraires };
+  })();
+  const hasExtracted = Object.values(extractedFields).some(v => v);
 
   // --- Annonces state ---
   const [annonceForm, setAnnonceForm] = useState({ adresse: "", prix: "", surface: "", description: "", style: "professionnel" });
@@ -77,21 +100,28 @@ const Studio = () => {
   const [loadingMarketing, setLoadingMarketing] = useState(false);
 
   const genererMandat = async () => {
-    if (!mandatInfo.trim()) { toast.error("Décrivez les informations du mandat"); return; }
+    if (!mandatInfo.trim()) { toast.error(lang === "fr" ? "Décrivez les informations du mandat" : "Describe the mandate details"); return; }
     setLoadingMandat(true);
     setMandatContent("");
     try {
+      const customTpl = customTemplates.find(c => c.name === mandatType);
+      const businessContext = customTpl
+        ? `${mandatType}\n\nUTILISE STRICTEMENT LE TEMPLATE PERSONNALISÉ SUIVANT (respecte sa structure, ses titres et sa mise en forme) et remplis les champs avec les informations fournies. Conserve les sections vides du template avec des "________" si l'information manque.\n\n--- TEMPLATE ---\n${customTpl.content || "(template fourni par l'utilisateur — adopte une structure professionnelle proche)"}\n--- FIN TEMPLATE ---`
+        : mandatType;
+      const fieldsBlock = hasExtracted
+        ? `\n\n[Champs extraits automatiquement]\n${Object.entries(extractedFields).filter(([,v]) => v).map(([k,v]) => `- ${k}: ${v}`).join("\n")}\n`
+        : "";
       await streamChat({
         functionName: "generate-mandat",
-        messages: [{ role: "user", content: mandatInfo }],
-        businessContext: mandatType,
+        messages: [{ role: "user", content: mandatInfo + fieldsBlock }],
+        businessContext,
         onDelta: (chunk) => setMandatContent(prev => prev + chunk),
-        onDone: () => { setLoadingMandat(false); toast.success("Mandat généré"); },
+        onDone: () => { setLoadingMandat(false); toast.success(lang === "fr" ? "Mandat généré" : "Mandate generated"); },
         onError: (err) => { setLoadingMandat(false); toast.error(err); },
       });
     } catch {
       setLoadingMandat(false);
-      toast.error("Erreur de génération");
+      toast.error(lang === "fr" ? "Erreur de génération" : "Generation error");
     }
   };
 
@@ -206,18 +236,29 @@ const Studio = () => {
     fileInputRef.current?.click();
   };
 
-  const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["pdf", "docx", "doc"].includes(ext || "")) {
-      toast.error("Format accepté : PDF ou Word (.docx)");
+    if (!["txt", "docx", "doc", "pdf"].includes(ext || "")) {
+      toast.error(lang === "fr" ? "Format accepté : .txt, .docx, .pdf" : "Accepted: .txt, .docx, .pdf");
       return;
     }
-    setCustomTemplates(prev => [...prev, { name: file.name, file }]);
-    toast.success(`Template "${file.name}" ajouté`);
+    let content = "";
+    try {
+      // Pour .txt/.docx on tente d'extraire le texte brut. PDF : non extrait côté navigateur, on stocke le nom seul.
+      if (ext === "txt") content = await file.text();
+      else if (ext === "docx" || ext === "doc") {
+        // Extraction basique : on lit comme texte (les balises seront filtrées par l'IA)
+        content = (await file.text()).replace(/[^\x20-\x7E\nàâäéèêëïîôöùûüÿçÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ\-_.,;:'"!?()€%/]/g, " ").slice(0, 8000);
+      }
+    } catch { /* ignore */ }
+    setCustomTemplates(prev => [...prev, { name: file.name, content }]);
+    toast.success(lang === "fr" ? `Template « ${file.name} » ajouté` : `Template "${file.name}" added`);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const removeTemplate = (idx: number) => setCustomTemplates(prev => prev.filter((_, i) => i !== idx));
 
   const typeLabels: Record<string, string> = { email: "📧 Email professionnel", post_social: "📱 Post réseaux sociaux", sms: "💬 SMS / WhatsApp", flyer: "📄 Texte flyer" };
 
@@ -267,15 +308,22 @@ const Studio = () => {
                         </div>
                       </div>
                     ))}
-                    {/* Custom templates */}
+                    {/* Custom templates — sélectionnables */}
                     {customTemplates.map((ct, i) => (
-                      <div key={i} className="p-3 rounded-lg border border-border/30 bg-muted/5">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-medium">{ct.name}</p>
+                      <div
+                        key={i}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${mandatType === ct.name ? "border-primary/60 bg-primary/5" : "border-border/30 bg-muted/5 hover:border-border/60"}`}
+                        onClick={() => setMandatType(ct.name)}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate">{ct.name}</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">{lang === "fr" ? "Template personnalisé" : "Custom template"}</p>
                           </div>
-                          <Badge variant="secondary" className="text-[8px] px-1.5">{lang === "fr" ? "Perso" : "Custom"}</Badge>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Badge variant="secondary" className="text-[8px] px-1.5">{lang === "fr" ? "Perso" : "Custom"}</Badge>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeTemplate(i); if (mandatType === ct.name) setMandatType(MANDAT_TYPES[0].value); }}>×</Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -284,7 +332,7 @@ const Studio = () => {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat" : "Mandate details"}</p>
+                    <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat (dictée vocale ou saisie)" : "Mandate details (voice or text)"}</p>
                     <VoiceButton
                       onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
                       onInterim={(text) => setVoiceInterim(text)}
@@ -296,6 +344,20 @@ const Studio = () => {
                     className="bg-muted/10 border-border/30 min-h-[140px]"
                     placeholder={"Dictez ou écrivez les informations :\n\nVendeur : Jean Dupont\nAdresse du bien : 12 rue de la Paix, 75002 Paris\nType : Appartement T3\nSurface : 65 m²\nPrix : 450 000 €"}
                   />
+                  {hasExtracted && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                      <p className="text-[10px] text-primary font-medium uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Champs détectés automatiquement" : "Auto-detected fields"}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(extractedFields).filter(([,v]) => v).map(([k, v]) => (
+                          <Badge key={k} variant="outline" className="text-[10px] bg-background/60">
+                            <span className="text-muted-foreground mr-1 capitalize">{k}:</span><span className="font-medium">{v}</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Button className="w-full" onClick={genererMandat} disabled={loadingMandat}>
@@ -303,7 +365,7 @@ const Studio = () => {
                 </Button>
 
                 <div className="border-t border-border/20 pt-3">
-                  <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.doc" onChange={onFileSelected} />
+                  <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.doc,.txt" onChange={onFileSelected} />
                   <Button variant="outline" size="sm" className="w-full text-xs gap-2" onClick={handleTemplateUpload}>
                     <Upload className="h-3.5 w-3.5" /> {lang === "fr" ? "Ajouter mon template (PDF / Word)" : "Add my template (PDF / Word)"}
                   </Button>
