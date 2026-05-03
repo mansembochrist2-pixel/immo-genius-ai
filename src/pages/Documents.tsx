@@ -365,7 +365,7 @@ const Studio = () => {
                 </Button>
 
                 <div className="border-t border-border/20 pt-3">
-                  <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.doc" onChange={onFileSelected} />
+                  <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.doc,.txt" onChange={onFileSelected} />
                   <Button variant="outline" size="sm" className="w-full text-xs gap-2" onClick={handleTemplateUpload}>
                     <Upload className="h-3.5 w-3.5" /> {lang === "fr" ? "Ajouter mon template (PDF / Word)" : "Add my template (PDF / Word)"}
                   </Button>
