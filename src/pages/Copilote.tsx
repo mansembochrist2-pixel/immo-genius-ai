@@ -265,11 +265,11 @@ const Copilote = () => {
             <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {lang === "fr" ? "Contexte actif" : "Active Context"}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {[
-                { label: "Clients", value: ctx?.prospects ?? "—" },
-                { label: lang === "fr" ? "CA Total" : "Total Revenue", value: ctx ? ctx.caTotal.toLocaleString("fr-FR") + " €" : "—" },
-                { label: lang === "fr" ? "Inbox non lus" : "Unread inbox", value: ctx?.inboxUnread ?? "—" },
-                { label: lang === "fr" ? "Opportunités" : "Opportunities", value: ctx?.opportunities?.length ?? "—" },
-                { label: lang === "fr" ? "RDV aujourd'hui" : "Today's meetings", value: ctx?.todayEvents?.length ?? "—" },
+                { label: "Clients actifs", value: stats.prospects.actifs },
+                { label: lang === "fr" ? "CA ce mois / Total" : "Revenue mo / Total", value: `${stats.sales.ceMois.toLocaleString("fr-FR")} € / ${stats.sales.montantTotal.toLocaleString("fr-FR")} €` },
+                { label: lang === "fr" ? "Inbox non lus" : "Unread inbox", value: stats.inbox.unread },
+                { label: lang === "fr" ? "Opportunités" : "Opportunities", value: stats.opportunites.total },
+                { label: lang === "fr" ? "RDV aujourd'hui" : "Today's meetings", value: stats.events.aujourdhui },
               ].map(i => (
                 <div key={i.label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{i.label}</span>
