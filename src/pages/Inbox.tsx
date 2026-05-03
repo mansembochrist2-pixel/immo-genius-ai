@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, MessageSquare, Phone, Search, Zap, Clock, AlertTriangle,
   CheckCircle, Send, Loader2, Eye, EyeOff, Sparkles, Copy, PhoneCall,
-  Users, Target, Brain, Archive,
+  Users, Target, Brain, Archive, Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
