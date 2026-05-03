@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { VoiceButton } from "@/components/VoiceButton";
 import { toast } from "sonner";
+import { useBusinessData } from "@/contexts/BusinessContext";
 
 interface Message { role: "user" | "assistant"; content: string; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
