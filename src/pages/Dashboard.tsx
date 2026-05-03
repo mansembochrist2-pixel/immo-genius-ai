@@ -18,6 +18,7 @@ import {
 import { ScoreExplainer } from "@/components/ScoreExplainer";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useBusinessData } from "@/contexts/BusinessContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
