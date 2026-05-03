@@ -36,6 +36,13 @@ interface AIAnalysis {
 
 const canalIcons: Record<string, typeof Mail> = { email: Mail, whatsapp: MessageSquare, sms: Phone, appel: PhoneCall };
 const urgenceColors: Record<number, string> = { 0: "text-muted-foreground", 1: "text-muted-foreground", 2: "text-info", 3: "text-warning", 4: "text-destructive" };
+const urgenceBadge: Record<number, { label: string; className: string; tooltip: string }> = {
+  0: { label: "Info", className: "bg-muted/40 text-muted-foreground border-muted", tooltip: "Aucune urgence détectée — message informatif" },
+  1: { label: "Faible", className: "bg-muted/40 text-muted-foreground border-muted", tooltip: "Faible urgence — peut attendre quelques jours" },
+  2: { label: "Normal", className: "bg-info/15 text-info border-info/40", tooltip: "Urgence normale — répondre sous 24-48h" },
+  3: { label: "Important", className: "bg-warning/15 text-warning border-warning/40", tooltip: "Important — répondre dans la journée pour ne pas perdre l'opportunité" },
+  4: { label: "Urgent", className: "bg-destructive/15 text-destructive border-destructive/40 animate-pulse", tooltip: "URGENT — action immédiate requise (closing, litige, deadline critique)" },
+};
 
 const timeAgo = (dateStr: string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
