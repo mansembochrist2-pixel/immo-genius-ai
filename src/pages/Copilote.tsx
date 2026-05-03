@@ -329,9 +329,9 @@ const Copilote = () => {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                <div className={`max-w-[92%] rounded-2xl px-5 py-4 text-[15px] leading-relaxed ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                    <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-3 prose-headings:mb-2"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                   ) : msg.content}
                 </div>
               </div>
