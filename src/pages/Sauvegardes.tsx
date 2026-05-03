@@ -289,6 +289,59 @@ const Sauvegardes = () => {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="emails">
+          {loadingArchived ? (
+            <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : archivedMessages.length === 0 ? (
+            <Card className="bg-card/60 border-border/30">
+              <CardContent className="py-16 text-center space-y-3">
+                <Mail className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                <p className="text-sm text-muted-foreground">Aucun email archivé</p>
+                <p className="text-xs text-muted-foreground/60">
+                  Archivez un message depuis votre boîte de réception pour le retrouver ici.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {archivedMessages.filter(filterFn).filter((m: any) => !search || m.contenu?.toLowerCase().includes(search.toLowerCase()) || m.sujet?.toLowerCase().includes(search.toLowerCase())).map((m: any) => (
+                <Card key={m.id} className="bg-card/60 border-border/30 hover:border-primary/30 transition-all">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-sm truncate">{m.sujet || `Message ${m.canal}`}</CardTitle>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">
+                          {m.canal} · {m.direction === "entrant" ? "Reçu" : "Envoyé"}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] shrink-0">
+                        {new Date(m.archived_at).toLocaleDateString("fr-FR")}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{m.contenu}</p>
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="outline" className="flex-1 text-xs gap-1 h-7"
+                        onClick={() => setPreview({ title: m.sujet || `Message ${m.canal}`, content: m.contenu })}>
+                        <Eye className="h-3 w-3" /> Aperçu
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-xs gap-1 h-7"
+                        onClick={() => restoreMessageMutation.mutate(m.id)}>
+                        <ArchiveRestore className="h-3 w-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive hover:text-destructive"
+                        onClick={() => deleteMessageMutation.mutate(m.id)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
