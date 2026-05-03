@@ -204,9 +204,10 @@ const Dashboard = () => {
             ) : (
               <>
                 <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{lang === "fr" ? "ce mois" : "this month"} · {lang === "fr" ? "Total" : "Total"} : {caTotal.toLocaleString("fr-FR")}€</p>
                 {objectifCa > 0 ? (
                   <>
-                    <Progress value={caProgress} className="mt-3 h-1.5" />
+                    <Progress value={caProgress} className="mt-2 h-1.5" />
                     <p className="text-[10px] text-muted-foreground mt-1.5">{caProgress}% {lang === "fr" ? "de" : "of"} {objectifCa.toLocaleString("fr-FR")}€</p>
                   </>
                 ) : (
