@@ -22,13 +22,21 @@ export const AgendaWeekView = ({ weekDays, events, onEventClick, onSlotClick }: 
 
   const eventsByDay = useMemo(() => {
     const map: Record<string, any[]> = {};
-    weekDays.forEach(d => { map[formatDate(d)] = []; });
-    events.forEach(e => {
-      const key = formatDate(new Date(e.date_debut));
-      if (map[key]) map[key].push(e);
+    weekDays.forEach(d => {
+      map[formatDate(d)] = events.filter(e => eventCoversDay(e, d) && !isMultiDay(e));
     });
     return map;
   }, [events, weekDays]);
+
+  const allDayByDay = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    weekDays.forEach(d => {
+      map[formatDate(d)] = events.filter(e => eventCoversDay(e, d) && isMultiDay(e));
+    });
+    return map;
+  }, [events, weekDays]);
+
+  const hasAllDay = Object.values(allDayByDay).some(arr => arr.length > 0);
 
   const handleDragStart = (e: React.DragEvent, evt: any) => {
     e.dataTransfer.setData("text/plain", JSON.stringify({ id: evt.id, date_debut: evt.date_debut, date_fin: evt.date_fin }));
