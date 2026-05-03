@@ -25,6 +25,7 @@ interface Conversation { id: string; assistant_type: string; messages: Message[]
 const Copilote = () => {
   const { user } = useAuth();
   const { lang } = useLanguage();
+  const { stats, getAIContext } = useBusinessData();
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
