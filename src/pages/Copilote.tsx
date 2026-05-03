@@ -173,24 +173,18 @@ const Copilote = () => {
     };
 
     const buildBusinessContext = () => {
-      if (!ctx) return "";
-      const lines = [
-        `📊 CONTEXTE BUSINESS :`,
-        `- ${ctx.prospects} clients | CA: ${ctx.caTotal.toLocaleString("fr-FR")} €`,
-        `- ${ctx.inboxUnread} msgs non lus | ${ctx.actions.length} actions en attente`,
-        `- ${ctx.opportunities.length} opportunités | ${ctx.todayEvents.length} RDV aujourd'hui`,
-      ];
-      if (ctx.todayEvents.length > 0) {
+      const lines = [getAIContext()];
+      if (ctxExtras?.todayEvents?.length) {
         lines.push(`\n📅 AGENDA DU JOUR :`);
-        ctx.todayEvents.forEach((e: any) => lines.push(`  • ${e.titre} (${e.type}) — ${new Date(e.date_debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}${e.lieu ? " — " + e.lieu : ""}`));
+        ctxExtras.todayEvents.forEach((e: any) => lines.push(`  • ${e.titre} (${e.type}) — ${new Date(e.date_debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}${e.lieu ? " — " + e.lieu : ""}`));
       }
-      if (ctx.recentClients.length > 0) {
-        lines.push(`\n👥 CLIENTS :`);
-        ctx.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
+      if (ctxExtras?.recentClients?.length) {
+        lines.push(`\n👥 CLIENTS RÉCENTS :`);
+        ctxExtras.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
       }
-      if (ctx.actions.length > 0) {
-        lines.push(`\n⚡ ACTIONS :`);
-        ctx.actions.slice(0, 5).forEach((t: any) => lines.push(`  • [${t.priorite}] ${t.titre}`));
+      if (ctxExtras?.opportunities?.length) {
+        lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
+        ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
       return lines.join("\n");
     };
