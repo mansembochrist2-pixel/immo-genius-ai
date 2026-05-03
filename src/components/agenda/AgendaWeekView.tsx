@@ -84,6 +84,25 @@ export const AgendaWeekView = ({ weekDays, events, onEventClick, onSlotClick }: 
           );
         })}
       </div>
+      {/* All-day / multi-day strip */}
+      {hasAllDay && (
+        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/30 bg-muted/10 min-h-[36px]">
+          <div className="text-[9px] text-muted-foreground py-1 pr-2 text-right border-r border-border/20 font-medium uppercase">
+            All-day
+          </div>
+          {weekDays.map((d, i) => {
+            const dayStr = formatDate(d);
+            const evts = allDayByDay[dayStr] || [];
+            return (
+              <div key={i} className="border-r border-border/20 last:border-r-0 px-0.5 py-0.5 space-y-0.5">
+                {evts.map((evt: any) => (
+                  <AgendaEventCard key={`${evt.id}-${dayStr}`} event={evt} compact onClick={() => onEventClick(evt)} />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {/* Hourly grid */}
       <div className="max-h-[calc(100vh-340px)] overflow-y-auto">
         {HOURS.map(hour => (
