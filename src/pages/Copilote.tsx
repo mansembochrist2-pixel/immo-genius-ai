@@ -297,7 +297,7 @@ const Copilote = () => {
           <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
-              <Badge variant="outline" className="text-[10px]">GPT-5.2</Badge>
+              <Badge variant="outline" className="text-[10px] border-success/30 text-success">{lang === "fr" ? "Connecté" : "Connected"}</Badge>
             </div>
           </CardHeader>
 
