@@ -193,18 +193,45 @@ const Copilote = () => {
         lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
         ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
+      if (agentMode && ctxExtras?.inbox?.length) {
+        lines.push(`\n📨 INBOX (IDs pour outils) :`);
+        ctxExtras.inbox.forEach((m: any) => lines.push(`  • id=${m.id} | ${m.canal} | ${m.lu ? "lu" : "non-lu"} | urgence=${m.urgence ?? 0} | "${(m.sujet || "").slice(0, 60)}"`));
+      }
+      if (agentMode && ctxExtras?.prospectIds?.length) {
+        lines.push(`\n👤 PROSPECTS (IDs) :`);
+        ctxExtras.prospectIds.forEach((p: any) => lines.push(`  • id=${p.id} | ${p.nom} (${p.statut})`));
+      }
       return lines.join("\n");
     };
 
     try {
-      await streamChat({
-        functionName: "chat-copilote",
-        messages: newMsgs,
-        businessContext: buildBusinessContext(),
-        onDelta: upsertAssistant,
-        onDone: () => { setIsLoading(false); setMessages(prev => { saveMutation.mutate(prev); return prev; }); },
-        onError: (err) => { upsertAssistant(`\n\n❌ ${err}`); setIsLoading(false); },
-      });
+      if (agentMode) {
+        const { data, error } = await supabase.functions.invoke("copilote-agent", {
+          body: { messages: newMsgs, businessContext: buildBusinessContext() },
+        });
+        if (error || data?.error) {
+          upsertAssistant(`\n\n❌ ${data?.error || error?.message || "Erreur"}`);
+        } else {
+          let content = data?.content || "";
+          if (data?.actions?.length) {
+            content = `**✅ Actions exécutées :**\n${data.actions.map((a: string) => `- ${a}`).join("\n")}\n\n${content}`;
+            toast.success(`${data.actions.length} action(s) exécutée(s)`);
+            queryClient.invalidateQueries();
+          }
+          upsertAssistant(content);
+        }
+        setIsLoading(false);
+        setMessages(prev => { saveMutation.mutate(prev); return prev; });
+      } else {
+        await streamChat({
+          functionName: "chat-copilote",
+          messages: newMsgs,
+          businessContext: buildBusinessContext(),
+          onDelta: upsertAssistant,
+          onDone: () => { setIsLoading(false); setMessages(prev => { saveMutation.mutate(prev); return prev; }); },
+          onError: (err) => { upsertAssistant(`\n\n❌ ${err}`); setIsLoading(false); },
+        });
+      }
     } catch { setIsLoading(false); }
   };
 
