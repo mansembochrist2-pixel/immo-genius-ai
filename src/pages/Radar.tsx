@@ -162,9 +162,7 @@ const Radar = () => {
             </h1>
             <p className="page-subtitle">Détectez les opportunités vendeurs • Plans d'attaque commerciaux</p>
           </div>
-          {opportunites.length === 0 && (
-            <Badge variant="outline" className="text-xs">Aucune analyse — lancez votre première recherche ↓</Badge>
-          )}
+          {/* empty-state badge removed for cleaner UX */}
         </div>
       </div>
 
