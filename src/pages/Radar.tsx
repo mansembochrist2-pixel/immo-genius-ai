@@ -216,16 +216,20 @@ const Radar = () => {
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
                 </h3>
-                {analyseResult.classification && (
-                  <div className="flex items-center gap-2">
-                    {analyseResult.niveau_global && (
-                      <Badge variant="outline" className="text-[10px] uppercase">{analyseResult.niveau_global}</Badge>
-                    )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {analyseResult.niveau_global && (
+                    <Badge variant="outline" className="text-[10px] uppercase">{analyseResult.niveau_global}</Badge>
+                  )}
+                  {analyseResult.classification && (
                     <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
                       Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
                     </Badge>
-                  </div>
-                )}
+                  )}
+                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1"
+                    onClick={() => sendToCopilote({ zone: adresse, type: analyseResult.classification, donnees: analyseResult }, adresse)}>
+                    <Bot className="h-3 w-3" /> Envoyer au Copilote
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {analyseResult.prix_m2_moyen && <div><p className="text-[10px] text-muted-foreground uppercase">Prix/m²</p><p className="font-bold text-sm">{analyseResult.prix_m2_moyen}</p></div>}
