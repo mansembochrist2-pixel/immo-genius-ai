@@ -118,7 +118,34 @@ const Radar = () => {
     }
   };
 
-  const filtered = opportunites.filter((o: any) => filter === "all" || o.type === filter);
+  const [search, setSearch] = useState("");
+
+  const sendToCopilote = (source: any, label: string) => {
+    const d = source.donnees || source;
+    const lines = [
+      `Analyse Radar à expertiser : "${label}"`,
+      `Zone : ${source.zone || source.adresse || label}`,
+      `Classification : ${source.type || d.classification || "?"} — ${d.niveau_global || ""}`,
+      `Scores : opportunité ${d.score_opportunite ?? "?"}/100 · risque ${d.score_risque ?? "?"}/100 · vendeur ${d.score_vendeur ?? "?"}/100`,
+      `Marché : prix ${d.prix_m2 || d.prix_m2_moyen || "?"} · tendance ${d.tendance || "?"} · liquidité ${d.liquidite || "?"} · délai ${d.delai_vente || "?"}`,
+      d.analyse_strategique?.resume_marche ? `Résumé marché : ${d.analyse_strategique.resume_marche}` : "",
+      d.plan_action?.si_opportunite?.length ? `Plan opportunité : ${d.plan_action.si_opportunite.join(" · ")}` : "",
+      d.plan_action?.si_risque?.length ? `Plan risque : ${d.plan_action.si_risque.join(" · ")}` : "",
+      d.signaux_vendeurs?.length ? `Signaux vendeurs : ${d.signaux_vendeurs.join(" · ")}` : "",
+      "",
+      "Donne-moi ton avis stratégique d'expert : valide ou critique cette analyse, complète-la, et propose 3 actions commerciales prioritaires que je peux lancer cette semaine.",
+    ].filter(Boolean).join("\n");
+    sessionStorage.setItem("copilote_prefill", lines);
+    navigate("/copilote");
+  };
+
+  const filtered = opportunites
+    .filter((o: any) => filter === "all" || o.type === filter)
+    .filter((o: any) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return [o.titre, o.zone, o.description, o.donnees?.secteur].filter(Boolean).some((v: string) => v.toLowerCase().includes(q));
+    });
   const totalOpps = opportunites.length;
   const avgScore = totalOpps ? Math.round(opportunites.reduce((s: number, o: any) => s + (o.score || 0), 0) / totalOpps) : 0;
   const nbOpportunites = opportunites.filter((o: any) => o.type === "opportunite").length;
@@ -189,16 +216,20 @@ const Radar = () => {
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
                 </h3>
-                {analyseResult.classification && (
-                  <div className="flex items-center gap-2">
-                    {analyseResult.niveau_global && (
-                      <Badge variant="outline" className="text-[10px] uppercase">{analyseResult.niveau_global}</Badge>
-                    )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {analyseResult.niveau_global && (
+                    <Badge variant="outline" className="text-[10px] uppercase">{analyseResult.niveau_global}</Badge>
+                  )}
+                  {analyseResult.classification && (
                     <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
                       Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
                     </Badge>
-                  </div>
-                )}
+                  )}
+                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1"
+                    onClick={() => sendToCopilote({ zone: adresse, type: analyseResult.classification, donnees: analyseResult }, adresse)}>
+                    <Bot className="h-3 w-3" /> Envoyer au Copilote
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {analyseResult.prix_m2_moyen && <div><p className="text-[10px] text-muted-foreground uppercase">Prix/m²</p><p className="font-bold text-sm">{analyseResult.prix_m2_moyen}</p></div>}
@@ -362,12 +393,21 @@ const Radar = () => {
         </Card>
       )}
 
-      {/* Filtres + liste */}
+      {/* Filtres + recherche */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-sm font-semibold flex items-center gap-2">
-          <Target className="h-4 w-4 text-primary" /> Opportunités & Risques
+          <Target className="h-4 w-4 text-primary" /> Analyses sauvegardées
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher adresse, zone, mot-clé..."
+              className="pl-7 pr-2 h-7 text-xs rounded-md border border-input bg-background w-56"
+            />
+          </div>
           {(["all", "opportunite", "risque"] as const).map((f) => (
             <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => setFilter(f)}>
               {f === "all" ? "Toutes" : f === "opportunite" ? "Opportunités" : "Risques"}
@@ -430,21 +470,31 @@ const Radar = () => {
                         </Badge>
                       ))}
                     </div>
-                    {!isRisque && (
+                    <div className="flex gap-1 shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs h-7 gap-1 shrink-0"
-                        disabled={generatingPlan === opp.id}
-                        onClick={() => generatePlanAttaque(opp)}
+                        className="text-xs h-7 gap-1"
+                        onClick={() => sendToCopilote(opp, opp.titre)}
                       >
-                        {generatingPlan === opp.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <><Crosshair className="h-3 w-3" /> Plan d'attaque</>
-                        )}
+                        <Bot className="h-3 w-3" /> Copilote
                       </Button>
-                    )}
+                      {!isRisque && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 gap-1"
+                          disabled={generatingPlan === opp.id}
+                          onClick={() => generatePlanAttaque(opp)}
+                        >
+                          {generatingPlan === opp.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <><Crosshair className="h-3 w-3" /> Plan</>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -303,7 +303,7 @@ const Copilote = () => {
         </div>
 
         {/* Chat */}
-        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-220px)]">
+        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-140px)] min-h-[700px]">
           <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
@@ -311,7 +311,7 @@ const Copilote = () => {
             </div>
           </CardHeader>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-5">
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
                 <Bot className="h-16 w-16 text-primary/20" />
@@ -329,9 +329,9 @@ const Copilote = () => {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                <div className={`max-w-[92%] rounded-2xl px-5 py-4 text-[15px] leading-relaxed ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                    <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-3 prose-headings:mb-2"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                   ) : msg.content}
                 </div>
               </div>
@@ -346,7 +346,7 @@ const Copilote = () => {
 
           <div className="p-4 border-t border-border">
             <div className="flex gap-2">
-              <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[44px] max-h-32 resize-none bg-secondary border-border"
+              <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[60px] max-h-48 resize-none bg-secondary border-border text-[15px]"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
               />
               <VoiceButton onTranscript={(text) => setInput(prev => prev + " " + text)} disabled={isLoading} />
