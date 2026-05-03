@@ -168,7 +168,8 @@ const Inbox = () => {
   });
 
   const selected = messages.find((m) => m.id === selectedId);
-  const unreadCount = messages.filter((m) => !m.lu).length;
+  const unreadCount = messages.filter((m) => !m.lu && m.direction === "entrant").length;
+  const urgentCount = messages.filter((m) => (m.urgence ?? 0) >= 3 && m.direction === "entrant" && !m.archived_at).length;
   const analysis: AIAnalysis | null = selected?.analyse_ia as AIAnalysis | null;
   const suggestions = selected?.reponses_suggerees as AIAnalysis["reponses"] | null;
 
