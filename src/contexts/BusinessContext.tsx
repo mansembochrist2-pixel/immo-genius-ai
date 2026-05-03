@@ -169,6 +169,25 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-tasks"] });
         queryClient.invalidateQueries({ queryKey: ["urgent-count"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, () => {
+        fetchStats();
+        queryClient.invalidateQueries({ queryKey: ["inbox"] });
+        queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "opportunites" }, () => {
+        fetchStats();
+        queryClient.invalidateQueries({ queryKey: ["opportunites"] });
+        queryClient.invalidateQueries({ queryKey: ["opp-count"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => {
+        fetchStats();
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        queryClient.invalidateQueries({ queryKey: ["today-events"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "actions_recommandees" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard-actions"] });
+        queryClient.invalidateQueries({ queryKey: ["actions-recommandees"] });
+      })
       .subscribe();
 
     return () => {
