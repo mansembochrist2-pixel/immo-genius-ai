@@ -22,9 +22,12 @@ interface BusinessContextType {
 }
 
 const defaultStats: BusinessStats = {
-  prospects: { total: 0, nouveaux: 0, chauds: 0, signes: 0 },
+  prospects: { total: 0, nouveaux: 0, chauds: 0, signes: 0, actifs: 0 },
   sales: { total: 0, montantTotal: 0, ceMois: 0 },
   tasks: { enCours: 0, urgentes: 0, enRetard: 0 },
+  inbox: { unread: 0, urgent: 0 },
+  opportunites: { total: 0, topScore: 0 },
+  events: { aujourdhui: 0, semaine: 0 },
   recentProspects: [],
   recentSales: [],
 };
