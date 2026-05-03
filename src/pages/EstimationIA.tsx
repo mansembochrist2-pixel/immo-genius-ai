@@ -369,7 +369,7 @@ const EstimationIA = () => {
             ))}
 
             <div className="flex flex-wrap gap-2">
-              <Button className="flex-1 min-w-[180px]" onClick={downloadPDF}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger le rapport" : "Download report"}</Button>
+              <Button className="flex-1 min-w-[180px]" onClick={downloadWord}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger en Word" : "Download as Word"}</Button>
               <Button variant="default" className="flex-1 min-w-[180px] bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => {
                 sessionStorage.setItem("annonce_prefill", JSON.stringify({
                   adresse: form.adresse,
