@@ -141,7 +141,7 @@ async function runTool(supabase: any, userId: string, name: string, args: any) {
         due_date: args.due_date ?? null,
         priorite: args.priorite ?? "moyenne",
         prospect_id: args.prospect_id ?? null,
-        source: "ai",
+        source: "ia",
       }).select("id").single();
       if (error) throw error;
       return { success: true, action: `Tâche créée : "${args.titre}"`, id: data.id };
