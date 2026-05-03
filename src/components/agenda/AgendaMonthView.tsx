@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AgendaEventCard, formatDate } from "./AgendaEventCard";
+import { AgendaEventCard, formatDate, eventCoversDay } from "./AgendaEventCard";
 import { cn } from "@/lib/utils";
 
 const DAY_HEADERS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
