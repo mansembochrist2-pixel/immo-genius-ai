@@ -115,11 +115,13 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   const getAIContext = useCallback(() => {
     const s = stats;
     const lines = [
-      `📊 CONTEXTE BUSINESS DE L'AGENT :`,
-      `- ${s.prospects.total} prospects au total (${s.prospects.nouveaux} nouveaux, ${s.prospects.chauds} chauds, ${s.prospects.signes} signés)`,
-      `- ${s.sales.total} ventes réalisées, CA total : ${s.sales.montantTotal.toLocaleString("fr-FR")} €`,
-      `- CA ce mois : ${s.sales.ceMois.toLocaleString("fr-FR")} €`,
-      `- ${s.tasks.enCours} tâches en cours (${s.tasks.urgentes} urgentes, ${s.tasks.enRetard} en retard)`,
+      `📊 CONTEXTE BUSINESS DE L'AGENT (source unique partagée avec le Dashboard) :`,
+      `- Clients : ${s.prospects.total} au total — ${s.prospects.actifs} actifs (${s.prospects.chauds} chauds, ${s.prospects.signes} signés)`,
+      `- Ventes : ${s.sales.total} ventes | CA total ${s.sales.montantTotal.toLocaleString("fr-FR")} € | CA ce mois ${s.sales.ceMois.toLocaleString("fr-FR")} €`,
+      `- Inbox : ${s.inbox.unread} non lus dont ${s.inbox.urgent} urgents`,
+      `- Opportunités Radar : ${s.opportunites.total} (meilleur score ${s.opportunites.topScore}/100)`,
+      `- Agenda : ${s.events.aujourdhui} RDV aujourd'hui, ${s.events.semaine} cette semaine`,
+      `- Tâches : ${s.tasks.enCours} en cours (${s.tasks.urgentes} urgentes, ${s.tasks.enRetard} en retard)`,
     ];
     if (s.recentProspects.length > 0) {
       lines.push(`\nDerniers prospects :`);
