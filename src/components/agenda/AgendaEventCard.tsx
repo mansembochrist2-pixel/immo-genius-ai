@@ -16,7 +16,26 @@ export const typeMap = Object.fromEntries(EVENT_TYPES.map(t => [t.value, t]));
 export const formatHeure = (iso: string) =>
   new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
-export const formatDate = (d: Date) => d.toISOString().split("T")[0];
+export const formatDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+/** Returns true if the event covers any part of the given day (handles multi-day spans). */
+export const eventCoversDay = (evt: any, day: Date) => {
+  const start = new Date(evt.date_debut);
+  const end = evt.date_fin ? new Date(evt.date_fin) : start;
+  const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999);
+  return start <= dayEnd && end >= dayStart;
+};
+
+export const isMultiDay = (evt: any) => {
+  if (!evt.date_fin) return false;
+  return formatDate(new Date(evt.date_debut)) !== formatDate(new Date(evt.date_fin));
+};
 
 interface AgendaEventCardProps {
   event: any;
