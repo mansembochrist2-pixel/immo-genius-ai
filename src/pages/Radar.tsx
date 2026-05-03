@@ -393,12 +393,21 @@ const Radar = () => {
         </Card>
       )}
 
-      {/* Filtres + liste */}
+      {/* Filtres + recherche */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-sm font-semibold flex items-center gap-2">
-          <Target className="h-4 w-4 text-primary" /> Opportunités & Risques
+          <Target className="h-4 w-4 text-primary" /> Analyses sauvegardées
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher adresse, zone, mot-clé..."
+              className="pl-7 pr-2 h-7 text-xs rounded-md border border-input bg-background w-56"
+            />
+          </div>
           {(["all", "opportunite", "risque"] as const).map((f) => (
             <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" className="text-xs h-7" onClick={() => setFilter(f)}>
               {f === "all" ? "Toutes" : f === "opportunite" ? "Opportunités" : "Risques"}
