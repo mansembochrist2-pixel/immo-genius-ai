@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Mail, MessageSquare, Phone, Search, Zap, Clock, AlertTriangle,
   CheckCircle, Send, Loader2, Eye, EyeOff, Sparkles, Copy, PhoneCall,
-  Users, Target, Brain,
+  Users, Target, Brain, Archive,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +24,7 @@ interface InboxMessage {
   contenu: string; client_id: string | null; urgence: number | null;
   intention: string | null; lu: boolean | null; repondu: boolean | null;
   analyse_ia: any; reponses_suggerees: any; created_at: string;
-  updated_at: string; user_id: string;
+  updated_at: string; user_id: string; archived_at: string | null;
 }
 
 interface AIAnalysis {
@@ -67,11 +67,24 @@ const Inbox = () => {
   const { data: messages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ["inbox-messages"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("inbox_messages").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("inbox_messages").select("*").is("archived_at", null).order("created_at", { ascending: false });
       if (error) throw error;
       return data as InboxMessage[];
     },
     enabled: !!user,
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("inbox_messages").update({ archived_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-messages"] });
+      setSelectedId(null);
+      toast.success(lang === "fr" ? "Message archivé" : "Message archived");
+    },
   });
 
   const seedMutation = useMutation({
@@ -257,6 +270,9 @@ const Inbox = () => {
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => toggleReadMutation.mutate({ id: selected.id, lu: !selected.lu })}>
                       {selected.lu ? (<><EyeOff className="h-3 w-3 mr-1" /> {lang === "fr" ? "Non lu" : "Unread"}</>) : (<><Eye className="h-3 w-3 mr-1" /> {lang === "fr" ? "Lu" : "Read"}</>)}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => archiveMutation.mutate(selected.id)} disabled={archiveMutation.isPending}>
+                      <Archive className="h-3 w-3 mr-1" /> {lang === "fr" ? "Archiver" : "Archive"}
                     </Button>
                     <Badge variant="outline" className={`text-xs ${urgenceColors[selected.urgence ?? 0]}`}>
                       {lang === "fr" ? "Urgence" : "Urgency"} {selected.urgence ?? 0}/4

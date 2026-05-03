@@ -261,6 +261,7 @@ export type Database = {
       inbox_messages: {
         Row: {
           analyse_ia: Json | null
+          archived_at: string | null
           canal: string
           client_id: string | null
           contenu: string
@@ -279,6 +280,7 @@ export type Database = {
         }
         Insert: {
           analyse_ia?: Json | null
+          archived_at?: string | null
           canal?: string
           client_id?: string | null
           contenu: string
@@ -297,6 +299,7 @@ export type Database = {
         }
         Update: {
           analyse_ia?: Json | null
+          archived_at?: string | null
           canal?: string
           client_id?: string | null
           contenu?: string
