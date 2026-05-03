@@ -16,10 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { VoiceButton } from "@/components/VoiceButton";
+import { Switch } from "@/components/ui/switch";
+import { Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useBusinessData } from "@/contexts/BusinessContext";
 
-interface Message { role: "user" | "assistant"; content: string; }
+interface Message { role: "user" | "assistant"; content: string; actions?: string[]; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
 
 const Copilote = () => {
