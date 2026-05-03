@@ -495,8 +495,6 @@ const Radar = () => {
                         </Button>
                       )}
                     </div>
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
