@@ -346,7 +346,7 @@ const Copilote = () => {
 
           <div className="p-4 border-t border-border">
             <div className="flex gap-2">
-              <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[44px] max-h-32 resize-none bg-secondary border-border"
+              <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[60px] max-h-48 resize-none bg-secondary border-border text-[15px]"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
               />
               <VoiceButton onTranscript={(text) => setInput(prev => prev + " " + text)} disabled={isLoading} />
