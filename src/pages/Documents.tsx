@@ -43,8 +43,31 @@ const Studio = () => {
   const [mandatContent, setMandatContent] = useState("");
   const [loadingMandat, setLoadingMandat] = useState(false);
   const mandatRef = useRef<HTMLTextAreaElement>(null);
-  const [customTemplates, setCustomTemplates] = useState<{ name: string; file: File }[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<{ name: string; content: string }[]>(() => {
+    try { return JSON.parse(localStorage.getItem("estate_custom_templates") || "[]"); } catch { return []; }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist custom templates
+  useEffect(() => {
+    localStorage.setItem("estate_custom_templates", JSON.stringify(customTemplates));
+  }, [customTemplates]);
+
+  // Auto-extraction des champs du mandat depuis le texte (dictée ou saisie)
+  const extractedFields = (() => {
+    const txt = mandatInfo;
+    const get = (re: RegExp) => txt.match(re)?.[1]?.trim() || "";
+    const prix = get(/(?:prix|montant)[^\d€]*([\d\s.,]+)\s*(?:€|euros?|k€?)?/i);
+    const surface = get(/(\d+(?:[.,]\d+)?)\s*m(?:²|2)/i);
+    const adresse = get(/(?:adresse|bien (?:situé|à)|sis(?:e)? à?)[^:]*[:\s]+([^\n]{5,120})/i);
+    const vendeur = get(/(?:vendeur|mandant|propriétaire)[^:]*[:\s]+([A-ZÀ-Ü][^\n,]{2,60})/i);
+    const acquereur = get(/(?:acquéreur|acheteur)[^:]*[:\s]+([A-ZÀ-Ü][^\n,]{2,60})/i);
+    const type = get(/(?:type|bien)\s*[:\s]+(appartement|maison|villa|studio|loft|terrain|local|immeuble|t[1-6])/i);
+    const duree = get(/(?:durée|pour une durée de)\s*[:\s]*(\d+\s*(?:mois|an(?:née)?s?|jours))/i);
+    const honoraires = get(/(?:honoraires|commission|frais)[^\d%]*([\d.,]+)\s*(?:%|€|euros?)/i);
+    return { vendeur, acquereur, adresse, type, surface, prix, duree, honoraires };
+  })();
+  const hasExtracted = Object.values(extractedFields).some(v => v);
 
   // --- Annonces state ---
   const [annonceForm, setAnnonceForm] = useState({ adresse: "", prix: "", surface: "", description: "", style: "professionnel" });
