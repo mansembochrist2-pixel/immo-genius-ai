@@ -164,6 +164,9 @@ const Sauvegardes = () => {
           <TabsTrigger value="estimations" className="gap-2">
             <TrendingUp className="h-3.5 w-3.5" /> Estimations ({estimations.length})
           </TabsTrigger>
+          <TabsTrigger value="emails" className="gap-2">
+            <Mail className="h-3.5 w-3.5" /> Emails archivés ({archivedMessages.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="annonces">
