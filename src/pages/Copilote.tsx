@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { VoiceButton } from "@/components/VoiceButton";
 import { toast } from "sonner";
+import { useBusinessData } from "@/contexts/BusinessContext";
 
 interface Message { role: "user" | "assistant"; content: string; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
@@ -24,6 +25,7 @@ interface Conversation { id: string; assistant_type: string; messages: Message[]
 const Copilote = () => {
   const { user } = useAuth();
   const { lang } = useLanguage();
+  const { stats, getAIContext } = useBusinessData();
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -68,28 +70,22 @@ const Copilote = () => {
     return firstMsg.toLowerCase().includes(convSearch.toLowerCase());
   });
 
-  const { data: ctx } = useQuery({
-    queryKey: ["copilote-full-context"],
+  // Données complémentaires pour la sidebar (détails non couverts par BusinessContext)
+  const { data: ctxExtras } = useQuery({
+    queryKey: ["copilote-extras"],
     queryFn: async () => {
-      const [prospectsRes, salesRes, tasksRes, inboxRes, oppsRes, recentClientsRes, eventsRes] = await Promise.all([
-        supabase.from("prospects").select("*", { count: "exact", head: true }),
-        supabase.from("sales").select("montant, date_vente, description").order("date_vente", { ascending: false }).limit(5),
-        supabase.from("actions_recommandees").select("titre, priorite, date_suggeree, statut").eq("statut", "en_attente").order("score_pertinence", { ascending: false }).limit(10),
-        supabase.from("inbox_messages").select("canal, sujet, contenu, intention, urgence, lu, repondu, created_at, direction").order("created_at", { ascending: false }).limit(10),
+      const [oppsRes, recentClientsRes, eventsRes] = await Promise.all([
         supabase.from("opportunites").select("titre, zone, score, type, description").order("score", { ascending: false }).limit(5),
         supabase.from("prospects").select("nom, statut, motivation, freins, budget_min, budget_max, secteur_recherche, score_ia, derniere_interaction").order("updated_at", { ascending: false }).limit(10),
         supabase.from("events").select("titre, type, date_debut, lieu").gte("date_debut", new Date().toISOString().split("T")[0] + "T00:00:00").order("date_debut").limit(5),
       ]);
-      const salesData = salesRes.data || [];
-      const caTotal = salesData.reduce((s, v) => s + Number(v.montant), 0);
       return {
-        prospects: prospectsRes.count ?? 0, sales: salesData.length, caTotal,
-        actions: tasksRes.data || [], inbox: inboxRes.data || [],
-        opportunities: oppsRes.data || [], recentClients: recentClientsRes.data || [],
-        recentSales: salesData, inboxUnread: (inboxRes.data || []).filter((m: any) => !m.lu).length,
+        opportunities: oppsRes.data || [],
+        recentClients: recentClientsRes.data || [],
         todayEvents: eventsRes.data || [],
       };
     },
+    enabled: !!user,
   });
 
   useEffect(() => {
@@ -177,24 +173,18 @@ const Copilote = () => {
     };
 
     const buildBusinessContext = () => {
-      if (!ctx) return "";
-      const lines = [
-        `📊 CONTEXTE BUSINESS :`,
-        `- ${ctx.prospects} clients | CA: ${ctx.caTotal.toLocaleString("fr-FR")} €`,
-        `- ${ctx.inboxUnread} msgs non lus | ${ctx.actions.length} actions en attente`,
-        `- ${ctx.opportunities.length} opportunités | ${ctx.todayEvents.length} RDV aujourd'hui`,
-      ];
-      if (ctx.todayEvents.length > 0) {
+      const lines = [getAIContext()];
+      if (ctxExtras?.todayEvents?.length) {
         lines.push(`\n📅 AGENDA DU JOUR :`);
-        ctx.todayEvents.forEach((e: any) => lines.push(`  • ${e.titre} (${e.type}) — ${new Date(e.date_debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}${e.lieu ? " — " + e.lieu : ""}`));
+        ctxExtras.todayEvents.forEach((e: any) => lines.push(`  • ${e.titre} (${e.type}) — ${new Date(e.date_debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}${e.lieu ? " — " + e.lieu : ""}`));
       }
-      if (ctx.recentClients.length > 0) {
-        lines.push(`\n👥 CLIENTS :`);
-        ctx.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
+      if (ctxExtras?.recentClients?.length) {
+        lines.push(`\n👥 CLIENTS RÉCENTS :`);
+        ctxExtras.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
       }
-      if (ctx.actions.length > 0) {
-        lines.push(`\n⚡ ACTIONS :`);
-        ctx.actions.slice(0, 5).forEach((t: any) => lines.push(`  • [${t.priorite}] ${t.titre}`));
+      if (ctxExtras?.opportunities?.length) {
+        lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
+        ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
       return lines.join("\n");
     };
@@ -275,11 +265,11 @@ const Copilote = () => {
             <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {lang === "fr" ? "Contexte actif" : "Active Context"}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {[
-                { label: "Clients", value: ctx?.prospects ?? "—" },
-                { label: lang === "fr" ? "CA Total" : "Total Revenue", value: ctx ? ctx.caTotal.toLocaleString("fr-FR") + " €" : "—" },
-                { label: lang === "fr" ? "Inbox non lus" : "Unread inbox", value: ctx?.inboxUnread ?? "—" },
-                { label: lang === "fr" ? "Opportunités" : "Opportunities", value: ctx?.opportunities?.length ?? "—" },
-                { label: lang === "fr" ? "RDV aujourd'hui" : "Today's meetings", value: ctx?.todayEvents?.length ?? "—" },
+                { label: "Clients actifs", value: stats.prospects.actifs },
+                { label: lang === "fr" ? "CA ce mois / Total" : "Revenue mo / Total", value: `${stats.sales.ceMois.toLocaleString("fr-FR")} € / ${stats.sales.montantTotal.toLocaleString("fr-FR")} €` },
+                { label: lang === "fr" ? "Inbox non lus" : "Unread inbox", value: stats.inbox.unread },
+                { label: lang === "fr" ? "Opportunités" : "Opportunities", value: stats.opportunites.total },
+                { label: lang === "fr" ? "RDV aujourd'hui" : "Today's meetings", value: stats.events.aujourdhui },
               ].map(i => (
                 <div key={i.label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{i.label}</span>
@@ -307,7 +297,7 @@ const Copilote = () => {
           <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
-              <Badge variant="outline" className="text-[10px]">GPT-5.2</Badge>
+              <Badge variant="outline" className="text-[10px] border-success/30 text-success">{lang === "fr" ? "Connecté" : "Connected"}</Badge>
             </div>
           </CardHeader>
 

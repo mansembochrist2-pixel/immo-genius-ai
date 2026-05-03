@@ -1,266 +1,85 @@
+# Plan d'amélioration globale — Estate AI
 
-
-# Plan de transformation — Estate AI Pro V1
-
-## Vue d'ensemble
-
-Transformation de l'application existante en SaaS premium, en 5 sprints successifs. Chaque sprint produit un livrable fonctionnel.
+Demande très large (10 chantiers). Je propose de la traiter en **4 vagues** ordonnées par dépendance : la synchronisation des données débloque tout le reste, donc elle passe en premier.
 
 ---
 
-## Sprint 1 — Fondations Backend et Authentification Reelle
+## Vague 1 — Fondations data (CRITIQUE)
 
-### Base de donnees (migrations SQL)
+**Objectif : une seule source de vérité partagée entre Dashboard, Copilote, widgets.**
 
-Creer les tables suivantes avec securite RLS stricte (multi-tenant) :
+1. **Étendre `BusinessContext`** pour exposer aussi : inbox non lus, opportunités (radar), événements agenda à venir, actions recommandées. Aujourd'hui il ne couvre que prospects/sales/tasks.
+2. **Refactor `Dashboard`, `SalesWidget`, `Copilote`** pour consommer **uniquement** `useBusinessData()` (suppression des `useQuery` redondants qui causent les écarts CA 0€ vs 378 500€).
+3. Ajouter aux subscriptions Realtime du `BusinessProvider` les tables : `inbox_messages`, `opportunites`, `events`, `actions_recommandees`.
+4. `getAIContext()` enrichi avec inbox/opportunités/agenda → le Copilote voit exactement ce que voit le Dashboard.
 
-- **profiles** : id (ref auth.users), full_name, email, phone, agency_name, plan (starter/pro/premium), trial_ends_at, created_at
-- **prospects** : id, user_id, nom, telephone, email, statut (enum), source, notes, score_ia, created_at, updated_at
-- **tasks** : id, user_id, titre, description, priorite (enum), done, due_date, prospect_id (nullable FK), source (manual/ia), created_at
-- **conversations** : id, user_id, assistant_type (immobilier/marketing), messages (jsonb), created_at, updated_at
-- **annonces** : id, user_id, adresse, prix, surface, description, contenu_genere (jsonb avec variantes), created_at
-- **analyses_zone** : id, user_id, adresse, secteur, resultat (jsonb), sources_utilisees (text[]), created_at
-
-Toutes les tables ont une politique RLS : `user_id = auth.uid()` pour SELECT/INSERT/UPDATE/DELETE.
-
-Un trigger `on_auth_user_created` cree automatiquement un profil avec `plan = 'starter'` et `trial_ends_at = now() + 14 days`.
-
-### Authentification reelle
-
-Remplacer le AuthContext mock par l'authentification Lovable Cloud :
-- Signup avec email/password (verification email activee)
-- Login
-- Logout
-- Mot de passe oublie (reset par email)
-- Session persistante avec auto-refresh
-
-### Migration des pages existantes
-
-Connecter Prospects et Taches a la base de donnees au lieu des donnees mock :
-- CRUD complet avec hooks React Query
-- Chargement, etats vides, erreurs geres proprement
+**Résultat** : chiffres identiques partout, mises à jour temps réel sur tous les modules.
 
 ---
 
-## Sprint 2 — Assistants IA de niveau expert
+## Vague 2 — Intelligence connectée (Copilote actif + Actions recommandées)
 
-### Edge Function : `chat-immobilier`
+5. **Widget "Actions recommandées" du Dashboard** (point 2 de la demande)
+   - Lit la table existante `actions_recommandees`.
+   - Nouvelle edge function `generate-actions-auto` qui scanne inbox non lus + prospects chauds + opportunités + RDV à venir et insère 3-5 actions priorisées.
+   - Bouton "Exécuter" par action (ouvre le module concerné avec contexte) + bouton "Demander au Copilote".
+   - Trigger : auto-régénération toutes les heures + bouton manuel.
 
-Assistant IA principal avec system prompt expert :
+6. **Copilote agent actif** (point 9)
+   - Nouvelle edge function `copilote-agent` avec **tool calling** (function calling OpenAI) :
+     - `archive_emails(ids)`, `mark_emails_read(ids)`, `create_task(...)`, `create_event(...)`, `update_prospect_status(...)`.
+   - UI Copilote : bandeau "Action proposée — Confirmer / Annuler" (validation humaine obligatoire, conformément à la mémoire projet).
+   - Suppression de l'affichage du nom de modèle IA dans l'UI.
 
-```
-Tu es un expert immobilier senior avec 20 ans d'experience en France.
-Tu maitrises : legislation (loi Hoguet, Alur, Climat & Resilience),
-fiscalite (plus-values, IFI, LMNP, Pinel), diagnostics obligatoires,
-procedures notariales, estimation, negociation, mandats, prospection.
-
-Regles :
-- Reponds toujours de facon structuree avec des titres
-- Cite tes sources juridiques quand applicable
-- Propose des plans d'action concrets
-- Ne fais jamais d'approximation sur les chiffres legaux
-- Ton professionnel, rassurant, pedagogique
-```
-
-- Modele : `google/gemini-3-flash-preview` via Lovable AI Gateway
-- Streaming SSE token par token
-- Historique sauvegarde en base (table conversations)
-
-### Edge Function : `chat-marketing`
-
-Assistant marketing immobilier expert :
-
-```
-Tu es un expert en marketing immobilier digital avec 15 ans d'experience.
-Tu maitrises : copywriting, Instagram, LinkedIn, Facebook, emailing,
-personal branding, growth hacking, SEO immobilier, portails (SeLoger,
-Leboncoin, Bien'ici, Logic-Immo).
-
-Regles :
-- Propose des strategies actionnables
-- Adapte tes conseils au marche francais
-- Donne des exemples concrets
-- Structure avec titres et puces
-```
-
-- Meme architecture streaming
-- Accessible depuis une nouvelle page "Marketing IA" avec mode chat
-
-### Edge Function : `generate-annonce`
-
-Generateur d'annonces premium :
-- Input : adresse, prix, surface, description, style souhaite
-- Output structure (via tool calling) :
-  - titre_accrocheur
-  - version_courte (portails)
-  - version_longue (site web)
-  - version_premium (haut de gamme)
-  - hashtags[]
-  - phrases_accroche[]
-- Sauvegarde en base (table annonces)
-
-### Edge Function : `analyze-zone`
-
-Analyse de prospection enrichie :
-- System prompt expert en analyse de marche
-- Genere : prix/m2 estimes, tendances, opportunites, strategie
-- Cite systématiquement : "Sources : DVF (data.gouv.fr), INSEE, bases notariales"
-- Sauvegarde en base (table analyses_zone)
-
-### Modifications UI
-
-- **AssistantIA.tsx** : Ajouter onglets "Expert Immobilier" / "Coach Marketing", streaming reel, historique des conversations, indicateur de frappe
-- **Marketing.tsx** : Formulaire ameliore avec choix de style, affichage des variantes en onglets, boutons copier par section, mode chat marketing
-- **Prospection.tsx** : Affichage structure des resultats avec section sources, historique des analyses
+7. **Connectivité modules** (point 10) : audit + ajout des liens manquants : bouton "Envoyer en mémoire client" depuis Inbox, "Créer document depuis estimation" depuis Estimation.
 
 ---
 
-## Sprint 3 — Dashboard avance et taches intelligentes
+## Vague 3 — Modules métier (Documents, Inbox, Agenda, Radar, Estimation)
 
-### Dashboard
+8. **Documents IA** (point 3) — le plus gros morceau
+   - Bouton micro intégré au formulaire mandat (réutilise `useVoiceInput`).
+   - Edge function `extract-mandat-fields` : reçoit transcription → renvoie JSON structuré (nom, prénom, adresse, prix, type) → injection dans champs.
+   - Fix bug templates personnalisés : vérifier `templates` table/state actuel (besoin de regarder le code pour confirmer le bug).
+   - Lecture intelligente template uploadé : edge function `analyze-template` (parse docx → liste champs détectés → mapping auto).
 
-- **Graphiques** : ajout de recharts pour evolution mensuelle (prospects, taches completees, conversions)
-- **KPI dynamiques** : calcules depuis la base de donnees en temps reel
-- **Cartes cliquables** : navigation vers la page correspondante
-- **Section "Alertes IA"** : widget avec suggestions basees sur l'activite recente
-- **Section "Prospects chauds"** : top 5 prospects par score
-- **Boutons d'action rapide** : ajouter prospect, creer tache, generer annonce
+9. **Inbox** (point 6)
+   - Catégorie "Urgent" = `urgence >= 7` OU intention `chaud/offre`.
+   - Badges colorés Tous (gris) / Urgent (rouge) / Non lus (bleu) avec compteurs corrects.
+   - Marquage auto `lu = true` à l'ouverture + invalidation des compteurs.
+   - Tooltip "i" sur sentiment/score/priorité (réutilise `ScoreExplainer`).
 
-### Taches intelligentes
+10. **Agenda** (point 7) : limiter chaque event à `date_debut` (un seul jour), card compacte. Investigation du composant `AgendaWeekView` nécessaire.
 
-- Edge function `suggest-tasks` : analyse les prospects recents et propose des taches (via tool calling)
-- Bouton "Suggestions IA" sur la page Taches
-- Chaque suggestion affiche un bouton "Creer cette tache" (validation humaine obligatoire)
-- Ajout de champs : due_date, description, liaison prospect
+11. **Radar** (point 5) : remplacer empty state par illustration + CTA, ajouter bouton "i" tooltip sur score moyen expliquant la pondération (DVF, liquidité, dispersion).
 
-### Prospects enrichis
-
-- Ajout de champs : source, notes, score IA
-- Edge function `enrich-prospect` : a partir du nom/email, genere des suggestions de notes et un score de priorite
-- Bouton "Enrichir via IA" sur chaque prospect
+12. **Estimation** (point 4)
+   - Export `.docx` via `lib/docx-export.ts` (existe déjà) — ajouter template estimation complète.
+   - Supprimer le bouton "charger un secteur de test".
 
 ---
 
-## Sprint 4 — Monetisation Stripe et parametres
+## Vague 4 — Sauvegardes / Archivage
 
-### Integration Stripe
-
-- Activer le connecteur Stripe de Lovable
-- Plan unique a 79 euros/mois
-- Essai gratuit 14 jours sans CB
-- Pages `/pricing` et `/billing`
-- Webhooks pour gestion du statut d'abonnement
-- Blocage automatique si plan expire (redirection vers /pricing)
-- Gestion annulation/reactivation
-
-### Page Parametres
-
-Nouvelle page `/settings` avec onglets :
-- **Profil** : nom, email, agence, telephone
-- **Abonnement** : plan actuel, facturation, historique
-- **Integrations** : liste Gmail, Outlook, HubSpot, Apimo avec statut "Bientot disponible"
-- **Securite** : changer mot de passe, supprimer compte, exporter donnees
+13. **Section "Messages archivés"** dans `/sauvegardes`
+    - Ajouter colonne `archived_at` à `inbox_messages` (migration).
+    - Bouton "Archiver" dans Inbox → set `archived_at = now()`.
+    - Page Sauvegardes : liste archivés, restaurer (`archived_at = null`), supprimer définitivement.
+    - Inbox filtre out les archivés par défaut.
 
 ---
 
-## Sprint 5 — UX premium, securite et RGPD
+## Détails techniques
 
-### Ameliorations UX
-
-- Animations de transition entre pages (fade-in existant + slide)
-- Skeleton loaders sur toutes les listes
-- Tooltips sur les boutons d'action
-- Confirmation avant suppression (AlertDialog)
-- Messages toast contextualises
-- Etats vides illustres
-
-### RGPD et legal
-
-- Pages statiques : `/mentions-legales`, `/confidentialite`, `/cgu`
-- Bandeau de consentement cookies (si analytics ajoute)
-- Bouton "Exporter mes donnees" dans parametres
-- Bouton "Supprimer mon compte" avec confirmation
-
-### Commande vocale (preparation)
-
-- Architecture preparee pour ElevenLabs (composant VoiceInput reutilisable)
-- Necessitera une cle API ElevenLabs pour activation
-- Non active par defaut dans la V1
+- **Migrations DB nécessaires** : `inbox_messages.archived_at TIMESTAMPTZ`, éventuellement index sur `actions_recommandees(user_id, statut, score_pertinence)`.
+- **Nouvelles edge functions** : `generate-actions-auto`, `copilote-agent` (tool calling), `extract-mandat-fields`, `analyze-template`.
+- **Realtime** : ajouter 4 tables au channel existant `business-sync`.
+- **Pas de changement** : routing, auth, design system (tokens existants suffisent).
 
 ---
 
-## Architecture technique
+## Estimation & livraison
 
-```text
-src/
-  components/
-    AppLayout.tsx          (existant, ameliore)
-    AppSidebar.tsx         (existant, ameliore avec badge plan)
-    NavLink.tsx            (existant)
-    dashboard/
-      StatsCards.tsx
-      PerformanceChart.tsx
-      HotProspects.tsx
-      AIAlerts.tsx
-      QuickActions.tsx
-    prospects/
-      ProspectTable.tsx
-      ProspectForm.tsx
-      ProspectEnrich.tsx
-    tasks/
-      TaskTable.tsx
-      TaskForm.tsx
-      TaskSuggestions.tsx
-    ai/
-      ChatInterface.tsx     (composant reutilisable streaming)
-      AnnonceGenerator.tsx
-      ZoneAnalyzer.tsx
-    settings/
-      ProfileTab.tsx
-      BillingTab.tsx
-      IntegrationsTab.tsx
-      SecurityTab.tsx
-    ui/ (existant)
-  contexts/
-    AuthContext.tsx          (reecrit pour auth reelle)
-  hooks/
-    use-prospects.ts
-    use-tasks.ts
-    use-conversations.ts
-    use-annonces.ts
-    use-profile.ts
-    use-streaming-chat.ts
-  lib/
-    utils.ts (existant)
-    ai-stream.ts            (utilitaire SSE parsing)
-  pages/
-    Login.tsx / Signup.tsx / ForgotPassword.tsx (reecrits)
-    Dashboard.tsx           (ameliore)
-    Prospects.tsx           (connecte DB)
-    Taches.tsx              (connecte DB)
-    Marketing.tsx           (ameliore avec IA reelle)
-    Prospection.tsx         (ameliore avec IA reelle)
-    AssistantIA.tsx         (reecrits avec 2 assistants)
-    Settings.tsx            (nouveau)
-    Pricing.tsx             (nouveau)
-    Billing.tsx             (nouveau)
-    MentionsLegales.tsx     (nouveau)
-    Confidentialite.tsx     (nouveau)
+Plan trop volumineux pour un seul tour. Je propose de **livrer vague par vague**, en validant avec toi entre chaque (sinon risque de régression massive).
 
-supabase/functions/
-    chat-immobilier/index.ts
-    chat-marketing/index.ts
-    generate-annonce/index.ts
-    analyze-zone/index.ts
-    suggest-tasks/index.ts
-    enrich-prospect/index.ts
-```
-
----
-
-## Ordre d'implementation recommande
-
-Je recommande de commencer par le **Sprint 1** (base de donnees + auth reelle), puis enchainer sprint par sprint. Chaque sprint est testable independamment.
-
-Le Sprint 1 seul transforme deja l'application d'un prototype en un produit fonctionnel avec persistance des donnees et authentification securisee.
-
+**Question avant de démarrer** : on commence par la Vague 1 (fondations data, sans laquelle le reste est bancal) — OK ? Ou tu préfères prioriser une vague spécifique en premier (ex : Documents IA dictée vocale qui est très visible) ?

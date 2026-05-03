@@ -18,12 +18,14 @@ import {
 import { ScoreExplainer } from "@/components/ScoreExplainer";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useBusinessData } from "@/contexts/BusinessContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t, lang } = useLanguage();
+  const { stats } = useBusinessData();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
   const [editingCA, setEditingCA] = useState(false);
@@ -52,38 +54,12 @@ const Dashboard = () => {
     },
   });
 
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ["inbox-unread-count"],
-    queryFn: async () => {
-      const { count } = await supabase.from("inbox_messages").select("*", { count: "exact", head: true }).eq("lu", false).eq("direction", "entrant");
-      return count ?? 0;
-    },
-  });
-
-  const { data: oppsCount = 0 } = useQuery({
-    queryKey: ["opp-count"],
-    queryFn: async () => {
-      const { count } = await supabase.from("opportunites").select("*", { count: "exact", head: true });
-      return count ?? 0;
-    },
-  });
-
-  const { data: clientsActifs = 0 } = useQuery({
-    queryKey: ["clients-actifs-count"],
-    queryFn: async () => {
-      const { count } = await supabase.from("prospects").select("*", { count: "exact", head: true }).in("statut", ["contacte", "visite", "offre"]);
-      return count ?? 0;
-    },
-  });
-
-  const { data: caMois = 0 } = useQuery({
-    queryKey: ["ca-mois"],
-    queryFn: async () => {
-      const debutMois = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
-      const { data } = await supabase.from("sales").select("montant").gte("date_vente", debutMois);
-      return (data || []).reduce((s: number, v: any) => s + Number(v.montant), 0);
-    },
-  });
+  // Source unique : BusinessContext (synchronisé avec Copilote)
+  const unreadCount = stats.inbox.unread;
+  const oppsCount = stats.opportunites.total;
+  const clientsActifs = stats.prospects.actifs;
+  const caMois = stats.sales.ceMois;
+  const caTotal = stats.sales.montantTotal;
 
   const { data: actions = [] } = useQuery({
     queryKey: ["dashboard-actions"],
@@ -228,9 +204,10 @@ const Dashboard = () => {
             ) : (
               <>
                 <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{lang === "fr" ? "ce mois" : "this month"} · {lang === "fr" ? "Total" : "Total"} : {caTotal.toLocaleString("fr-FR")}€</p>
                 {objectifCa > 0 ? (
                   <>
-                    <Progress value={caProgress} className="mt-3 h-1.5" />
+                    <Progress value={caProgress} className="mt-2 h-1.5" />
                     <p className="text-[10px] text-muted-foreground mt-1.5">{caProgress}% {lang === "fr" ? "de" : "of"} {objectifCa.toLocaleString("fr-FR")}€</p>
                   </>
                 ) : (

@@ -162,25 +162,26 @@ const Radar = () => {
             </h1>
             <p className="page-subtitle">Détectez les opportunités vendeurs • Plans d'attaque commerciaux</p>
           </div>
-          {opportunites.length === 0 && (
-            <Badge variant="outline" className="text-xs">Aucune analyse — lancez votre première recherche ↓</Badge>
-          )}
+          {/* empty-state badge removed for cleaner UX */}
         </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Zones analysées", value: String(totalOpps), icon: MapPin },
-          { label: "Score moyen", value: `${avgScore}/100`, icon: Target },
-          { label: "Opportunités", value: String(nbOpportunites), icon: TrendingUp, color: "text-success" },
-          { label: "Risques", value: String(nbRisques), icon: AlertTriangle, color: "text-destructive" },
-        ].map((kpi) => (
+          { label: "Zones analysées", value: String(totalOpps), icon: MapPin, info: undefined as string | undefined },
+          { label: "Score moyen", value: `${avgScore}/100`, icon: Target, info: "Moyenne pondérée des scores de toutes les zones analysées. Calculé à partir de : prix au m² DVF (30%), liquidité du marché / délai de vente (25%), tendance 12 mois (20%), volume de transactions (15%), dispersion des prix (10%). Source : DVF data.gouv.fr (Etalab). Fiabilité : élevée si > 20 transactions sur 12 mois, moyenne sinon." },
+          { label: "Opportunités", value: String(nbOpportunites), icon: TrendingUp, color: "text-success", info: undefined as string | undefined },
+          { label: "Risques", value: String(nbRisques), icon: AlertTriangle, color: "text-destructive", info: undefined as string | undefined },
+        ].map((kpi: any) => (
           <Card key={kpi.label} className="bg-card/60 border-border/30">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <kpi.icon className={`h-4 w-4 ${kpi.color || "text-primary"}`} />
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex-1">{kpi.label}</p>
+                {kpi.info && (
+                  <span title={kpi.info} className="cursor-help text-muted-foreground hover:text-primary text-[10px] border border-border rounded-full w-4 h-4 inline-flex items-center justify-center">i</span>
+                )}
               </div>
               <p className="text-xl font-bold">{kpi.value}</p>
             </CardContent>
