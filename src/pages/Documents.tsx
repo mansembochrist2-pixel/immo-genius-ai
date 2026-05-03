@@ -229,18 +229,29 @@ const Studio = () => {
     fileInputRef.current?.click();
   };
 
-  const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["pdf", "docx", "doc"].includes(ext || "")) {
-      toast.error("Format accepté : PDF ou Word (.docx)");
+    if (!["txt", "docx", "doc", "pdf"].includes(ext || "")) {
+      toast.error(lang === "fr" ? "Format accepté : .txt, .docx, .pdf" : "Accepted: .txt, .docx, .pdf");
       return;
     }
-    setCustomTemplates(prev => [...prev, { name: file.name, file }]);
-    toast.success(`Template "${file.name}" ajouté`);
+    let content = "";
+    try {
+      // Pour .txt/.docx on tente d'extraire le texte brut. PDF : non extrait côté navigateur, on stocke le nom seul.
+      if (ext === "txt") content = await file.text();
+      else if (ext === "docx" || ext === "doc") {
+        // Extraction basique : on lit comme texte (les balises seront filtrées par l'IA)
+        content = (await file.text()).replace(/[^\x20-\x7E\nàâäéèêëïîôöùûüÿçÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ\-_.,;:'"!?()€%/]/g, " ").slice(0, 8000);
+      }
+    } catch { /* ignore */ }
+    setCustomTemplates(prev => [...prev, { name: file.name, content }]);
+    toast.success(lang === "fr" ? `Template « ${file.name} » ajouté` : `Template "${file.name}" added`);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const removeTemplate = (idx: number) => setCustomTemplates(prev => prev.filter((_, i) => i !== idx));
 
   const typeLabels: Record<string, string> = { email: "📧 Email professionnel", post_social: "📱 Post réseaux sociaux", sms: "💬 SMS / WhatsApp", flyer: "📄 Texte flyer" };
 
