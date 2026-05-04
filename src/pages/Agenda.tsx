@@ -256,7 +256,7 @@ const Agenda = () => {
         {/* Main calendar */}
         <div>
           {isLoading ? (
-            <ListSkeleton count={5} />
+            <ListSkeleton rows={5} />
           ) : view === "jour" ? (
             <AgendaDayView date={currentDate} events={events} onEventClick={openEditEvent} onSlotClick={openNewEvent} />
           ) : view === "semaine" ? (
