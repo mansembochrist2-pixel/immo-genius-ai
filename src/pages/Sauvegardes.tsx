@@ -12,10 +12,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { exportTextToDocx } from "@/lib/docx-export";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { GridSkeleton } from "@/components/ui/list-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useNavigate } from "react-router-dom";
 
 const Sauvegardes = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState<{ title: string; content: string } | null>(null);
 
@@ -69,6 +73,7 @@ const Sauvegardes = () => {
       queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
       toast.success("Message restauré dans la boîte de réception");
     },
+    onError: (e: any) => toast.error(e?.message || "Erreur de restauration"),
   });
 
   const deleteMessageMutation = useMutation({
@@ -80,6 +85,7 @@ const Sauvegardes = () => {
       queryClient.invalidateQueries({ queryKey: ["archived-messages"] });
       toast.success("Message supprimé définitivement");
     },
+    onError: (e: any) => toast.error(e?.message || "Erreur de suppression"),
   });
 
   const deleteAnnonceMutation = useMutation({
@@ -91,6 +97,7 @@ const Sauvegardes = () => {
       queryClient.invalidateQueries({ queryKey: ["saved-annonces"] });
       toast.success("Annonce supprimée");
     },
+    onError: (e: any) => toast.error(e?.message || "Erreur de suppression"),
   });
 
   const deleteEstimMutation = useMutation({
@@ -102,6 +109,7 @@ const Sauvegardes = () => {
       queryClient.invalidateQueries({ queryKey: ["saved-estimations"] });
       toast.success("Estimation supprimée");
     },
+    onError: (e: any) => toast.error(e?.message || "Erreur de suppression"),
   });
 
   const filterFn = (item: any) => {
