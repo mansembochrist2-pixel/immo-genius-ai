@@ -158,7 +158,6 @@ const Index = () => {
             <button onClick={() => navigate("/mentions-legales")} className="hover:text-foreground transition-colors">Mentions légales</button>
             <button onClick={() => navigate("/politique-confidentialite")} className="hover:text-foreground transition-colors">Confidentialité</button>
             <button onClick={() => navigate("/cgu")} className="hover:text-foreground transition-colors">CGU</button>
-            <button onClick={() => navigate("/pricing")} className="hover:text-foreground transition-colors">Tarifs</button>
           </div>
         </div>
       </footer>
