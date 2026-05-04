@@ -260,7 +260,17 @@ const Inbox = () => {
 
           <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
             {loadingMessages ? (
-              <ListSkeleton rows={4} />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    {lang === "fr"
+                      ? "Synchronisation en cours — l'IA veille en silence."
+                      : "Syncing — AI watching in the background."}
+                  </p>
+                </div>
+                <ListSkeleton rows={4} />
+              </div>
             ) : filtered.length === 0 ? (
               <EmptyState
                 icon={Mail}
