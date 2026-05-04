@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
+import { onboardingSchema, validateOrError } from "@/lib/validators";
+import { handleApiError } from "@/lib/error-handler";
+import { toast } from "sonner";
 
 const moduleExplanations = [
   { icon: LayoutDashboard, title: "Dashboard", desc: "Suivre votre activité et vos priorités" },
@@ -31,18 +35,34 @@ const Onboarding = () => {
   const [agentType, setAgentType] = useState("independant");
   const [zone, setZone] = useState("");
   const [objectif, setObjectif] = useState("");
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const saveAndFinish = async () => {
-    if (user) {
-      await supabase.from("profiles").update({
-        agency_name: agentType === "agence" ? "Mon agence" : null,
-        zone_principale: zone || null,
-        onboarding_completed: true,
-      } as any).eq("id", user.id);
+    const validationError = validateOrError(onboardingSchema, { zone, objectif });
+    if (validationError) {
+      toast.error(validationError);
+      setStep(2);
+      return;
     }
-    navigate("/dashboard");
+    setSaving(true);
+    try {
+      if (user) {
+        const { error } = await supabase.from("profiles").update({
+          agency_name: agentType === "agence" ? "Mon agence" : null,
+          zone_principale: zone || null,
+          onboarding_completed: true,
+        } as any).eq("id", user.id);
+        if (error) throw error;
+      }
+      toast.success("Configuration enregistrée");
+      navigate("/dashboard");
+    } catch (e) {
+      handleApiError(e, "Enregistrement de l'onboarding");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
