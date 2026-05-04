@@ -152,9 +152,13 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       .channel("business-sync")
       .on("postgres_changes", { event: "*", schema: "public", table: "prospects" }, () => {
         fetchStats();
+        // Toutes les clés liées aux prospects/clients à travers l'app
         queryClient.invalidateQueries({ queryKey: ["prospects"] });
         queryClient.invalidateQueries({ queryKey: ["prospect-count"] });
         queryClient.invalidateQueries({ queryKey: ["hot-prospects"] });
+        queryClient.invalidateQueries({ queryKey: ["clients"] });
+        queryClient.invalidateQueries({ queryKey: ["clients-list"] });
+        queryClient.invalidateQueries({ queryKey: ["client-interactions"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => {
         fetchStats();
@@ -172,6 +176,8 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "inbox_messages" }, () => {
         fetchStats();
         queryClient.invalidateQueries({ queryKey: ["inbox"] });
+        queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
+        queryClient.invalidateQueries({ queryKey: ["archived-messages"] });
         queryClient.invalidateQueries({ queryKey: ["inbox-unread-count"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "opportunites" }, () => {
@@ -183,10 +189,19 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
         fetchStats();
         queryClient.invalidateQueries({ queryKey: ["events"] });
         queryClient.invalidateQueries({ queryKey: ["today-events"] });
+        queryClient.invalidateQueries({ queryKey: ["suggested-events"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "actions_recommandees" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dashboard-actions"] });
         queryClient.invalidateQueries({ queryKey: ["actions-recommandees"] });
+        queryClient.invalidateQueries({ queryKey: ["suggested-events"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "analyses_zone" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["saved-estimations"] });
+        queryClient.invalidateQueries({ queryKey: ["analyses"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "annonces" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["saved-annonces"] });
       })
       .subscribe();
 
