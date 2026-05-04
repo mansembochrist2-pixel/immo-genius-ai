@@ -122,7 +122,7 @@ const Clients = () => {
     } catch (e: any) {
       if (isCreditsError(e)) {
         toast.error("💳 Crédits IA épuisés", {
-          description: "Rechargez votre compte dans Réglages → Facturation",
+          description: "Contactez l’équipe Estate AI pour recharger votre accès bêta.",
           duration: 6000,
         });
       } else {

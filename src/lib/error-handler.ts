@@ -12,8 +12,8 @@ export function handleApiError(err: unknown, context?: string): string {
 
   // Lovable AI Gateway specific
   if (status === 402 || /402|crédits|credits/i.test(message)) {
-    const msg = "💳 Vos crédits IA sont épuisés. Rechargez votre compte pour continuer.";
-    toast.error(msg, { duration: 6000, description: "Allez dans Réglages → Facturation" });
+    const msg = "💳 Vos crédits IA bêta sont épuisés.";
+    toast.error(msg, { duration: 6000, description: "Contactez l’équipe Estate AI pour recharger votre accès." });
     return msg;
   }
   if (status === 429 || /429|trop de requ/i.test(message)) {

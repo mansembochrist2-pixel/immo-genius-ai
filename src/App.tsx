@@ -21,7 +21,6 @@ import Clients from "./pages/Clients";
 import Documents from "./pages/Documents";
 import EstimationIA from "./pages/EstimationIA";
 import Sauvegardes from "./pages/Sauvegardes";
-import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import MentionsLegales from "./pages/MentionsLegales";
 import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
@@ -41,13 +40,14 @@ const App = () => (
           <CookieConsent />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Index />} />
               <Route path="/landing" element={<Index />} />
+              <Route path="/index" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/pricing" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/agenda" element={<Agenda />} />
