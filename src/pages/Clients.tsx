@@ -172,9 +172,9 @@ const Clients = () => {
           </div>
           <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
             {isLoading ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <ListSkeleton rows={4} />
             ) : filtered.length === 0 ? (
-              <Card className="bg-card/60 border-border/30"><CardContent className="p-6 text-center"><Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" /><p className="text-sm text-muted-foreground">Aucun client trouvé</p></CardContent></Card>
+              <EmptyState icon={Users} title={search ? "Aucun résultat" : "Aucun client"} description={search ? "Aucun client ne correspond à votre recherche." : "Ajoutez votre premier prospect pour commencer à construire votre mémoire client intelligente."} actionLabel={search ? undefined : "Nouveau client"} onAction={search ? undefined : () => { setForm(emptyForm); setShowAddDialog(true); }} />
             ) : (
               filtered.map((client: any) => (
                 <Card key={client.id} className={`cursor-pointer transition-all hover:border-primary/40 ${selectedId === client.id ? "border-primary/60 bg-primary/5" : "bg-card/60 border-border/30"}`} onClick={() => setSelectedId(client.id)}>
