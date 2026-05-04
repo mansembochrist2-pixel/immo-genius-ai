@@ -34,10 +34,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background glow effects */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-primary/10 blur-[120px]" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 rounded-full bg-info/10 blur-[120px]" />
-      
+      {/* Animated background blobs */}
+      <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] rounded-full bg-primary/15 blur-[120px] animate-pulse" style={{ animationDuration: "8s" }} />
+      <div className="absolute bottom-1/4 -right-32 w-[500px] h-[500px] rounded-full bg-info/15 blur-[120px] animate-pulse" style={{ animationDuration: "11s" }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-primary/5 blur-[140px] animate-pulse" style={{ animationDuration: "13s" }} />
+      {/* Subtle grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.3)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.3)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]" />
+
       <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold font-display gradient-text">Estate AI</h1>
