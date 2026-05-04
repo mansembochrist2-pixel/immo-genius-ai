@@ -6,10 +6,9 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings as SettingsIcon, User, CreditCard, Plug, Crown, Calendar, Download, Shield, Trash2, Loader2, Globe } from "lucide-react";
+import { Settings as SettingsIcon, User, Download, Shield, Trash2, Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,37 +64,6 @@ const Settings = () => {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["profile"] }); toast.success(lang === "fr" ? "Profil mis à jour" : "Profile updated"); },
     onError: (e: any) => handleApiError(e, lang === "fr" ? "Mise à jour du profil" : "Profile update"),
   });
-
-  const trialEnd = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
-  const isTrialActive = trialEnd && trialEnd > new Date();
-  const daysLeft = trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86400000)) : 0;
-  const isSubscribed = subscription?.subscribed === true;
-
-  const handleCheckout = async () => {
-    setCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Erreur");
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handlePortal = async () => {
-    setPortalLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      toast.error(err.message || "Erreur");
-    } finally {
-      setPortalLoading(false);
-    }
-  };
 
   const exportData = async () => {
     setExporting(true);
