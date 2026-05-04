@@ -93,6 +93,7 @@ const Inbox = () => {
       setSelectedId(null);
       toast.success(lang === "fr" ? "Message archivé" : "Message archived");
     },
+    onError: (e: any) => toast.error(e?.message || (lang === "fr" ? "Erreur d'archivage" : "Archive error")),
   });
 
   const seedMutation = useMutation({
@@ -116,6 +117,7 @@ const Inbox = () => {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["inbox-messages"] }),
+    onError: (e: any) => toast.error(e?.message || (lang === "fr" ? "Erreur de mise à jour" : "Update error")),
   });
 
   const sendReplyMutation = useMutation({
