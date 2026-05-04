@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const demoOptOutKey = "estate-ai-demo-opt-out";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -33,10 +34,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    // Mode démo : auto-connexion sur le compte démo si aucune session active
-    // Permet à toute personne (ou IA) d'explorer la plateforme avec données pré-remplies
+    // Mode démo : auto-connexion uniquement tant que l'utilisateur ne s'est pas explicitement déconnecté
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) {
+      if (!session && localStorage.getItem(demoOptOutKey) !== "true") {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: "demo@estate-ai.app",
           password: "DemoEstate2026!",
@@ -56,11 +56,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    localStorage.removeItem(demoOptOutKey);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   };
 
   const signup = async (name: string, email: string, password: string) => {
+    localStorage.removeItem(demoOptOutKey);
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -73,7 +75,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    localStorage.setItem(demoOptOutKey, "true");
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
   };
 
   const resetPassword = async (email: string) => {
