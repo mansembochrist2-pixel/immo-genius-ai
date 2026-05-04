@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { profileSchema, validateOrError } from "@/lib/validators";
+import { handleApiError } from "@/lib/error-handler";
 
 const Settings = () => {
   const { user, logout } = useAuth();
@@ -80,15 +82,20 @@ const Settings = () => {
   };
 
   const disconnectProvider = async (provider: "gmail" | "outlook") => {
-    await supabase.from("user_integrations").delete().eq("user_id", user!.id).eq("provider", provider);
-    toast.success(lang === "fr" ? "Déconnecté" : "Disconnected");
-    refetchIntegrations();
+    try {
+      const { error } = await supabase.from("user_integrations").delete().eq("user_id", user!.id).eq("provider", provider);
+      if (error) throw error;
+      toast.success(lang === "fr" ? "Déconnecté" : "Disconnected");
+      refetchIntegrations();
+    } catch (e) {
+      handleApiError(e, lang === "fr" ? "Déconnexion" : "Disconnect");
+    }
   };
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -118,6 +125,8 @@ const Settings = () => {
 
   const updateProfile = useMutation({
     mutationFn: async () => {
+      const validationError = validateOrError(profileSchema, profileForm);
+      if (validationError) throw new Error(validationError);
       const { error } = await supabase.from("profiles").update({
         full_name: profileForm.full_name,
         email: profileForm.email,
@@ -129,7 +138,7 @@ const Settings = () => {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["profile"] }); toast.success(lang === "fr" ? "Profil mis à jour" : "Profile updated"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => handleApiError(e, lang === "fr" ? "Mise à jour du profil" : "Profile update"),
   });
 
   const trialEnd = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;

@@ -14,6 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { GridSkeleton } from "@/components/ui/list-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { handleApiError, isCreditsError } from "@/lib/error-handler";
 
 const SECTEURS = ["Résidentiel", "Commercial", "Luxe", "Investissement locatif", "Neuf", "Ancien"];
 
@@ -94,7 +97,11 @@ const Radar = () => {
       }
       toast.success("Analyse sauvegardée");
     } catch (e: any) {
-      toast.error(e.message || "Erreur lors de l'analyse");
+      if (isCreditsError(e)) {
+        handleApiError(e);
+      } else {
+        toast.error(e.message || "Erreur lors de l'analyse");
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -112,7 +119,8 @@ const Radar = () => {
       setPlanAttaque({ ...data, oppId: opp.id, oppTitre: opp.titre });
       toast.success("Plan d'attaque généré !");
     } catch (e: any) {
-      toast.error(e?.message || "Erreur de génération");
+      if (isCreditsError(e)) handleApiError(e);
+      else toast.error(e?.message || "Erreur de génération");
     } finally {
       setGeneratingPlan(null);
     }
@@ -418,14 +426,18 @@ const Radar = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <GridSkeleton count={4} />
       ) : filtered.length === 0 ? (
-        <Card className="bg-card/60 border-border/30">
-          <CardContent className="py-12 text-center">
-            <RadarIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Aucune opportunité détectée</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={RadarIcon}
+          title={opportunites.length === 0 ? "Aucune analyse pour le moment" : "Aucun résultat"}
+          description={opportunites.length === 0
+            ? "Analysez votre première zone pour détecter les opportunités vendeurs et risques marché."
+            : "Aucune analyse ne correspond à votre filtre ou recherche."}
+          
+          actionLabel={opportunites.length === 0 ? "Analyser une zone" : undefined}
+          onAction={opportunites.length === 0 ? () => document.querySelector<HTMLInputElement>('input[placeholder*="Adresse"]')?.focus() : undefined}
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map((opp: any) => {
