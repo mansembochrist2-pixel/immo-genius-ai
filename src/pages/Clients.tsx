@@ -17,6 +17,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { ClientDetail } from "@/components/clients/ClientDetail";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { clientSchema, validateOrError } from "@/lib/validators";
+import { isCreditsError } from "@/lib/error-handler";
 
 const STATUTS = [
   { value: "nouveau", label: "Nouveau" },
@@ -74,9 +78,14 @@ const Clients = () => {
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Non authentifié");
+      const validationError = validateOrError(clientSchema, {
+        nom: form.nom, email: form.email, telephone: form.telephone,
+        budget_min: form.budget_min, budget_max: form.budget_max,
+      });
+      if (validationError) throw new Error(validationError);
       const { error } = await supabase.from("prospects").insert({
-        user_id: user.id, nom: form.nom, email: form.email || null,
-        telephone: form.telephone || null, statut: form.statut as any,
+        user_id: user.id, nom: form.nom.trim(), email: form.email.trim() || null,
+        telephone: form.telephone.trim() || null, statut: form.statut as any,
         budget_min: form.budget_min ? Number(form.budget_min) : null,
         budget_max: form.budget_max ? Number(form.budget_max) : null,
         secteur_recherche: form.secteur_recherche || null,
@@ -91,8 +100,38 @@ const Clients = () => {
       setShowAddDialog(false); setForm(emptyForm);
       toast.success("Client ajouté");
     },
-    onError: () => toast.error("Erreur lors de l'ajout"),
+    onError: (e: any) => toast.error(e?.message || "Erreur lors de l'ajout"),
   });
+
+  const enrichClientWithCredits = useCallback(async (client: any) => {
+    setEnrichingId(client.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-client", {
+        body: { client, interactions },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      await supabase.from("prospects").update({
+        score_ia: data.score_ia, score_urgence: data.score_urgence,
+        motivation: data.motivation, freins: data.freins,
+        resume_ia: data.resume_ia, strategie_adaptee: data.strategie_adaptee,
+        taux_signature: data.taux_signature,
+      }).eq("id", client.id);
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Profil enrichi par l'IA");
+    } catch (e: any) {
+      if (isCreditsError(e)) {
+        toast.error("💳 Crédits IA épuisés", {
+          description: "Rechargez votre compte dans Réglages → Facturation",
+          duration: 6000,
+        });
+      } else {
+        toast.error(e?.message || "Erreur d'enrichissement IA");
+      }
+    } finally {
+      setEnrichingId(null);
+    }
+  }, [interactions, queryClient]);
 
   const enrichClient = useCallback(async (client: any) => {
     setEnrichingId(client.id);
