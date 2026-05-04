@@ -179,17 +179,15 @@ const Sauvegardes = () => {
 
         <TabsContent value="annonces">
           {loadingAnnonces ? (
-            <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <GridSkeleton count={4} />
           ) : filteredAnnonces.length === 0 ? (
-            <Card className="bg-card/60 border-border/30">
-              <CardContent className="py-16 text-center space-y-3">
-                <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-                <p className="text-sm text-muted-foreground">Aucune annonce sauvegardée</p>
-                <p className="text-xs text-muted-foreground/60">
-                  Générez une annonce dans Documents IA et cliquez sur "Sauvegarder"
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={FileText}
+              title="Aucune annonce sauvegardée"
+              description="Générez une annonce premium dans Documents IA, puis cliquez sur « Sauvegarder » pour la retrouver ici."
+              actionLabel="Créer une annonce"
+              onAction={() => navigate("/documents")}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredAnnonces.map((a: any) => {
@@ -241,17 +239,15 @@ const Sauvegardes = () => {
 
         <TabsContent value="estimations">
           {loadingEstim ? (
-            <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <GridSkeleton count={4} />
           ) : filteredEstim.length === 0 ? (
-            <Card className="bg-card/60 border-border/30">
-              <CardContent className="py-16 text-center space-y-3">
-                <TrendingUp className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-                <p className="text-sm text-muted-foreground">Aucune estimation sauvegardée</p>
-                <p className="text-xs text-muted-foreground/60">
-                  Lancez une estimation dans le module Estimation IA et sauvegardez-la
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={TrendingUp}
+              title="Aucune estimation sauvegardée"
+              description="Lancez une analyse de bien dans Estimation IA pour obtenir un rapport DVF complet et le sauvegarder."
+              actionLabel="Estimer un bien"
+              onAction={() => navigate("/estimation")}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredEstim.map((e: any) => {
@@ -300,17 +296,15 @@ const Sauvegardes = () => {
 
         <TabsContent value="emails">
           {loadingArchived ? (
-            <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <GridSkeleton count={4} />
           ) : archivedMessages.length === 0 ? (
-            <Card className="bg-card/60 border-border/30">
-              <CardContent className="py-16 text-center space-y-3">
-                <Mail className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-                <p className="text-sm text-muted-foreground">Aucun email archivé</p>
-                <p className="text-xs text-muted-foreground/60">
-                  Archivez un message depuis votre boîte de réception pour le retrouver ici.
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Mail}
+              title="Aucun email archivé"
+              description="Vos messages archivés depuis l'Inbox apparaîtront ici. Vous pourrez les restaurer ou les supprimer définitivement."
+              actionLabel="Aller à l'Inbox"
+              onAction={() => navigate("/inbox")}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {archivedMessages.filter(filterFn).filter((m: any) => !search || m.contenu?.toLowerCase().includes(search.toLowerCase()) || m.sujet?.toLowerCase().includes(search.toLowerCase())).map((m: any) => (
