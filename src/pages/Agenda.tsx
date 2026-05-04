@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
+import { eventSchema, validateOrError } from "@/lib/validators";
+import { handleApiError } from "@/lib/error-handler";
 import { AgendaDayView } from "@/components/agenda/AgendaDayView";
 import { AgendaWeekView } from "@/components/agenda/AgendaWeekView";
 import { AgendaMonthView } from "@/components/agenda/AgendaMonthView";
@@ -99,9 +102,14 @@ const Agenda = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !form.titre || !form.date_debut) throw new Error("Champs requis");
+      if (!user) throw new Error("Non authentifié");
       const dateDebut = `${form.date_debut}T${form.heure_debut}:00`;
       const dateFin = `${form.date_debut}T${form.heure_fin}:00`;
+      const validationError = validateOrError(eventSchema, {
+        titre: form.titre, date_debut: dateDebut, date_fin: dateFin,
+        lieu: form.lieu, description: form.description,
+      });
+      if (validationError) throw new Error(validationError);
       const payload = {
         user_id: user.id, titre: form.titre, type: form.type,
         date_debut: dateDebut, date_fin: dateFin,
@@ -122,7 +130,7 @@ const Agenda = () => {
       closeDialog();
       toast.success(editingEvent ? "Événement modifié" : "Événement ajouté");
     },
-    onError: (e: any) => toast.error(e.message || "Erreur"),
+    onError: (e: any) => handleApiError(e, "Enregistrement"),
   });
 
   const deleteMutation = useMutation({
@@ -248,7 +256,7 @@ const Agenda = () => {
         {/* Main calendar */}
         <div>
           {isLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <ListSkeleton count={5} />
           ) : view === "jour" ? (
             <AgendaDayView date={currentDate} events={events} onEventClick={openEditEvent} onSlotClick={openNewEvent} />
           ) : view === "semaine" ? (
