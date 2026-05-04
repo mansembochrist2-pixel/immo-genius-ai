@@ -151,7 +151,7 @@ const Inbox = () => {
     } catch (e: any) {
       if (isCreditsError(e)) {
         toast.error(lang === "fr" ? "💳 Crédits IA épuisés" : "💳 AI credits exhausted", {
-          description: lang === "fr" ? "Rechargez votre compte dans Réglages → Facturation" : "Recharge in Settings → Billing",
+          description: lang === "fr" ? "Contactez l’équipe Estate AI pour recharger votre accès bêta." : "Contact the Estate AI team to refresh your beta access.",
           duration: 6000,
         });
       } else {
