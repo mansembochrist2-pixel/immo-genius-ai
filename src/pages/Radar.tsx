@@ -435,6 +435,8 @@ const Radar = () => {
             ? "Analysez votre première zone pour détecter les opportunités vendeurs et risques marché."
             : "Aucune analyse ne correspond à votre filtre ou recherche."}
           action={opportunites.length === 0 ? { label: "Analyser une zone", onClick: () => document.querySelector<HTMLInputElement>('input[placeholder*="Adresse"]')?.focus() } : undefined}
+          actionLabel={opportunites.length === 0 ? "Analyser une zone" : undefined}
+          onAction={opportunites.length === 0 ? () => document.querySelector<HTMLInputElement>('input[placeholder*="Adresse"]')?.focus() : undefined}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
