@@ -214,8 +214,6 @@ const Settings = () => {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" /> {t("settings.profile")}</TabsTrigger>
-          <TabsTrigger value="billing" className="gap-2"><CreditCard className="h-4 w-4" /> {t("settings.billing")}</TabsTrigger>
-          <TabsTrigger value="integrations" className="gap-2"><Plug className="h-4 w-4" /> {t("settings.integrations")}</TabsTrigger>
           <TabsTrigger value="rgpd" className="gap-2"><Shield className="h-4 w-4" /> {t("settings.rgpd")}</TabsTrigger>
         </TabsList>
 
@@ -249,126 +247,6 @@ const Settings = () => {
               </form>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="billing">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle className="text-base font-sans font-semibold flex items-center gap-2"><Crown className="h-5 w-5 text-accent" /> {lang === "fr" ? "Votre abonnement" : "Your subscription"}</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Badge variant={isSubscribed ? "default" : "secondary"}>
-                    {isSubscribed ? (lang === "fr" ? "Actif" : "Active") : isTrialActive ? (lang === "fr" ? "Essai gratuit" : "Free trial") : (lang === "fr" ? "Inactif" : "Inactive")}
-                  </Badge>
-                  <span className="text-2xl font-bold">79€<span className="text-sm font-normal text-muted-foreground">/mois</span></span>
-                </div>
-                {isTrialActive && !isSubscribed && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>{lang === "fr" ? `Essai gratuit — ${daysLeft} jours restants` : `Free trial — ${daysLeft} days left`}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle className="text-base font-sans font-semibold">Actions</CardTitle></CardHeader>
-              <CardContent className="flex flex-wrap gap-3">
-                {!isSubscribed && (
-                  <Button onClick={handleCheckout} disabled={checkoutLoading}>
-                    {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
-                    {lang === "fr" ? "Ajouter un moyen de paiement" : "Add payment method"}
-                  </Button>
-                )}
-                {isSubscribed && (
-                  <Button variant="outline" onClick={handlePortal} disabled={portalLoading}>
-                    {portalLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
-                    {lang === "fr" ? "Gérer mon abonnement" : "Manage subscription"}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="integrations">
-          <div className="space-y-4">
-            {(["gmail", "outlook"] as const).map((provider) => {
-              const integ = integrations?.find((i) => i.provider === provider);
-              const meta = provider === "gmail"
-                ? { label: "Gmail", desc: lang === "fr" ? "Synchronisez vos emails entrants" : "Sync incoming emails", icon: "📧" }
-                : { label: "Outlook", desc: lang === "fr" ? "Importez vos emails Microsoft" : "Import your Microsoft emails", icon: "📬" };
-              return (
-                <Card key={provider}>
-                  <CardContent className="py-4 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-2xl">{meta.icon}</span>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm flex items-center gap-2">
-                          {meta.label}
-                          {integ?.status === "connected" && <Badge variant="secondary" className="text-xs">✓ {integ.email || (lang === "fr" ? "Connecté" : "Connected")}</Badge>}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {integ?.last_sync_at
-                            ? `${lang === "fr" ? "Dernière sync :" : "Last sync:"} ${new Date(integ.last_sync_at).toLocaleString(lang === "fr" ? "fr-FR" : "en-US")}`
-                            : meta.desc}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      {integ?.status === "connected" ? (
-                        <>
-                          <Button variant="outline" size="sm" disabled={syncing === provider} onClick={() => syncProvider(provider)}>
-                            {syncing === provider ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5 mr-1" />}
-                            {lang === "fr" ? "Synchroniser" : "Sync"}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => disconnectProvider(provider)}>
-                            {lang === "fr" ? "Déconnecter" : "Disconnect"}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button variant="outline" size="sm" disabled={connecting === provider} onClick={() => connectProvider(provider)}>
-                          {connecting === provider ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plug className="h-3.5 w-3.5 mr-1" />}
-                          {lang === "fr" ? "Connecter" : "Connect"}
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-
-            <Card>
-              <CardContent className="py-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">🔶</span>
-                    <div>
-                      <p className="font-medium text-sm">HubSpot</p>
-                      <p className="text-xs text-muted-foreground">CRM sync via Private App Token</p>
-                    </div>
-                  </div>
-                  {hubspotStatus === "connected" && <Badge variant="secondary" className="text-xs">✓ {lang === "fr" ? "Connecté" : "Connected"}</Badge>}
-                  {hubspotStatus === "error" && <Badge variant="destructive" className="text-xs">{lang === "fr" ? "Erreur" : "Error"}</Badge>}
-                </div>
-                <div className="flex gap-2">
-                  <Input type="password" placeholder="pat-na1-xxxxxxxx..." value={hubspotToken} onChange={(e) => setHubspotToken(e.target.value)} className="flex-1" />
-                  <Button variant="outline" size="sm" disabled={!hubspotToken || hubspotStatus === "testing"} onClick={async () => {
-                    setHubspotStatus("testing");
-                    try {
-                      const { data, error } = await supabase.functions.invoke("test-hubspot", { body: { token: hubspotToken } });
-                      if (error) throw error;
-                      if (data?.success) { setHubspotStatus("connected"); setHubspotInfo(`${data.contacts_count} contacts`); toast.success("HubSpot connected!"); }
-                      else { setHubspotStatus("error"); toast.error(data?.error || "Error"); }
-                    } catch (err: any) { setHubspotStatus("error"); toast.error(err.message || "Error"); }
-                  }}>
-                    {hubspotStatus === "testing" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5 mr-1" />}
-                    {hubspotStatus === "testing" ? "Test..." : "Tester"}
-                  </Button>
-                </div>
-                {hubspotInfo && <p className="text-xs text-muted-foreground">{hubspotInfo}</p>}
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
 
         <TabsContent value="rgpd">
