@@ -178,7 +178,8 @@ const Onboarding = () => {
                   Continuer <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button onClick={saveAndFinish}>
+                <Button onClick={saveAndFinish} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
                   Accéder à mon dashboard <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               )}
