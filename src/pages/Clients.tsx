@@ -17,6 +17,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { ClientDetail } from "@/components/clients/ClientDetail";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { clientSchema, validateOrError } from "@/lib/validators";
+import { isCreditsError } from "@/lib/error-handler";
 
 const STATUTS = [
   { value: "nouveau", label: "Nouveau" },
@@ -74,9 +78,14 @@ const Clients = () => {
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Non authentifié");
+      const validationError = validateOrError(clientSchema, {
+        nom: form.nom, email: form.email, telephone: form.telephone,
+        budget_min: form.budget_min, budget_max: form.budget_max,
+      });
+      if (validationError) throw new Error(validationError);
       const { error } = await supabase.from("prospects").insert({
-        user_id: user.id, nom: form.nom, email: form.email || null,
-        telephone: form.telephone || null, statut: form.statut as any,
+        user_id: user.id, nom: form.nom.trim(), email: form.email.trim() || null,
+        telephone: form.telephone.trim() || null, statut: form.statut as any,
         budget_min: form.budget_min ? Number(form.budget_min) : null,
         budget_max: form.budget_max ? Number(form.budget_max) : null,
         secteur_recherche: form.secteur_recherche || null,
@@ -91,10 +100,10 @@ const Clients = () => {
       setShowAddDialog(false); setForm(emptyForm);
       toast.success("Client ajouté");
     },
-    onError: () => toast.error("Erreur lors de l'ajout"),
+    onError: (e: any) => toast.error(e?.message || "Erreur lors de l'ajout"),
   });
 
-  const enrichClient = useCallback(async (client: any) => {
+  const enrichClientWithCredits = useCallback(async (client: any) => {
     setEnrichingId(client.id);
     try {
       const { data, error } = await supabase.functions.invoke("enrich-client", {
@@ -111,11 +120,20 @@ const Clients = () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast.success("Profil enrichi par l'IA");
     } catch (e: any) {
-      toast.error(e?.message || "Erreur d'enrichissement IA");
+      if (isCreditsError(e)) {
+        toast.error("💳 Crédits IA épuisés", {
+          description: "Rechargez votre compte dans Réglages → Facturation",
+          duration: 6000,
+        });
+      } else {
+        toast.error(e?.message || "Erreur d'enrichissement IA");
+      }
     } finally {
       setEnrichingId(null);
     }
   }, [interactions, queryClient]);
+
+  const enrichClient = enrichClientWithCredits;
 
   const filtered = clients.filter((c: any) =>
     c.nom.toLowerCase().includes(search.toLowerCase()) ||
@@ -154,9 +172,9 @@ const Clients = () => {
           </div>
           <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
             {isLoading ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <ListSkeleton rows={4} />
             ) : filtered.length === 0 ? (
-              <Card className="bg-card/60 border-border/30"><CardContent className="p-6 text-center"><Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" /><p className="text-sm text-muted-foreground">Aucun client trouvé</p></CardContent></Card>
+              <EmptyState icon={Users} title={search ? "Aucun résultat" : "Aucun client"} description={search ? "Aucun client ne correspond à votre recherche." : "Ajoutez votre premier prospect pour commencer à construire votre mémoire client intelligente."} actionLabel={search ? undefined : "Nouveau client"} onAction={search ? undefined : () => { setForm(emptyForm); setShowAddDialog(true); }} />
             ) : (
               filtered.map((client: any) => (
                 <Card key={client.id} className={`cursor-pointer transition-all hover:border-primary/40 ${selectedId === client.id ? "border-primary/60 bg-primary/5" : "bg-card/60 border-border/30"}`} onClick={() => setSelectedId(client.id)}>

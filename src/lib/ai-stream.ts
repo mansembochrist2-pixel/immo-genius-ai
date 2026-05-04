@@ -30,7 +30,11 @@ export async function streamChat({
 
   if (!resp.ok) {
     const data = await resp.json().catch(() => ({ error: "Erreur réseau" }));
-    onError(data.error || `Erreur ${resp.status}`);
+    let msg = data.error || `Erreur ${resp.status}`;
+    if (resp.status === 402) msg = "💳 Crédits IA épuisés. Rechargez votre compte pour continuer.";
+    else if (resp.status === 429) msg = "⏱️ Trop de requêtes — patientez quelques secondes.";
+    else if (resp.status === 401) msg = "🔒 Session expirée. Reconnectez-vous.";
+    onError(msg);
     return;
   }
 

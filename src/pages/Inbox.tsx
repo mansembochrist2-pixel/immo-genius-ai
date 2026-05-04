@@ -19,6 +19,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { VoiceButton } from "@/components/VoiceButton";
+import { ListSkeleton } from "@/components/ui/list-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { isCreditsError } from "@/lib/error-handler";
 
 interface InboxMessage {
   id: string; canal: string; direction: string; sujet: string | null;
@@ -93,6 +96,7 @@ const Inbox = () => {
       setSelectedId(null);
       toast.success(lang === "fr" ? "Message archivé" : "Message archived");
     },
+    onError: (e: any) => toast.error(e?.message || (lang === "fr" ? "Erreur d'archivage" : "Archive error")),
   });
 
   const seedMutation = useMutation({
@@ -116,6 +120,7 @@ const Inbox = () => {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["inbox-messages"] }),
+    onError: (e: any) => toast.error(e?.message || (lang === "fr" ? "Erreur de mise à jour" : "Update error")),
   });
 
   const sendReplyMutation = useMutation({
@@ -144,7 +149,14 @@ const Inbox = () => {
       queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
       toast.success(lang === "fr" ? "Analyse IA terminée" : "AI analysis complete");
     } catch (e: any) {
-      toast.error(e?.message || "Erreur d'analyse IA");
+      if (isCreditsError(e)) {
+        toast.error(lang === "fr" ? "💳 Crédits IA épuisés" : "💳 AI credits exhausted", {
+          description: lang === "fr" ? "Rechargez votre compte dans Réglages → Facturation" : "Recharge in Settings → Billing",
+          duration: 6000,
+        });
+      } else {
+        toast.error(e?.message || (lang === "fr" ? "Erreur d'analyse IA" : "AI analysis error"));
+      }
     } finally { setAnalyzingId(null); }
   }, [queryClient, lang]);
 
@@ -248,9 +260,15 @@ const Inbox = () => {
 
           <div className="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
             {loadingMessages ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <ListSkeleton rows={4} />
             ) : filtered.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-8">{lang === "fr" ? "Aucun message" : "No messages"}</p>
+              <EmptyState
+                icon={Mail}
+                title={lang === "fr" ? "Boîte vide" : "Empty inbox"}
+                description={lang === "fr" ? "Aucun message ne correspond à ce filtre. Connectez Gmail/Outlook dans Réglages pour synchroniser." : "No messages match this filter. Connect Gmail/Outlook in Settings to sync."}
+                actionLabel={lang === "fr" ? "Ouvrir Réglages" : "Open Settings"}
+                onAction={() => navigate("/settings")}
+              />
             ) : (
               filtered.map((msg) => {
                 const Icon = canalIcons[msg.canal] || Mail;
