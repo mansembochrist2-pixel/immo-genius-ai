@@ -133,28 +133,7 @@ const Clients = () => {
     }
   }, [interactions, queryClient]);
 
-  const enrichClient = useCallback(async (client: any) => {
-    setEnrichingId(client.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("enrich-client", {
-        body: { client, interactions },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      await supabase.from("prospects").update({
-        score_ia: data.score_ia, score_urgence: data.score_urgence,
-        motivation: data.motivation, freins: data.freins,
-        resume_ia: data.resume_ia, strategie_adaptee: data.strategie_adaptee,
-        taux_signature: data.taux_signature,
-      }).eq("id", client.id);
-      queryClient.invalidateQueries({ queryKey: ["clients"] });
-      toast.success("Profil enrichi par l'IA");
-    } catch (e: any) {
-      toast.error(e?.message || "Erreur d'enrichissement IA");
-    } finally {
-      setEnrichingId(null);
-    }
-  }, [interactions, queryClient]);
+  const enrichClient = enrichClientWithCredits;
 
   const filtered = clients.filter((c: any) =>
     c.nom.toLowerCase().includes(search.toLowerCase()) ||
