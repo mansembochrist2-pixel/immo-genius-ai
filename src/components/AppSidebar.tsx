@@ -90,7 +90,7 @@ export function AppSidebar() {
           <Settings className="h-4 w-4" />
           <span>{t("nav.settings")}</span>
         </NavLink>
-        <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10" onClick={logout}>
+        <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10" onClick={async () => { await logout(); window.location.assign("/"); }}>
           <LogOut className="h-4 w-4 mr-2" />{t("nav.logout")}
         </Button>
       </SidebarFooter>
