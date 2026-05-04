@@ -21,7 +21,6 @@ import Clients from "./pages/Clients";
 import Documents from "./pages/Documents";
 import EstimationIA from "./pages/EstimationIA";
 import Sauvegardes from "./pages/Sauvegardes";
-import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import MentionsLegales from "./pages/MentionsLegales";
 import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
