@@ -149,7 +149,14 @@ const Inbox = () => {
       queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
       toast.success(lang === "fr" ? "Analyse IA terminée" : "AI analysis complete");
     } catch (e: any) {
-      toast.error(e?.message || "Erreur d'analyse IA");
+      if (isCreditsError(e)) {
+        toast.error(lang === "fr" ? "💳 Crédits IA épuisés" : "💳 AI credits exhausted", {
+          description: lang === "fr" ? "Rechargez votre compte dans Réglages → Facturation" : "Recharge in Settings → Billing",
+          duration: 6000,
+        });
+      } else {
+        toast.error(e?.message || (lang === "fr" ? "Erreur d'analyse IA" : "AI analysis error"));
+      }
     } finally { setAnalyzingId(null); }
   }, [queryClient, lang]);
 
