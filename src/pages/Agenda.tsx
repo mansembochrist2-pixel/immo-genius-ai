@@ -356,7 +356,7 @@ const Agenda = () => {
         onPrepare={editingEvent ? () => {
           const client = clients.find((c: any) => c.id === editingEvent.client_id);
           const dateStr = new Date(editingEvent.start_at).toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
-          const prefill = `Prépare-moi le rendez-vous "${editingEvent.title}" prévu le ${dateStr}${client ? ` avec ${client.nom}${client.prenom ? " " + client.prenom : ""}` : ""}${editingEvent.location ? ` à ${editingEvent.location}` : ""}.\n\nDonne-moi : 1) un brief client (historique, motivations, signaux), 2) les 3 points clés à aborder, 3) les objections probables et leurs réponses, 4) l'objectif de sortie idéal.`;
+          const prefill = `Prépare-moi le rendez-vous "${editingEvent.title}" prévu le ${dateStr}${client ? ` avec ${client.nom}` : ""}${editingEvent.location ? ` à ${editingEvent.location}` : ""}.\n\nDonne-moi : 1) un brief client (historique, motivations, signaux), 2) les 3 points clés à aborder, 3) les objections probables et leurs réponses, 4) l'objectif de sortie idéal.`;
           sessionStorage.setItem("copilote_prefill", prefill);
           navigate("/copilote");
         } : undefined}
