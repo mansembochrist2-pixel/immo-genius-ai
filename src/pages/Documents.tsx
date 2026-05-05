@@ -337,17 +337,22 @@ const Studio = () => {
       toast.error(lang === "fr" ? "Format accepté : .txt, .docx, .pdf" : "Accepted: .txt, .docx, .pdf");
       return;
     }
-    let content = "";
+    const loadingToast = toast.loading(lang === "fr" ? `Lecture de « ${file.name} »...` : `Reading "${file.name}"...`);
     try {
-      // Pour .txt/.docx on tente d'extraire le texte brut. PDF : non extrait côté navigateur, on stocke le nom seul.
-      if (ext === "txt") content = await file.text();
-      else if (ext === "docx" || ext === "doc") {
-        // Extraction basique : on lit comme texte (les balises seront filtrées par l'IA)
-        content = (await file.text()).replace(/[^\x20-\x7E\nàâäéèêëïîôöùûüÿçÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ\-_.,;:'"!?()€%/]/g, " ").slice(0, 8000);
+      const content = await readTemplateFile(file);
+      toast.dismiss(loadingToast);
+      if (!content || content.length < 50) {
+        toast.warning(lang === "fr" ? "Template ajouté mais peu de texte extrait — vérifiez le résultat" : "Template added but little text extracted");
+      } else {
+        toast.success(lang === "fr" ? `Template « ${file.name} » lu (${content.length} caractères)` : `Template read (${content.length} chars)`);
       }
-    } catch { /* ignore */ }
-    setCustomTemplates(prev => [...prev, { name: file.name, content }]);
-    toast.success(lang === "fr" ? `Template « ${file.name} » ajouté` : `Template "${file.name}" added`);
+      setCustomTemplates(prev => [...prev, { name: file.name, content: content.slice(0, 15000) }]);
+      // Auto-select the just-uploaded template
+      setMandatType(file.name);
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(err?.message || (lang === "fr" ? "Erreur de lecture du fichier" : "File read error"));
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
