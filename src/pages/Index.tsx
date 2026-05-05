@@ -10,6 +10,7 @@ import {
   ChevronRight, Quote,
 } from "lucide-react";
 import dashboardMockup from "@/assets/dashboard-preview.jpeg";
+import heroBuilding3d from "@/assets/landing-hero-3d.jpg";
 
 const modules = [
   { icon: LayoutDashboard, title: "Dashboard IA", desc: "Une vue 360° de votre activité : KPIs, objectif CA, prospects chauds et actions du jour priorisées par l'IA." },
@@ -99,37 +100,65 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center relative">
-        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-sm font-medium px-4 py-1.5 rounded-full mb-6 animate-fade-in">
-          <Sparkles className="h-4 w-4" /> Bêta Privée — 100 places limitées
-        </div>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display leading-[1.05] tracking-tight mb-6 max-w-4xl mx-auto animate-fade-in">
-          Votre assistant IA qui transforme chaque email en{" "}
-          <span className="gradient-text">mandat signé</span>.
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in">
-          Estate IA analyse vos emails, score vos prospects, rédige vos mandats et vous dit chaque matin quelles actions feront décoller votre chiffre d'affaires. Conçu pour les agents qui veulent vendre, pas administrer.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 animate-fade-in">
-          <Button
-            size="lg"
-            onClick={goSignup}
-            className="text-base px-8 py-6 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
-          >
-            Rejoindre la Bêta gratuite <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-          <Button variant="outline" size="lg" className="text-base px-8 py-6 hover:scale-105 transition-transform" onClick={() => document.getElementById("modules")?.scrollIntoView({ behavior: "smooth" })}>
-            Voir les 8 modules
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground mb-12">Sans CB · Configuration en 3 minutes · Annulable à tout moment</p>
+      {/* Hero — split layout with 3D building */}
+      <section className="max-w-7xl mx-auto px-6 pt-16 pb-20 relative">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left: copy */}
+          <div className="text-center lg:text-left animate-fade-in">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-sm font-medium px-4 py-1.5 rounded-full mb-6">
+              <Sparkles className="h-4 w-4" /> Bêta Privée — 100 places limitées
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display leading-[1.05] tracking-tight mb-6">
+              L'assistant IA des agents immobiliers qui{" "}
+              <span className="gradient-text">signent plus</span>.
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-xl lg:max-w-none mx-auto">
+              Estate IA analyse vos emails, score vos prospects, rédige vos mandats et vous dit chaque matin quelles actions feront décoller votre CA. Conçu pour vendre, pas administrer.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-4">
+              <Button
+                size="lg"
+                onClick={goSignup}
+                className="text-base px-8 py-6 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              >
+                Rejoindre la Bêta gratuite <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <Button variant="outline" size="lg" className="text-base px-8 py-6 hover:scale-105 transition-transform" onClick={() => document.getElementById("modules")?.scrollIntoView({ behavior: "smooth" })}>
+                Voir les 8 modules
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Sans CB · Configuration en 3 minutes · Annulable à tout moment</p>
+          </div>
 
-        {/* Hero visual */}
-        <div className="relative max-w-5xl mx-auto animate-fade-in">
-          <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-info/20 to-primary/20 rounded-3xl blur-2xl opacity-60 animate-pulse" style={{ animationDuration: "6s" }} />
+          {/* Right: 3D building */}
+          <div className="relative animate-fade-in">
+            <div className="absolute -inset-6 bg-gradient-to-br from-primary/15 via-accent/10 to-info/15 rounded-[2.5rem] blur-3xl opacity-70 animate-pulse" style={{ animationDuration: "7s" }} />
+            <div className="relative rounded-3xl overflow-hidden ring-1 ring-border/60 shadow-2xl bg-gradient-to-br from-card to-secondary/30">
+              <img
+                src={heroBuilding3d}
+                alt="Illustration 3D d'un immeuble haussmannien premium entouré de cartes IA flottantes Estate AI"
+                width={1920}
+                height={1280}
+                className="w-full h-auto block"
+              />
+            </div>
+            {/* Floating accent badges */}
+            <div className="hidden md:flex absolute -bottom-4 -left-4 items-center gap-2 bg-card border border-border shadow-lg rounded-xl px-4 py-2.5 animate-fade-in">
+              <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+              <span className="text-xs font-medium">IA active · 8 modules synchronisés</span>
+            </div>
+            <div className="hidden md:flex absolute -top-4 -right-4 items-center gap-2 bg-card border border-accent/30 shadow-lg rounded-xl px-4 py-2.5">
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              <span className="text-xs font-medium">+38% mandats signés</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dashboard preview below */}
+        <div className="relative max-w-5xl mx-auto mt-20 animate-fade-in">
+          <div className="absolute -inset-4 bg-gradient-to-r from-primary/15 via-info/15 to-primary/15 rounded-3xl blur-2xl opacity-60 animate-pulse" style={{ animationDuration: "6s" }} />
           <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-border ring-1 ring-black/5">
-            <img src={dashboardMockup} alt="Aperçu du dashboard Estate AI montrant KPIs, prospects chauds et actions du jour" width={1920} height={1080} className="w-full" />
+            <img src={dashboardMockup} alt="Aperçu du dashboard Estate AI montrant KPIs, prospects chauds et actions du jour" width={1920} height={1080} className="w-full" loading="lazy" />
           </div>
         </div>
       </section>
