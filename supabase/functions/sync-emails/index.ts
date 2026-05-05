@@ -67,7 +67,8 @@ Deno.serve(async (req) => {
     const messages: any[] = [];
 
     if (provider === "gmail") {
-      const list = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=is:unread", { headers: { Authorization: `Bearer ${accessToken}` } });
+      // 50 derniers emails (lus + non lus), boîte principale (INBOX)
+      const list = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&labelIds=INBOX", { headers: { Authorization: `Bearer ${accessToken}` } });
       if (!list.ok) throw new Error(`Gmail list failed: ${await list.text()}`);
       const { messages: ids } = await list.json();
       for (const m of ids || []) {
@@ -76,11 +77,13 @@ Deno.serve(async (req) => {
         const d = await detail.json();
         const headers = d.payload?.headers || [];
         const get = (n: string) => headers.find((h: any) => h.name === n)?.value || "";
+        const isUnread = (d.labelIds || []).includes("UNREAD");
         messages.push({
           source_externe_id: m.id,
           sujet: get("Subject"),
           contenu: d.snippet || "",
           contact: get("From"),
+          lu: !isUnread,
         });
       }
     } else {
@@ -108,7 +111,7 @@ Deno.serve(async (req) => {
         sujet: msg.sujet,
         contenu: `De: ${msg.contact}\n\n${msg.contenu}`,
         source_externe_id: msg.source_externe_id,
-        lu: false,
+        lu: msg.lu ?? false,
       });
       inserted++;
     }
