@@ -19,6 +19,56 @@ import { toast } from "sonner";
 import { streamChat } from "@/lib/ai-stream";
 import { exportTextToDocx } from "@/lib/docx-export";
 import { VoiceButton } from "@/components/VoiceButton";
+import { readTemplateFile } from "@/lib/template-reader";
+
+const MANDAT_INFO_EXEMPLE = `══════ INFORMATIONS DU MANDANT (VENDEUR) ══════
+Nom et prénom : Jean DUPONT
+Date et lieu de naissance : 15/03/1968 à Paris (75)
+Nationalité : Française
+Profession : Cadre supérieur
+Adresse complète : 24 avenue Victor Hugo, 75116 Paris
+Téléphone : 06 12 34 56 78
+Email : jean.dupont@email.com
+Situation maritale : Marié sous le régime de la communauté
+
+══════ INFORMATIONS DU BIEN ══════
+Type : Appartement T3
+Adresse complète : 12 rue de la Paix, 75002 Paris
+Étage : 4ème avec ascenseur
+Surface Carrez : 72 m²
+Nombre de pièces : 3 (séjour, 2 chambres)
+Nombre de salles de bain : 1
+Cave : Oui (n° 14 au sous-sol)
+Parking : Non
+Année de construction : 1925
+État général : Bon — rafraîchissement récent (2022)
+Syndic : Cabinet Martin & Associés
+Charges trimestrielles : 850 €
+Taxe foncière : 1 240 €/an
+DPE : C (185 kWh/m²/an) — diagnostic du 12/06/2024
+Numéro de lot : 42
+Origine de propriété : Acquisition par acte du 03/09/2010 chez Maître X
+
+══════ CONDITIONS FINANCIÈRES ══════
+Prix de vente net vendeur : 750 000 €
+Honoraires d'agence : 5% TTC à la charge de l'acquéreur
+Prix de vente affiché (FAI) : 787 500 €
+
+══════ CONDITIONS DU MANDAT ══════
+Durée : 3 mois irrévocables, renouvelable tacitement
+Date de prise d'effet : 01/06/2025
+Numéro du mandat : MV-2025-0142
+Type de mandat : Exclusif
+
+══════ DIAGNOSTICS DISPONIBLES ══════
+DPE, amiante, plomb, électricité, gaz, ERP, surface Carrez — fournis sous 8 jours
+
+══════ AGENT MANDATAIRE ══════
+Nom : [Votre nom complet]
+Carte professionnelle n° : CPI 7501 2024 000 123 456
+Garantie financière : GALIAN — 120 000 €
+RCP : MMA n° 1234567`;
+
 
 const MANDAT_TYPES = [
   { value: "Mandat de vente exclusif", label: "Mandat de vente exclusif", desc: "Exclusivité confiée à une seule agence" },
