@@ -28,10 +28,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const demoOptOutKey = "estate-ai-demo-opt-out";
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // 🔑 CŒUR DU PRODUIT : dès que l'agent se connecte avec Google,
+      // on enregistre ses tokens Gmail et on déclenche la 1re synchro
+      // des 50 derniers emails — sans qu'il ait à cliquer sur quoi que ce soit.
+      if (event === "SIGNED_IN" && session?.provider_token) {
+        // setTimeout pour ne pas bloquer le callback Supabase (deadlock auth)
+        setTimeout(() => {
+          (async () => {
+            try {
+              await supabase.functions.invoke("gmail-connect-from-session", {
+                body: {
+                  provider_token: session.provider_token,
+                  provider_refresh_token: session.provider_refresh_token,
+                  expires_in: 3600,
+                },
+              });
+              // Première synchro immédiate (50 derniers)
+              await supabase.functions.invoke("sync-emails", {
+                body: { provider: "gmail" },
+              });
+            } catch (e) {
+              console.warn("Gmail auto-connect/sync failed:", e);
+            }
+          })();
+        }, 0);
+      }
     });
 
     // Mode démo : auto-connexion uniquement tant que l'utilisateur ne s'est pas explicitement déconnecté
