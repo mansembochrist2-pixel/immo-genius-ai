@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, MailCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const AuthComplete = () => {
   const { session, user, loading } = useAuth();
