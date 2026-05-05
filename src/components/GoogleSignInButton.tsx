@@ -1,24 +1,42 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+/**
+ * Google Sign-In avec accès Gmail readonly.
+ * - Scope: openid email profile + gmail.readonly
+ * - access_type=offline + prompt=consent → garantit un refresh_token Google
+ * - Au retour, l'access_token Google est dans session.provider_token
+ *   et le refresh_token dans session.provider_refresh_token
+ *   (intercepté par AuthContext qui les enregistre dans user_integrations
+ *    et déclenche la première synchro).
+ */
 export const GoogleSignInButton = () => {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
       });
       if (error) {
-        toast.error("Erreur de connexion Google : " + (error instanceof Error ? error.message : String(error)));
+        toast.error("Erreur de connexion Google : " + error.message);
+        setLoading(false);
       }
+      // Sinon, redirection en cours → pas de setLoading(false)
     } catch (err: any) {
       toast.error("Erreur inattendue lors de la connexion Google");
-    } finally {
       setLoading(false);
     }
   };
