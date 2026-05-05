@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 /**
  * Google Sign-In via Lovable Cloud managed OAuth.
@@ -13,12 +14,13 @@ import { Loader2 } from "lucide-react";
  */
 export const GoogleSignInButton = () => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/dashboard`,
+        redirect_uri: `${window.location.origin}/auth/complete`,
         extraParams: {
           scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
           access_type: "offline",
@@ -33,8 +35,9 @@ export const GoogleSignInButton = () => {
       }
       // Si redirected → la page va changer, on laisse le loader actif
       if (!result.redirected) {
-        // Tokens reçus directement, AuthContext prendra le relais
-        setLoading(false);
+        // En preview Lovable, OAuth revient souvent par popup : la session est posée,
+        // mais il faut naviguer explicitement vers l'écran de préparation.
+        navigate("/auth/complete", { replace: true });
       }
     } catch (err: any) {
       toast.error("Erreur inattendue lors de la connexion Google");

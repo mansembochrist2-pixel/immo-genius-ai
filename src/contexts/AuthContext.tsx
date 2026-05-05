@@ -15,6 +15,57 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const ensureProfileForSession = async (session: Session) => {
+  const fullName =
+    session.user.user_metadata?.full_name ||
+    session.user.user_metadata?.name ||
+    session.user.email?.split("@")[0] ||
+    "Agent immobilier";
+
+  const { error } = await supabase.from("profiles").upsert({
+    id: session.user.id,
+    email: session.user.email ?? null,
+    full_name: fullName,
+  }, { onConflict: "id" });
+
+  if (error) console.warn("Profile auto-create failed:", error.message);
+};
+
+const startGmailSyncFromSession = async (session: Session) => {
+  if (!session.provider_token) return;
+
+  const syncKey = `estate-ai-gmail-sync-started:${session.user.id}`;
+  if (sessionStorage.getItem(syncKey) === "true") return;
+  sessionStorage.setItem(syncKey, "true");
+
+  const connect = await supabase.functions.invoke("gmail-connect-from-session", {
+    body: {
+      provider_token: session.provider_token,
+      provider_refresh_token: session.provider_refresh_token,
+      expires_in: 3600,
+    },
+  });
+  if (connect.error) throw connect.error;
+
+  const sync = await supabase.functions.invoke("sync-emails", {
+    body: { provider: "gmail" },
+  });
+  if (sync.error) throw sync.error;
+};
+
+const runPostLoginSideEffects = (session: Session) => {
+  setTimeout(() => {
+    (async () => {
+      try {
+        await ensureProfileForSession(session);
+        await startGmailSyncFromSession(session);
+      } catch (e) {
+        console.warn("Post-login setup failed:", e);
+      }
+    })();
+  }, 0);
+};
+
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
@@ -33,36 +84,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // 🔑 CŒUR DU PRODUIT : dès que l'agent se connecte avec Google,
-      // on enregistre ses tokens Gmail et on déclenche la 1re synchro
-      // des 50 derniers emails — sans qu'il ait à cliquer sur quoi que ce soit.
-      if (event === "SIGNED_IN" && session?.provider_token) {
-        // setTimeout pour ne pas bloquer le callback Supabase (deadlock auth)
-        setTimeout(() => {
-          (async () => {
-            try {
-              await supabase.functions.invoke("gmail-connect-from-session", {
-                body: {
-                  provider_token: session.provider_token,
-                  provider_refresh_token: session.provider_refresh_token,
-                  expires_in: 3600,
-                },
-              });
-              // Première synchro immédiate (50 derniers)
-              await supabase.functions.invoke("sync-emails", {
-                body: { provider: "gmail" },
-              });
-            } catch (e) {
-              console.warn("Gmail auto-connect/sync failed:", e);
-            }
-          })();
-        }, 0);
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
+        runPostLoginSideEffects(session);
       }
     });
 
     // Mode démo : auto-connexion uniquement tant que l'utilisateur ne s'est pas explicitement déconnecté
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session && localStorage.getItem(demoOptOutKey) !== "true") {
+      const authPage = ["/login", "/signup", "/forgot-password", "/auth/complete"].includes(window.location.pathname);
+      if (!session && !authPage && localStorage.getItem(demoOptOutKey) !== "true") {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: "demo@estate-ai.app",
           password: "DemoEstate2026!",
@@ -70,10 +100,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!error && data.session) {
           setSession(data.session);
           setUser(data.user);
+          runPostLoginSideEffects(data.session);
         }
       } else {
         setSession(session);
-        setUser(session.user);
+        setUser(session?.user ?? null);
+        if (session) runPostLoginSideEffects(session);
       }
       setLoading(false);
     });
