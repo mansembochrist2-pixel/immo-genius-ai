@@ -1,43 +1,35 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 /**
- * Google Sign-In via Lovable Cloud managed OAuth.
- * - Scopes additionnels demandés : gmail.readonly (cœur du produit Estate AI)
- * - access_type=offline + prompt=consent → garantit un refresh_token Google
- * - Au retour, AuthContext intercepte SIGNED_IN et déclenche la première synchro
- *   des 50 derniers emails Gmail automatiquement.
+ * Google Sign-In via l'auth provider Supabase.
+ * Le callback renvoie aussi le token Google nécessaire à la lecture Gmail,
+ * puis /auth/complete déclenche la synchro des 50 derniers emails.
  */
 export const GoogleSignInButton = () => {
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth/complete`,
-        extraParams: {
-          scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
-          access_type: "offline",
-          prompt: "consent",
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/complete`,
+          scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
         },
       });
 
-      if (result.error) {
-        toast.error("Erreur de connexion Google : " + (result.error as Error).message);
+      if (error) {
+        toast.error("Erreur de connexion Google : " + error.message);
         setLoading(false);
-        return;
-      }
-      // Si redirected → la page va changer, on laisse le loader actif
-      if (!result.redirected) {
-        // En preview Lovable, OAuth revient souvent par popup : la session est posée,
-        // mais il faut naviguer explicitement vers l'écran de préparation.
-        navigate("/auth/complete", { replace: true });
       }
     } catch (err: any) {
       toast.error("Erreur inattendue lors de la connexion Google");
