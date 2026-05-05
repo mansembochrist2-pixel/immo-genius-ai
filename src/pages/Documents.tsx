@@ -259,7 +259,7 @@ const Studio = () => {
     const fullText = `${annonce?.titre_accrocheur || ""}\n\n${content}\n\n${annonceForm.adresse}${annonceForm.prix ? "\n" + Number(annonceForm.prix).toLocaleString("fr-FR") + " €" : ""}`;
     navigator.clipboard.writeText(fullText).then(() => {
       toast.success(lang === "fr" ? "Texte copié — Canva s'ouvre, collez avec Cmd/Ctrl+V" : "Text copied — Canva is opening, paste with Cmd/Ctrl+V");
-      window.open("https://www.canva.com/create/real-estate-flyers/", "_blank", "noopener,noreferrer");
+      window.open("https://www.canva.com/", "_blank", "noopener,noreferrer");
     });
   };
 
