@@ -431,17 +431,34 @@ const Studio = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat (dictée vocale ou saisie)" : "Mandate details (voice or text)"}</p>
-                    <VoiceButton
-                      onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
-                      onInterim={(text) => setVoiceInterim(text)}
-                    />
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-[10px] gap-1 text-primary hover:text-primary"
+                        onClick={() => setMandatInfo(MANDAT_INFO_EXEMPLE)}
+                        title={lang === "fr" ? "Insérer un exemple complet à modifier" : "Insert a complete example"}
+                      >
+                        <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un exemple" : "Load example"}
+                      </Button>
+                      <VoiceButton
+                        onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
+                        onInterim={(text) => setVoiceInterim(text)}
+                      />
+                    </div>
                   </div>
                   <Textarea
                     value={mandatInfo + (voiceInterim ? " " + voiceInterim : "")}
                     onChange={e => { setMandatInfo(e.target.value); setVoiceInterim(""); }}
-                    className="bg-muted/10 border-border/30 min-h-[140px]"
-                    placeholder={"Dictez ou écrivez les informations :\n\nVendeur : Jean Dupont\nAdresse du bien : 12 rue de la Paix, 75002 Paris\nType : Appartement T3\nSurface : 65 m²\nPrix : 450 000 €"}
+                    className="bg-muted/10 border-border/30 min-h-[200px] font-mono text-[11px] leading-relaxed"
+                    placeholder={MANDAT_INFO_EXEMPLE}
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1.5 italic">
+                    {lang === "fr"
+                      ? "💡 Plus vos informations sont complètes, plus le mandat généré est prêt à signer. Cliquez sur « Charger un exemple » pour voir tous les champs utiles."
+                      : "💡 The more details you provide, the more ready-to-sign your mandate will be."}
+                  </p>
                   {hasExtracted && (
                     <div className="mt-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
                       <p className="text-[10px] text-primary font-medium uppercase tracking-wider mb-1.5 flex items-center gap-1">
@@ -457,6 +474,7 @@ const Studio = () => {
                     </div>
                   )}
                 </div>
+
 
                 <Button className="w-full" onClick={genererMandat} disabled={loadingMandat}>
                   {loadingMandat ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {t("docs.generating")}</> : <><Sparkles className="h-4 w-4 mr-2" /> {t("docs.generate")} le mandat</>}
