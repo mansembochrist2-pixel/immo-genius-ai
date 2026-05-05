@@ -5,22 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Mail, Radar, TrendingUp, Bot, Users, FileEdit, CalendarDays, Save, LayoutDashboard,
+  Mail, Radar, TrendingUp, Bot, Users, FileEdit, CalendarDays, LayoutDashboard,
   ArrowRight, Lock, ShieldCheck, Sparkles, Star, Check, Zap, Clock, Target, Brain,
   ChevronRight, Quote,
 } from "lucide-react";
-import dashboardMockup from "@/assets/dashboard-mockup.jpg";
+import dashboardMockup from "@/assets/dashboard-preview.jpeg";
 
 const modules = [
   { icon: LayoutDashboard, title: "Dashboard IA", desc: "Une vue 360° de votre activité : KPIs, objectif CA, prospects chauds et actions du jour priorisées par l'IA." },
   { icon: Mail, title: "Inbox intelligente", desc: "Vos emails analysés en temps réel : intention détectée, urgence évaluée, réponses pré-rédigées validées en 1 clic." },
   { icon: CalendarDays, title: "Agenda IA", desc: "Calendrier connecté avec brief automatique avant chaque RDV : historique client, points clés, objections probables." },
-  { icon: Users, title: "CRM enrichi", desc: "Vos clients scorés par l'IA : motivation, freins, taux de signature et prochaine action recommandée." },
+  { icon: Users, title: "Mémoire client", desc: "Vos clients scorés par l'IA : motivation, freins, taux de signature et prochaine action recommandée." },
   { icon: FileEdit, title: "Documents IA", desc: "Mandats, annonces et marketing générés en 30 secondes, 100% modifiables, ton ajustable (premium, familial, urbain…)." },
   { icon: TrendingUp, title: "Estimation IA", desc: "Dossiers d'estimation précis basés sur DVF, INSEE et données locales. Export PDF professionnel pour vos prospects." },
   { icon: Radar, title: "Radar prospection", desc: "Détection des vendeurs potentiels sur votre secteur, avec plan d'attaque commercial personnalisé." },
   { icon: Bot, title: "Copilote stratégique", desc: "Votre directeur commercial IA : il connaît tous vos dossiers et vous suggère la meilleure action, 24/7." },
-  { icon: Save, title: "Sauvegardes", desc: "Toutes vos annonces et estimations archivées et retrouvables instantanément, où que vous soyez." },
 ];
 
 const benefits = [
@@ -45,7 +44,7 @@ const faqs = [
   { q: "Mes emails sont-ils stockés sur vos serveurs ?", a: "Non. La connexion Google se fait via OAuth officiel : nous lisons vos emails à la volée pour les analyser, mais nous ne les stockons jamais. Vous pouvez révoquer l'accès en 1 clic depuis votre compte Google." },
   { q: "Combien de temps pour être opérationnel ?", a: "3 minutes. Vous créez votre compte, vous connectez Google, l'IA analyse vos 50 derniers échanges et vous présente votre dashboard prêt à l'emploi." },
   { q: "L'IA peut-elle envoyer des emails à ma place sans validation ?", a: "Jamais. L'IA propose, vous décidez. Toute réponse, tout mandat, toute action est éditable et requiert votre validation explicite avant envoi." },
-  { q: "Quels modules sont inclus dans la bêta ?", a: "Tout : Dashboard, Inbox IA, Agenda, CRM, Documents IA, Estimation IA, Radar prospection, Copilote stratégique et Sauvegardes. Vous avez accès à la plateforme complète." },
+  { q: "Quels modules sont inclus dans la bêta ?", a: "Tout : Dashboard, Inbox IA, Agenda, Mémoire client, Documents IA, Estimation IA, Radar prospection et Copilote stratégique. Vous avez accès à la plateforme complète." },
   { q: "Puis-je modifier les contenus générés par l'IA ?", a: "Absolument. Mandats, annonces, réponses email, dossiers d'estimation : tout est éditable. L'IA est une assistante, vous restez maître de votre business." },
   { q: "Quelles données utilise l'IA pour les estimations ?", a: "Données officielles DVF (transactions immobilières publiques), INSEE (démographie, revenus), données de marché locales et historique de votre zone. Sources affichées dans chaque rapport." },
   { q: "L'outil fonctionne-t-il pour les agents indépendants comme pour les agences ?", a: "Oui. Chaque compte est isolé : un agent indépendant gère ses prospects, une agence peut équiper plusieurs collaborateurs (chaque agent a son espace privé)." },
@@ -121,7 +120,7 @@ const Index = () => {
             Rejoindre la Bêta gratuite <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
           <Button variant="outline" size="lg" className="text-base px-8 py-6 hover:scale-105 transition-transform" onClick={() => document.getElementById("modules")?.scrollIntoView({ behavior: "smooth" })}>
-            Voir les 9 modules
+            Voir les 8 modules
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mb-12">Sans CB · Configuration en 3 minutes · Annulable à tout moment</p>
@@ -175,7 +174,7 @@ const Index = () => {
       {/* Modules — 9 cards */}
       <section id="modules" className="max-w-6xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
-          <Badge variant="secondary" className="mb-4">9 modules synchronisés</Badge>
+          <Badge variant="secondary" className="mb-4">8 modules synchronisés</Badge>
           <h2 className="text-3xl md:text-4xl font-bold font-display mb-4">
             Une plateforme complète. Zéro tâche manuelle inutile.
           </h2>
