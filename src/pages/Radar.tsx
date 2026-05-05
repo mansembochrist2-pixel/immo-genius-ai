@@ -484,14 +484,6 @@ const Radar = () => {
                       ))}
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs h-7 gap-1"
-                        onClick={() => sendToCopilote(opp, opp.titre)}
-                      >
-                        <Bot className="h-3 w-3" /> Copilote
-                      </Button>
                       {!isRisque && (
                         <Button
                           size="sm"
@@ -499,6 +491,7 @@ const Radar = () => {
                           className="text-xs h-7 gap-1"
                           disabled={generatingPlan === opp.id}
                           onClick={() => generatePlanAttaque(opp)}
+                          title="Génère un plan d'attaque détaillé. Vous pourrez ensuite l'envoyer au Copilote avec tout le contexte."
                         >
                           {generatingPlan === opp.id ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
