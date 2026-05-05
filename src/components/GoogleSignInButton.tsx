@@ -1,17 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 /**
- * Google Sign-In avec accès Gmail readonly.
- * - Scope: openid email profile + gmail.readonly
+ * Google Sign-In via Lovable Cloud managed OAuth.
+ * - Scopes additionnels demandés : gmail.readonly (cœur du produit Estate AI)
  * - access_type=offline + prompt=consent → garantit un refresh_token Google
- * - Au retour, l'access_token Google est dans session.provider_token
- *   et le refresh_token dans session.provider_refresh_token
- *   (intercepté par AuthContext qui les enregistre dans user_integrations
- *    et déclenche la première synchro).
+ * - Au retour, AuthContext intercepte SIGNED_IN et déclenche la première synchro
+ *   des 50 derniers emails Gmail automatiquement.
  */
 export const GoogleSignInButton = () => {
   const [loading, setLoading] = useState(false);
@@ -19,22 +17,25 @@ export const GoogleSignInButton = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-          scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/dashboard`,
+        extraParams: {
+          scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+          access_type: "offline",
+          prompt: "consent",
         },
       });
-      if (error) {
-        toast.error("Erreur de connexion Google : " + error.message);
+
+      if (result.error) {
+        toast.error("Erreur de connexion Google : " + (result.error as Error).message);
+        setLoading(false);
+        return;
+      }
+      // Si redirected → la page va changer, on laisse le loader actif
+      if (!result.redirected) {
+        // Tokens reçus directement, AuthContext prendra le relais
         setLoading(false);
       }
-      // Sinon, redirection en cours → pas de setLoading(false)
     } catch (err: any) {
       toast.error("Erreur inattendue lors de la connexion Google");
       setLoading(false);
