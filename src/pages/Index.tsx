@@ -35,9 +35,9 @@ const steps = [
 ];
 
 const testimonials = [
-  { name: "Nicolas R.", role: "Agent indépendant — Lyon", text: "Je traite ma boîte mail en 20 minutes le matin au lieu de 2 heures. Et je n'oublie plus une seule relance." },
-  { name: "Sophia M.", role: "Directrice d'agence — Bordeaux", text: "Les estimations qu'on sortait en 4h sont prêtes en 15 minutes. Mes agents passent enfin du temps en RDV." },
-  { name: "Karim B.", role: "Mandataire — Paris", text: "Le copilote m'a fait signer 2 mandats supplémentaires le mois dernier juste en me disant qui relancer en priorité." },
+  { name: "Nicolas R.", role: "Agent immobilier indépendant", text: "Je traite ma boîte mail en 20 minutes le matin au lieu de 2 heures. Et je n'oublie plus une seule relance." },
+  { name: "Sofia M.", role: "Agente commerciale en immobilier", text: "Les estimations qu'on sortait en 4h sont prêtes en 15 minutes. Je passe enfin du temps en RDV." },
+  { name: "Karim B.", role: "Mandataire immobilier", text: "Le copilote m'a fait signer 2 mandats supplémentaires le mois dernier juste en me disant qui relancer en priorité." },
 ];
 
 const faqs = [
@@ -46,7 +46,7 @@ const faqs = [
   { q: "L'IA peut-elle envoyer des emails à ma place sans validation ?", a: "Jamais. L'IA propose, vous décidez. Toute réponse, tout mandat, toute action est éditable et requiert votre validation explicite avant envoi." },
   { q: "Quels modules sont inclus dans la bêta ?", a: "Tout : Dashboard, Inbox IA, Agenda, Mémoire client, Documents IA, Estimation IA, Radar prospection et Copilote stratégique. Vous avez accès à la plateforme complète." },
   { q: "Puis-je modifier les contenus générés par l'IA ?", a: "Absolument. Mandats, annonces, réponses email, dossiers d'estimation : tout est éditable. L'IA est une assistante, vous restez maître de votre business." },
-  { q: "Quelles données utilise l'IA pour les estimations ?", a: "Données officielles DVF (transactions immobilières publiques), INSEE (démographie, revenus), données de marché locales et historique de votre zone. Sources affichées dans chaque rapport." },
+  { q: "Quelles données utilise l'IA pour les estimations ?", a: "L'IA s'appuie sur les données réelles du marché immobilier local : transactions vérifiées, indicateurs de tension, démographie, historique de votre zone. Toutes les sources sont affichées dans chaque rapport pour transparence totale." },
   { q: "L'outil fonctionne-t-il pour les agents indépendants comme pour les agences ?", a: "Oui. Chaque compte est isolé : un agent indépendant gère ses prospects, une agence peut équiper plusieurs collaborateurs (chaque agent a son espace privé)." },
   { q: "Outlook sera-t-il supporté ?", a: "Oui, le connecteur Outlook arrive très prochainement. La bêta démarre avec Google, Outlook suivra dans les semaines à venir." },
   { q: "Que se passe-t-il si je quitte la plateforme ?", a: "Vous exportez toutes vos données (clients, mandats, estimations) en JSON ou PDF. Vos données sont supprimées sous 30 jours conformément au RGPD." },

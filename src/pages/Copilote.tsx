@@ -36,7 +36,7 @@ const Copilote = () => {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [convSearch, setConvSearch] = useState("");
-  const [agentMode, setAgentMode] = useState(false);
+  const agentMode = false;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Check for prefilled message from Radar
@@ -331,14 +331,9 @@ const Copilote = () => {
           <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs cursor-pointer" title={lang === "fr" ? "Permet au copilote d'agir : archiver/trier emails, créer tâches & RDV" : "Lets the copilot take actions"}>
-                  <Wand2 className={`h-3.5 w-3.5 ${agentMode ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className={agentMode ? "font-medium text-primary" : "text-muted-foreground"}>{lang === "fr" ? "Mode Agent" : "Agent mode"}</span>
-                  <Switch checked={agentMode} onCheckedChange={setAgentMode} />
-                </label>
-                <Badge variant="outline" className="text-[10px] border-success/30 text-success">{lang === "fr" ? "Connecté" : "Connected"}</Badge>
-              </div>
+              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary gap-1">
+                <Zap className="h-2.5 w-2.5" /> {lang === "fr" ? "Données live synchronisées" : "Live data synced"}
+              </Badge>
             </div>
           </CardHeader>
 

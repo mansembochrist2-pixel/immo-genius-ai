@@ -132,7 +132,7 @@ const EstimationIA = () => {
           <TrendingUp className="h-7 w-7 text-primary" />
           Estimation <span className="gradient-text">IA</span>
         </h1>
-        <p className="page-subtitle">{lang === "fr" ? "Estimez vos biens avec précision grâce aux données du marché" : "Estimate properties accurately with market data"}</p>
+        <p className="page-subtitle">{lang === "fr" ? "Estimez vos biens avec une précision basée sur les données réelles du marché immobilier local" : "Estimate properties accurately with real local market data"}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

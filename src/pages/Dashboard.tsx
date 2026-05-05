@@ -213,6 +213,7 @@ const Dashboard = () => {
             </div>
             {editingCA ? (
               <div className="mt-2 space-y-2">
+                <p className="text-[10px] text-muted-foreground">{lang === "fr" ? "Objectif mensuel (€)" : "Monthly goal (€)"}</p>
                 <NumberInput
                   value={caInput}
                   onChange={v => setCaInput(v)}
@@ -230,9 +231,37 @@ const Dashboard = () => {
                   </Button>
                 </div>
               </div>
+            ) : editingRealise ? (
+              <div className="mt-2 space-y-2">
+                <p className="text-[10px] text-muted-foreground">{lang === "fr" ? "CA réalisé ce mois (€)" : "Revenue this month (€)"}</p>
+                <NumberInput
+                  value={realiseInput}
+                  onChange={v => setRealiseInput(v)}
+                  placeholder="0"
+                  className="h-8 text-sm"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === "Enter") adjustRealiseMutation.mutate(Number(realiseInput)); if (e.key === "Escape") setEditingRealise(false); }}
+                />
+                <div className="flex gap-1">
+                  <Button size="sm" className="h-6 text-[10px] flex-1" onClick={() => adjustRealiseMutation.mutate(Number(realiseInput))}>
+                    <Check className="h-3 w-3 mr-1" /> OK
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setEditingRealise(false)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-[9px] text-muted-foreground italic">{lang === "fr" ? "Une vente d'ajustement sera créée pour refléter la différence." : "An adjustment sale will be created."}</p>
+              </div>
             ) : (
               <>
-                <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
+                <button
+                  onClick={() => { setEditingRealise(true); setRealiseInput(caMois.toString()); }}
+                  className="mt-2 group inline-flex items-center gap-1.5 text-2xl font-bold text-foreground hover:text-primary transition-colors"
+                  title={lang === "fr" ? "Cliquer pour modifier votre chiffre d'affaires" : "Click to edit revenue"}
+                >
+                  {caMois.toLocaleString("fr-FR")}€
+                  <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                </button>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{lang === "fr" ? "ce mois" : "this month"} · {lang === "fr" ? "Total" : "Total"} : {caTotal.toLocaleString("fr-FR")}€</p>
                 {objectifCa > 0 ? (
                   <>
