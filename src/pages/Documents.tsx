@@ -155,23 +155,66 @@ const Studio = () => {
     setMandatContent("");
     try {
       const customTpl = customTemplates.find(c => c.name === mandatType);
-      const businessContext = customTpl
-        ? `${mandatType}\n\nUTILISE STRICTEMENT LE TEMPLATE PERSONNALISÉ SUIVANT (respecte sa structure, ses titres et sa mise en forme) et remplis les champs avec les informations fournies. Conserve les sections vides du template avec des "________" si l'information manque.\n\n--- TEMPLATE ---\n${customTpl.content || "(template fourni par l'utilisateur — adopte une structure professionnelle proche)"}\n--- FIN TEMPLATE ---`
-        : mandatType;
+      // businessContext est lu côté edge function comme contexte/template prioritaire
+      const businessContext = customTpl && customTpl.content
+        ? `MANDAT PERSONNALISÉ DE L'AGENT — RESPECTER STRICTEMENT CETTE STRUCTURE\n\nNom du fichier source : ${customTpl.name}\n\n--- TEMPLATE ---\n${customTpl.content}\n--- FIN TEMPLATE ---\n\nINSTRUCTIONS : Reproduis EXACTEMENT la structure, les titres, les articles et la mise en forme de ce template. Remplis chaque champ avec les informations du mandant fournies. N'ajoute pas d'articles, ne réécris pas la structure. Si une info manque, laisse "________________".`
+        : `Type officiel : ${mandatType}\n\nUtilise la structure standard conforme à la loi Hoguet et la loi ALUR pour ce type de mandat.`;
       const fieldsBlock = hasExtracted
-        ? `\n\n[Champs extraits automatiquement]\n${Object.entries(extractedFields).filter(([,v]) => v).map(([k,v]) => `- ${k}: ${v}`).join("\n")}\n`
+        ? `\n\n[Champs détectés automatiquement par parsing]\n${Object.entries(extractedFields).filter(([,v]) => v).map(([k,v]) => `- ${k}: ${v}`).join("\n")}\n`
         : "";
-      await streamChat({
-        functionName: "generate-mandat",
-        messages: [{ role: "user", content: mandatInfo + fieldsBlock }],
-        businessContext,
-        onDelta: (chunk) => setMandatContent(prev => prev + chunk),
-        onDone: () => { setLoadingMandat(false); toast.success(lang === "fr" ? "Mandat généré" : "Mandate generated"); },
-        onError: (err) => { setLoadingMandat(false); toast.error(err); },
+      // On envoie 'informations' DIRECTEMENT (le edge function le lit du body)
+      // streamChat envoie messages + businessContext, mais l'edge mandat lit body.informations
+      // → on construit donc un appel direct fetch ici pour passer 'informations' explicitement
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-mandat`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          type: mandatType,
+          informations: mandatInfo + fieldsBlock,
+          businessContext,
+        }),
       });
-    } catch {
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Erreur réseau" }));
+        let msg = err.error || `Erreur ${resp.status}`;
+        if (resp.status === 402) msg = "💳 Crédits IA bêta épuisés. Contactez l'équipe Estate AI.";
+        else if (resp.status === 429) msg = "⏱️ Trop de requêtes — patientez quelques secondes.";
+        throw new Error(msg);
+      }
+      if (!resp.body) throw new Error("Pas de réponse du serveur");
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, nl);
+          textBuffer = textBuffer.slice(nl + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) setMandatContent(prev => prev + content);
+          } catch { textBuffer = line + "\n" + textBuffer; break; }
+        }
+      }
       setLoadingMandat(false);
-      toast.error(lang === "fr" ? "Erreur de génération" : "Generation error");
+      toast.success(lang === "fr" ? "Mandat généré" : "Mandate generated");
+    } catch (e: any) {
+      setLoadingMandat(false);
+      toast.error(e.message || (lang === "fr" ? "Erreur de génération" : "Generation error"));
     }
   };
 
