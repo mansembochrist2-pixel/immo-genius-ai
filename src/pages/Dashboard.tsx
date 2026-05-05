@@ -30,6 +30,8 @@ const Dashboard = () => {
 
   const [editingCA, setEditingCA] = useState(false);
   const [caInput, setCaInput] = useState("");
+  const [editingRealise, setEditingRealise] = useState(false);
+  const [realiseInput, setRealiseInput] = useState("");
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -52,6 +54,33 @@ const Dashboard = () => {
       setEditingCA(false);
       toast.success(lang === "fr" ? "Objectif mis à jour" : "Goal updated");
     },
+  });
+
+  // Ajustement manuel du CA réalisé : on insère une vente "ajustement manuel" pour la différence
+  const adjustRealiseMutation = useMutation({
+    mutationFn: async (newValue: number) => {
+      if (!user) throw new Error("Non authentifié");
+      const diff = newValue - caMois;
+      if (diff === 0) return;
+      const today = new Date();
+      const dateVente = today.toISOString().split("T")[0];
+      const { error } = await supabase.from("sales").insert({
+        user_id: user.id,
+        montant: diff,
+        date_vente: dateVente,
+        description: diff > 0
+          ? (lang === "fr" ? "Ajustement manuel — vente déclarée par l'agent" : "Manual adjustment — sale declared by agent")
+          : (lang === "fr" ? "Ajustement manuel — correction" : "Manual adjustment — correction"),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business-data"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      setEditingRealise(false);
+      toast.success(lang === "fr" ? "CA réalisé mis à jour" : "Revenue updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Erreur"),
   });
 
   // Source unique : BusinessContext (synchronisé avec Copilote)
