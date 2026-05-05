@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Mail, Bot, Radar, Users, LogOut, Settings, FileText, Shield, ScrollText, CalendarDays, FileEdit, TrendingUp, Save
+  LayoutDashboard, Mail, Bot, Radar, Users, LogOut, Settings, FileText, Shield, ScrollText, CalendarDays, FileEdit, TrendingUp
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +25,6 @@ export function AppSidebar() {
     { title: t("nav.estimation"), url: "/estimation", icon: TrendingUp, hint: lang === "fr" ? "Estimation IA basée sur DVF, INSEE et données locales." : "AI estimation based on DVF, INSEE and local data." },
     { title: t("nav.radar"), url: "/radar", icon: Radar, hint: lang === "fr" ? "Détection d'opportunités vendeurs et plans d'attaque commerciaux." : "Detect seller opportunities and sales attack plans." },
     { title: t("nav.copilote"), url: "/copilote", icon: Bot, hint: lang === "fr" ? "Copilote stratégique connecté à toutes vos données business." : "Strategic copilot connected to all your business data." },
-    { title: lang === "fr" ? "Sauvegardes" : "Saved", url: "/sauvegardes", icon: Save, hint: lang === "fr" ? "Toutes vos annonces et estimations archivées en un endroit." : "All your saved listings and estimations in one place." },
   ];
 
   const legalItems = [
