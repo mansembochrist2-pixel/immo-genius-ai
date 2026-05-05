@@ -379,19 +379,28 @@ const Inbox = () => {
                 {analysis && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {lang === "fr" ? "Analyse IA" : "AI Analysis"}</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {[
-                        { label: "Intention", value: analysis.intention },
-                        { label: lang === "fr" ? "Chaleur" : "Warmth", value: `${analysis.urgence}/4`, color: urgenceColors[analysis.urgence] },
-                        { label: "Sentiment", value: analysis.sentiment },
-                        { label: "Scoring", value: `${analysis.stress_level}/5` },
-                      ].map((item) => (
-                        <div key={item.label} className="bg-muted/10 rounded-lg p-3 text-center">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
-                          <p className={`text-sm font-medium mt-1 ${item.color || ""}`}>{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
+                     <TooltipProvider delayDuration={150}>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { label: "Intention", value: analysis.intention, tip: lang === "fr" ? "Objectif détecté du message (ex : demande d'estimation, négociation, prise de RDV…)." : "Detected message intent (estimate, negotiation, meeting…)." },
+                          { label: lang === "fr" ? "Chaleur" : "Warmth", value: `${analysis.urgence}/4`, color: urgenceColors[analysis.urgence], tip: lang === "fr" ? "Niveau d'urgence (0 à 4). Plus c'est haut, plus le contact attend une réponse rapide." : "Urgency level (0-4). Higher means a faster reply is expected." },
+                          { label: "Sentiment", value: analysis.sentiment, tip: lang === "fr" ? "Tonalité émotionnelle : positif, neutre, négatif. Aide à adapter le ton de votre réponse." : "Emotional tone: positive, neutral, negative." },
+                          { label: "Scoring", value: `${analysis.stress_level}/5`, tip: lang === "fr" ? "Score de tension/stress (0-5) : indique si le client est à risque ou nécessite un traitement délicat." : "Stress score (0-5): risk of churn or sensitive handling." },
+                        ].map((item) => (
+                          <Tooltip key={item.label}>
+                            <TooltipTrigger asChild>
+                              <div className="bg-muted/10 rounded-lg p-3 text-center cursor-help hover:bg-muted/20 transition-colors">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1">
+                                  {item.label} <Info className="h-3 w-3 opacity-60" />
+                                </p>
+                                <p className={`text-sm font-medium mt-1 ${item.color || ""}`}>{item.value}</p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs">{item.tip}</TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </TooltipProvider>
                     {analysis.key_points?.length > 0 && (
                       <div className="bg-muted/10 rounded-lg p-3">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">{lang === "fr" ? "Points clés" : "Key points"}</p>
