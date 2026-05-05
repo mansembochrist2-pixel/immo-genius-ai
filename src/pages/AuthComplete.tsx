@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, MailCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const AuthComplete = () => {
   const { session, user, loading } = useAuth();
@@ -21,6 +22,8 @@ const AuthComplete = () => {
 
     const finalize = async () => {
       setStatus("Connexion sécurisée à Gmail...");
+      const { data: fresh } = await supabase.auth.getSession();
+      const activeSession = fresh.session ?? session;
 
       const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "Agent immobilier";
       await supabase.from("profiles").upsert({
@@ -29,15 +32,32 @@ const AuthComplete = () => {
         full_name: fullName,
       }, { onConflict: "id" });
 
-      if (session.provider_token) {
-        setStatus("Lecture des 50 derniers emails...");
-        await supabase.functions.invoke("gmail-connect-from-session", {
-          body: {
-            provider_token: session.provider_token,
-            provider_refresh_token: session.provider_refresh_token,
-            expires_in: 3600,
-          },
-        });
+      if (!activeSession.provider_token) {
+        throw new Error("Token Google Gmail manquant");
+      }
+
+      setStatus("Lecture des 50 derniers emails...");
+      const connect = await supabase.functions.invoke("gmail-connect-from-session", {
+        body: {
+          provider_token: activeSession.provider_token,
+          provider_refresh_token: activeSession.provider_refresh_token,
+          expires_in: 3600,
+        },
+      });
+      if (connect.error) throw connect.error;
+
+      setStatus("Import dans Inbox...");
+      const sync = await supabase.functions.invoke("sync-emails", { body: { provider: "gmail" } });
+      if (sync.error) throw sync.error;
+
+      const { data: imported } = await supabase
+        .from("inbox_messages")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("canal", "email")
+        .limit(1);
+
+      if (!imported?.length) {
         await supabase.functions.invoke("sync-emails", { body: { provider: "gmail" } });
       }
 
@@ -55,7 +75,11 @@ const AuthComplete = () => {
       }
     };
 
-    finalize().catch(() => {
+    finalize().catch((error) => {
+      console.warn("Finalisation Google/Gmail échouée:", error);
+      toast.error("Connexion Gmail incomplète", {
+        description: "Reconnectez-vous avec Google pour autoriser la lecture des 50 derniers emails.",
+      });
       if (!cancelled) navigate("/onboarding", { replace: true });
     });
 
