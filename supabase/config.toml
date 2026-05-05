@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.web-search]
 verify_jwt = false
+
+[functions.gmail-connect-from-session]
+verify_jwt = false
+
+[functions.sync-all-gmail]
+verify_jwt = false
