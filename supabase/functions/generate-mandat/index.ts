@@ -9,17 +9,40 @@ const SYSTEM_PROMPT = `Tu es un expert juridique immobilier français spécialis
 
 Tu rédiges des mandats conformes à la loi Hoguet (loi n°70-9 du 2 janvier 1970), à la loi ALUR (loi n°2014-366 du 24 mars 2014) et au décret n°72-678.
 
-RÈGLES ABSOLUES :
+═══════════════════════════════════════════════════════════
+RÈGLE ABSOLUE N°1 — INTÉGRATION DES INFORMATIONS CLIENT
+═══════════════════════════════════════════════════════════
+Toutes les informations fournies par l'agent (vendeur, acquéreur, adresse du bien, prix,
+surface, type de bien, durée, honoraires, coordonnées, dates, etc.) DOIVENT être
+intégrées MOT POUR MOT dans le mandat aux endroits appropriés. Tu ne dois JAMAIS
+laisser un champ générique "________" si l'information correspondante a été fournie.
+
+Si une information manque, et SEULEMENT dans ce cas, utilise "________________"
+pour que l'agent complète manuellement.
+
+═══════════════════════════════════════════════════════════
+RÈGLE ABSOLUE N°2 — RESPECT DU TEMPLATE PERSONNALISÉ
+═══════════════════════════════════════════════════════════
+Si un TEMPLATE PERSONNALISÉ est fourni (encadré entre --- TEMPLATE --- et --- FIN TEMPLATE ---),
+tu DOIS :
+- Conserver EXACTEMENT sa structure, ses titres, sa numérotation, sa mise en forme
+- Conserver son style rédactionnel et son ton
+- Te contenter de remplir/compléter ses champs avec les informations client fournies
+- NE PAS le réécrire ni y substituer ta propre structure
+- NE PAS ajouter d'articles ou de sections qui ne figurent pas dans le template
+
+═══════════════════════════════════════════════════════════
+RÈGLES GÉNÉRALES
+═══════════════════════════════════════════════════════════
 - Rédige en prose juridique fluide et professionnelle
 - Utilise le vocabulaire juridique exact du droit immobilier français
-- Numérote les articles (Article 1, Article 2, etc.)
-- Inclus toutes les clauses légales obligatoires
+- Numérote les articles (Article 1, Article 2, etc.) — sauf si le template impose autre chose
+- Inclus toutes les clauses légales obligatoires (sauf si template perso)
 - Aucun bullet point, aucun style IA visible
 - Le document doit sembler rédigé par un notaire ou un juriste
-- Ajoute "Généré par Estate AI" en petit en bas du document
-- Remplis les informations fournies par l'agent, laisse les champs manquants avec des espaces à compléter : "________________"
+- Termine par une mention discrète : "Document généré par Estate AI — à vérifier par un professionnel."
 
-STRUCTURE selon le type de mandat :
+STRUCTURE par défaut (uniquement si AUCUN template personnalisé n'est fourni) :
 
 Pour un MANDAT DE VENTE EXCLUSIF :
 - En-tête : "MANDAT DE VENTE EXCLUSIF" centré
@@ -46,21 +69,39 @@ Pour un MANDAT DE RECHERCHE ACQUÉREUR :
 - Critères de recherche du mandant
 - Obligations spécifiques à la recherche
 
-Retourne le mandat complet en texte structuré.`;
+Retourne le mandat complet, prêt à être imprimé et signé.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { type, informations } = await req.json();
+    const { type, informations, businessContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const userPrompt = `Génère un ${type} complet avec les informations suivantes :
+    // businessContext contient soit le type de mandat, soit le template personnalisé complet
+    const contextBlock = businessContext || type;
 
+    const userPrompt = `═══════════════════════════════════════════════════════════
+TYPE DE DOCUMENT À PRODUIRE / TEMPLATE À RESPECTER
+═══════════════════════════════════════════════════════════
+${contextBlock}
+
+═══════════════════════════════════════════════════════════
+INFORMATIONS DU MANDAT — À INTÉGRER OBLIGATOIREMENT
+═══════════════════════════════════════════════════════════
 ${informations}
 
-Rédige le mandat complet, professionnel, conforme à la législation française en vigueur.`;
+═══════════════════════════════════════════════════════════
+CONSIGNES
+═══════════════════════════════════════════════════════════
+1. Lis attentivement TOUTES les informations ci-dessus.
+2. Identifie chaque donnée : nom du vendeur, prénom, adresse, type de bien, prix, surface,
+   honoraires, durée, coordonnées, etc.
+3. Place chaque donnée à l'endroit pertinent du mandat.
+4. Ne laisse AUCUN champ vide si l'information existe dans le bloc ci-dessus.
+5. Si un template personnalisé est fourni, respecte-le scrupuleusement.
+6. Génère le mandat complet, professionnel, prêt à signer.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

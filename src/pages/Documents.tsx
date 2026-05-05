@@ -19,6 +19,56 @@ import { toast } from "sonner";
 import { streamChat } from "@/lib/ai-stream";
 import { exportTextToDocx } from "@/lib/docx-export";
 import { VoiceButton } from "@/components/VoiceButton";
+import { readTemplateFile } from "@/lib/template-reader";
+
+const MANDAT_INFO_EXEMPLE = `══════ INFORMATIONS DU MANDANT (VENDEUR) ══════
+Nom et prénom : Jean DUPONT
+Date et lieu de naissance : 15/03/1968 à Paris (75)
+Nationalité : Française
+Profession : Cadre supérieur
+Adresse complète : 24 avenue Victor Hugo, 75116 Paris
+Téléphone : 06 12 34 56 78
+Email : jean.dupont@email.com
+Situation maritale : Marié sous le régime de la communauté
+
+══════ INFORMATIONS DU BIEN ══════
+Type : Appartement T3
+Adresse complète : 12 rue de la Paix, 75002 Paris
+Étage : 4ème avec ascenseur
+Surface Carrez : 72 m²
+Nombre de pièces : 3 (séjour, 2 chambres)
+Nombre de salles de bain : 1
+Cave : Oui (n° 14 au sous-sol)
+Parking : Non
+Année de construction : 1925
+État général : Bon — rafraîchissement récent (2022)
+Syndic : Cabinet Martin & Associés
+Charges trimestrielles : 850 €
+Taxe foncière : 1 240 €/an
+DPE : C (185 kWh/m²/an) — diagnostic du 12/06/2024
+Numéro de lot : 42
+Origine de propriété : Acquisition par acte du 03/09/2010 chez Maître X
+
+══════ CONDITIONS FINANCIÈRES ══════
+Prix de vente net vendeur : 750 000 €
+Honoraires d'agence : 5% TTC à la charge de l'acquéreur
+Prix de vente affiché (FAI) : 787 500 €
+
+══════ CONDITIONS DU MANDAT ══════
+Durée : 3 mois irrévocables, renouvelable tacitement
+Date de prise d'effet : 01/06/2025
+Numéro du mandat : MV-2025-0142
+Type de mandat : Exclusif
+
+══════ DIAGNOSTICS DISPONIBLES ══════
+DPE, amiante, plomb, électricité, gaz, ERP, surface Carrez — fournis sous 8 jours
+
+══════ AGENT MANDATAIRE ══════
+Nom : [Votre nom complet]
+Carte professionnelle n° : CPI 7501 2024 000 123 456
+Garantie financière : GALIAN — 120 000 €
+RCP : MMA n° 1234567`;
+
 
 const MANDAT_TYPES = [
   { value: "Mandat de vente exclusif", label: "Mandat de vente exclusif", desc: "Exclusivité confiée à une seule agence" },
@@ -105,23 +155,66 @@ const Studio = () => {
     setMandatContent("");
     try {
       const customTpl = customTemplates.find(c => c.name === mandatType);
-      const businessContext = customTpl
-        ? `${mandatType}\n\nUTILISE STRICTEMENT LE TEMPLATE PERSONNALISÉ SUIVANT (respecte sa structure, ses titres et sa mise en forme) et remplis les champs avec les informations fournies. Conserve les sections vides du template avec des "________" si l'information manque.\n\n--- TEMPLATE ---\n${customTpl.content || "(template fourni par l'utilisateur — adopte une structure professionnelle proche)"}\n--- FIN TEMPLATE ---`
-        : mandatType;
+      // businessContext est lu côté edge function comme contexte/template prioritaire
+      const businessContext = customTpl && customTpl.content
+        ? `MANDAT PERSONNALISÉ DE L'AGENT — RESPECTER STRICTEMENT CETTE STRUCTURE\n\nNom du fichier source : ${customTpl.name}\n\n--- TEMPLATE ---\n${customTpl.content}\n--- FIN TEMPLATE ---\n\nINSTRUCTIONS : Reproduis EXACTEMENT la structure, les titres, les articles et la mise en forme de ce template. Remplis chaque champ avec les informations du mandant fournies. N'ajoute pas d'articles, ne réécris pas la structure. Si une info manque, laisse "________________".`
+        : `Type officiel : ${mandatType}\n\nUtilise la structure standard conforme à la loi Hoguet et la loi ALUR pour ce type de mandat.`;
       const fieldsBlock = hasExtracted
-        ? `\n\n[Champs extraits automatiquement]\n${Object.entries(extractedFields).filter(([,v]) => v).map(([k,v]) => `- ${k}: ${v}`).join("\n")}\n`
+        ? `\n\n[Champs détectés automatiquement par parsing]\n${Object.entries(extractedFields).filter(([,v]) => v).map(([k,v]) => `- ${k}: ${v}`).join("\n")}\n`
         : "";
-      await streamChat({
-        functionName: "generate-mandat",
-        messages: [{ role: "user", content: mandatInfo + fieldsBlock }],
-        businessContext,
-        onDelta: (chunk) => setMandatContent(prev => prev + chunk),
-        onDone: () => { setLoadingMandat(false); toast.success(lang === "fr" ? "Mandat généré" : "Mandate generated"); },
-        onError: (err) => { setLoadingMandat(false); toast.error(err); },
+      // On envoie 'informations' DIRECTEMENT (le edge function le lit du body)
+      // streamChat envoie messages + businessContext, mais l'edge mandat lit body.informations
+      // → on construit donc un appel direct fetch ici pour passer 'informations' explicitement
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-mandat`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          type: mandatType,
+          informations: mandatInfo + fieldsBlock,
+          businessContext,
+        }),
       });
-    } catch {
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Erreur réseau" }));
+        let msg = err.error || `Erreur ${resp.status}`;
+        if (resp.status === 402) msg = "💳 Crédits IA bêta épuisés. Contactez l'équipe Estate AI.";
+        else if (resp.status === 429) msg = "⏱️ Trop de requêtes — patientez quelques secondes.";
+        throw new Error(msg);
+      }
+      if (!resp.body) throw new Error("Pas de réponse du serveur");
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, nl);
+          textBuffer = textBuffer.slice(nl + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) setMandatContent(prev => prev + content);
+          } catch { textBuffer = line + "\n" + textBuffer; break; }
+        }
+      }
       setLoadingMandat(false);
-      toast.error(lang === "fr" ? "Erreur de génération" : "Generation error");
+      toast.success(lang === "fr" ? "Mandat généré" : "Mandate generated");
+    } catch (e: any) {
+      setLoadingMandat(false);
+      toast.error(e.message || (lang === "fr" ? "Erreur de génération" : "Generation error"));
     }
   };
 
@@ -166,7 +259,7 @@ const Studio = () => {
     const fullText = `${annonce?.titre_accrocheur || ""}\n\n${content}\n\n${annonceForm.adresse}${annonceForm.prix ? "\n" + Number(annonceForm.prix).toLocaleString("fr-FR") + " €" : ""}`;
     navigator.clipboard.writeText(fullText).then(() => {
       toast.success(lang === "fr" ? "Texte copié — Canva s'ouvre, collez avec Cmd/Ctrl+V" : "Text copied — Canva is opening, paste with Cmd/Ctrl+V");
-      window.open("https://www.canva.com/create/real-estate-flyers/", "_blank", "noopener,noreferrer");
+      window.open("https://www.canva.com/", "_blank", "noopener,noreferrer");
     });
   };
 
@@ -244,17 +337,22 @@ const Studio = () => {
       toast.error(lang === "fr" ? "Format accepté : .txt, .docx, .pdf" : "Accepted: .txt, .docx, .pdf");
       return;
     }
-    let content = "";
+    const loadingToast = toast.loading(lang === "fr" ? `Lecture de « ${file.name} »...` : `Reading "${file.name}"...`);
     try {
-      // Pour .txt/.docx on tente d'extraire le texte brut. PDF : non extrait côté navigateur, on stocke le nom seul.
-      if (ext === "txt") content = await file.text();
-      else if (ext === "docx" || ext === "doc") {
-        // Extraction basique : on lit comme texte (les balises seront filtrées par l'IA)
-        content = (await file.text()).replace(/[^\x20-\x7E\nàâäéèêëïîôöùûüÿçÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ\-_.,;:'"!?()€%/]/g, " ").slice(0, 8000);
+      const content = await readTemplateFile(file);
+      toast.dismiss(loadingToast);
+      if (!content || content.length < 50) {
+        toast.warning(lang === "fr" ? "Template ajouté mais peu de texte extrait — vérifiez le résultat" : "Template added but little text extracted");
+      } else {
+        toast.success(lang === "fr" ? `Template « ${file.name} » lu (${content.length} caractères)` : `Template read (${content.length} chars)`);
       }
-    } catch { /* ignore */ }
-    setCustomTemplates(prev => [...prev, { name: file.name, content }]);
-    toast.success(lang === "fr" ? `Template « ${file.name} » ajouté` : `Template "${file.name}" added`);
+      setCustomTemplates(prev => [...prev, { name: file.name, content: content.slice(0, 15000) }]);
+      // Auto-select the just-uploaded template
+      setMandatType(file.name);
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(err?.message || (lang === "fr" ? "Erreur de lecture du fichier" : "File read error"));
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -333,17 +431,34 @@ const Studio = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat (dictée vocale ou saisie)" : "Mandate details (voice or text)"}</p>
-                    <VoiceButton
-                      onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
-                      onInterim={(text) => setVoiceInterim(text)}
-                    />
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-[10px] gap-1 text-primary hover:text-primary"
+                        onClick={() => setMandatInfo(MANDAT_INFO_EXEMPLE)}
+                        title={lang === "fr" ? "Insérer un exemple complet à modifier" : "Insert a complete example"}
+                      >
+                        <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un exemple" : "Load example"}
+                      </Button>
+                      <VoiceButton
+                        onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
+                        onInterim={(text) => setVoiceInterim(text)}
+                      />
+                    </div>
                   </div>
                   <Textarea
                     value={mandatInfo + (voiceInterim ? " " + voiceInterim : "")}
                     onChange={e => { setMandatInfo(e.target.value); setVoiceInterim(""); }}
-                    className="bg-muted/10 border-border/30 min-h-[140px]"
-                    placeholder={"Dictez ou écrivez les informations :\n\nVendeur : Jean Dupont\nAdresse du bien : 12 rue de la Paix, 75002 Paris\nType : Appartement T3\nSurface : 65 m²\nPrix : 450 000 €"}
+                    className="bg-muted/10 border-border/30 min-h-[200px] font-mono text-[11px] leading-relaxed"
+                    placeholder={MANDAT_INFO_EXEMPLE}
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1.5 italic">
+                    {lang === "fr"
+                      ? "💡 Plus vos informations sont complètes, plus le mandat généré est prêt à signer. Cliquez sur « Charger un exemple » pour voir tous les champs utiles."
+                      : "💡 The more details you provide, the more ready-to-sign your mandate will be."}
+                  </p>
                   {hasExtracted && (
                     <div className="mt-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
                       <p className="text-[10px] text-primary font-medium uppercase tracking-wider mb-1.5 flex items-center gap-1">
@@ -359,6 +474,7 @@ const Studio = () => {
                     </div>
                   )}
                 </div>
+
 
                 <Button className="w-full" onClick={genererMandat} disabled={loadingMandat}>
                   {loadingMandat ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {t("docs.generating")}</> : <><Sparkles className="h-4 w-4 mr-2" /> {t("docs.generate")} le mandat</>}
