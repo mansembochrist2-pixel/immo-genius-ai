@@ -74,6 +74,24 @@ const Inbox = () => {
   const [tab, setTab] = useState("tous");
   const [replyText, setReplyText] = useState("");
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [resyncing, setResyncing] = useState(false);
+
+  const handleResync = useCallback(async () => {
+    setResyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-emails", {
+        body: { provider: "gmail" },
+      });
+      if (error) throw error;
+      const count = (data as any)?.inserted ?? 0;
+      toast.success(count > 0 ? `${count} nouvel${count > 1 ? "s" : ""} email${count > 1 ? "s" : ""} synchronisé${count > 1 ? "s" : ""}` : "Boîte à jour");
+      queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
+    } catch (e: any) {
+      toast.error("Synchronisation Gmail impossible. Reconnectez-vous avec Google.");
+    } finally {
+      setResyncing(false);
+    }
+  }, [queryClient]);
 
   const { data: messages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ["inbox-messages"],
@@ -209,6 +227,16 @@ const Inbox = () => {
             <p className="page-subtitle">{t("inbox.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleResync}
+              disabled={resyncing}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${resyncing ? "animate-spin" : ""}`} />
+              {resyncing ? "Synchro…" : "Resynchroniser"}
+            </Button>
             {urgentCount > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>
