@@ -24,6 +24,7 @@ import Settings from "./pages/Settings";
 import MentionsLegales from "./pages/MentionsLegales";
 import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
 import CGU from "./pages/CGU";
+import FAQ from "./pages/FAQ";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,8 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/estimation" element={<EstimationIA />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/aide" element={<FAQ />} />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
               <Route path="/cgu" element={<CGU />} />

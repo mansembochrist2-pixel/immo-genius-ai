@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Mail, Bot, Radar, Users, LogOut, Settings, FileText, Shield, ScrollText, CalendarDays, FileEdit, TrendingUp
+  LayoutDashboard, Mail, Bot, Radar, Users, LogOut, Settings, FileText, Shield, ScrollText, CalendarDays, FileEdit, TrendingUp, HelpCircle
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -85,6 +85,10 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-border p-3 space-y-1">
+        <NavLink to="/faq" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-all duration-200 text-sm" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+          <HelpCircle className="h-4 w-4" />
+          <span>{lang === "fr" ? "Aide & FAQ" : "Help & FAQ"}</span>
+        </NavLink>
         <NavLink to="/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-all duration-200 text-sm" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
           <Settings className="h-4 w-4" />
           <span>{t("nav.settings")}</span>
