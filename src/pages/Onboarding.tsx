@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import {
   LayoutDashboard, Mail, Calendar, Users, FileText, TrendingUp, Radar, MessageSquare,
-  ArrowRight, ArrowLeft, Sparkles, CheckCircle2, Lock, ShieldCheck, Zap,
+  ArrowRight, ArrowLeft, Sparkles, CheckCircle2, ShieldCheck, Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,42 +38,20 @@ const Onboarding = () => {
   const [objectif, setObjectif] = useState("");
   const [saving, setSaving] = useState(false);
   const [showTransition, setShowTransition] = useState(false);
-  const [connectingProvider, setConnectingProvider] = useState<"gmail" | "outlook" | null>(null);
+  const [gmailReady, setGmailReady] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const connectMail = async (provider: "gmail" | "outlook") => {
-    setConnectingProvider(provider);
-    try {
-      const { data, error } = await supabase.functions.invoke("oauth-init", {
-        body: { provider, redirect_origin: window.location.origin },
-      });
-      if (error) throw error;
-      if (data?.missing_secret) {
-        toast.error(`Configuration manquante (${data.missing_secret}). Vous pourrez connecter votre boîte mail plus tard depuis les Réglages.`);
-        return;
-      }
-      if (data?.url) {
-        const popup = window.open(data.url, "oauth", "width=520,height=640");
-        const timer = setInterval(() => {
-          if (!popup || popup.closed) {
-            clearInterval(timer);
-            toast.success("Boîte mail connectée — l'IA va commencer l'analyse");
-            setStep(5);
-          }
-        }, 500);
-      }
-    } catch (e) {
-      handleApiError(e, "Connexion mail");
-    } finally {
-      setConnectingProvider(null);
-    }
-  };
-
-  const skipMailConnection = () => {
-    toast.info("Vous pourrez connecter votre boîte mail plus tard depuis les Réglages.");
-    setStep(5);
-  };
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_integrations")
+      .select("id")
+      .eq("provider", "gmail")
+      .eq("status", "connected")
+      .maybeSingle()
+      .then(({ data }) => setGmailReady(!!data));
+  }, [user]);
 
   const saveAndFinish = async () => {
     const validationError = validateOrError(onboardingSchema, { zone, objectif });
