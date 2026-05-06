@@ -7,39 +7,40 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const userId = claimsData.claims.sub;
-
-    const { provider, redirect_origin } = await req.json();
+    const { provider, redirect_origin, mode } = await req.json();
     if (!["gmail", "outlook"].includes(provider)) {
       return new Response(JSON.stringify({ error: "Invalid provider" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const isAuthMode = mode === "auth";
+    let userId: string | null = null;
+    if (!isAuthMode) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(authHeader.replace("Bearer ", ""));
+      if (claimsErr || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      userId = claimsData.claims.sub;
+    }
+
     const projectId = Deno.env.get("SUPABASE_URL")!.split("//")[1].split(".")[0];
     const callback = `https://${projectId}.supabase.co/functions/v1/oauth-callback`;
-    const state = btoa(JSON.stringify({ userId, provider, redirect_origin }));
+    const state = btoa(JSON.stringify({ userId, provider, redirect_origin, mode: mode === "auth" ? "auth" : "connect" }));
 
     let authUrl: string;
 
     if (provider === "gmail") {
-      const clientId = Deno.env.get("GMAIL_OAUTH_CLIENT_ID");
+      const clientId = Deno.env.get("GOOGLE_CLIENT_ID") || Deno.env.get("GMAIL_OAUTH_CLIENT_ID");
       if (!clientId) {
-        return new Response(JSON.stringify({ error: "GMAIL_OAUTH_CLIENT_ID not configured. Add it in project secrets.", missing_secret: "GMAIL_OAUTH_CLIENT_ID" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "GOOGLE_CLIENT_ID not configured", missing_secret: "GOOGLE_CLIENT_ID" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const scopes = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/userinfo.email"].join(" ");
+      const scopes = ["openid", "email", "profile", "https://www.googleapis.com/auth/gmail.readonly"].join(" ");
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: callback,
