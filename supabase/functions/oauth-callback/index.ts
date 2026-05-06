@@ -10,6 +10,7 @@ Deno.serve(async (req) => {
   const stateRaw = url.searchParams.get("state");
   const error = url.searchParams.get("error");
 
+  const redirectHtml = (target: string, ok: boolean, msg: string) => `<!doctype html><html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>${ok ? "✅" : "❌"} ${msg}</h2><p>Redirection en cours…</p><script>window.location.replace(${JSON.stringify(target)})</script></body></html>`;
   const closeHtml = (msg: string, ok: boolean) => `<!doctype html><html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>${ok ? "✅" : "❌"} ${msg}</h2><p>Vous pouvez fermer cette fenêtre.</p><script>setTimeout(()=>window.close(),2000)</script></body></html>`;
 
   if (error) {
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
 
   try {
     const state = JSON.parse(atob(stateRaw));
-    const { userId, provider } = state;
+    const { userId, provider, redirect_origin, mode } = state;
     const projectId = Deno.env.get("SUPABASE_URL")!.split("//")[1].split(".")[0];
     const callback = `https://${projectId}.supabase.co/functions/v1/oauth-callback`;
 
@@ -35,8 +36,8 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           code,
-          client_id: Deno.env.get("GMAIL_OAUTH_CLIENT_ID")!,
-          client_secret: Deno.env.get("GMAIL_OAUTH_CLIENT_SECRET")!,
+          client_id: (Deno.env.get("GOOGLE_CLIENT_ID") || Deno.env.get("GMAIL_OAUTH_CLIENT_ID"))!,
+          client_secret: (Deno.env.get("GOOGLE_CLIENT_SECRET") || Deno.env.get("GMAIL_OAUTH_CLIENT_SECRET"))!,
           redirect_uri: callback,
           grant_type: "authorization_code",
         }),
@@ -84,6 +85,16 @@ Deno.serve(async (req) => {
       status: "connected",
       last_error: null,
     }, { onConflict: "user_id,provider" });
+
+    if (redirect_origin && provider === "gmail") {
+      const tokenParams = new URLSearchParams({ access_token: tokens.access_token, token_type: "bearer" });
+      if (tokens.refresh_token) tokenParams.set("refresh_token", tokens.refresh_token);
+      if (tokens.expires_in) tokenParams.set("expires_in", String(tokens.expires_in));
+      tokenParams.set("provider_token", tokens.access_token);
+      tokenParams.set("gmail_connected", "true");
+      tokenParams.set("mode", mode === "auth" ? "auth" : "connect");
+      return new Response(redirectHtml(`${redirect_origin}#${tokenParams.toString()}`, true, `Gmail connecté : ${email || "compte autorisé"}`), { headers: { "Content-Type": "text/html" } });
+    }
 
     return new Response(closeHtml(`${provider === "gmail" ? "Gmail" : "Outlook"} connecté : ${email}`, true), { headers: { "Content-Type": "text/html" } });
   } catch (e) {
