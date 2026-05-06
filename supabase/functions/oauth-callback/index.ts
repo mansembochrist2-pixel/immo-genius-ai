@@ -73,21 +73,24 @@ Deno.serve(async (req) => {
 
     const expiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null;
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    await admin.from("user_integrations").upsert({
-      user_id: userId,
-      provider,
-      email,
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || null,
-      expires_at: expiresAt,
-      scope: tokens.scope || null,
-      status: "connected",
-      last_error: null,
-    }, { onConflict: "user_id,provider" });
+    if (userId) {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await admin.from("user_integrations").upsert({
+        user_id: userId,
+        provider,
+        email,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || null,
+        expires_at: expiresAt,
+        scope: tokens.scope || null,
+        status: "connected",
+        last_error: null,
+      }, { onConflict: "user_id,provider" });
+    }
 
     if (redirect_origin && provider === "gmail") {
       const tokenParams = new URLSearchParams({ access_token: tokens.access_token, token_type: "bearer" });
+      if (tokens.id_token) tokenParams.set("id_token", tokens.id_token);
       if (tokens.refresh_token) tokenParams.set("refresh_token", tokens.refresh_token);
       if (tokens.expires_in) tokenParams.set("expires_in", String(tokens.expires_in));
       tokenParams.set("provider_token", tokens.access_token);
