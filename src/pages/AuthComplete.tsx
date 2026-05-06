@@ -13,35 +13,58 @@ const AuthComplete = () => {
   useEffect(() => {
     if (loading) return;
 
-    if (!session || !user) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
     let cancelled = false;
 
     const finalize = async () => {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const idToken = hash.get("id_token");
+      const providerToken = hash.get("provider_token") || hash.get("access_token");
+      const providerRefreshToken = hash.get("refresh_token");
+      const expiresIn = Number(hash.get("expires_in") || 3600);
+
+      let activeSession = session;
+      let activeUser = user;
+
+      if (!activeSession && idToken && providerToken) {
+        setStatus("Création de votre session agent...");
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: idToken,
+          access_token: providerToken,
+        });
+        if (error) throw error;
+        activeSession = data.session;
+        activeUser = data.user;
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+
+      if (!activeSession || !activeUser) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
       setStatus("Connexion sécurisée à Gmail...");
       const { data: fresh } = await supabase.auth.getSession();
-      const activeSession = fresh.session ?? session;
+      activeSession = fresh.session ?? activeSession;
 
-      const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "Agent immobilier";
+      const fullName = activeUser.user_metadata?.full_name || activeUser.user_metadata?.name || activeUser.email?.split("@")[0] || "Agent immobilier";
       await supabase.from("profiles").upsert({
-        id: user.id,
-        email: user.email ?? null,
+        id: activeUser.id,
+        email: activeUser.email ?? null,
         full_name: fullName,
       }, { onConflict: "id" });
 
-      if (!activeSession.provider_token) {
+      const gmailAccessToken = providerToken || activeSession.provider_token;
+      if (!gmailAccessToken) {
         throw new Error("Token Google Gmail manquant");
       }
 
       setStatus("Lecture des 50 derniers emails...");
       const connect = await supabase.functions.invoke("gmail-connect-from-session", {
         body: {
-          provider_token: activeSession.provider_token,
-          provider_refresh_token: activeSession.provider_refresh_token,
-          expires_in: 3600,
+          provider_token: gmailAccessToken,
+          provider_refresh_token: providerRefreshToken || activeSession.provider_refresh_token,
+          expires_in: expiresIn,
         },
       });
       if (connect.error) throw connect.error;
@@ -53,7 +76,7 @@ const AuthComplete = () => {
       const { data: imported } = await supabase
         .from("inbox_messages")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", activeUser.id)
         .eq("canal", "email")
         .limit(1);
 
@@ -64,7 +87,7 @@ const AuthComplete = () => {
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_completed")
-        .eq("id", user.id)
+        .eq("id", activeUser.id)
         .maybeSingle();
 
       if (!cancelled) {
