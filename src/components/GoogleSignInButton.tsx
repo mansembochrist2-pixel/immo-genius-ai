@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { startGmailOAuth } from "@/lib/gmailOAuth";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -15,24 +15,9 @@ export const GoogleSignInButton = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/complete`,
-          scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
-
-      if (error) {
-        toast.error("Erreur de connexion Google : " + error.message);
-        setLoading(false);
-      }
+      await startGmailOAuth("auth");
     } catch (err: any) {
-      toast.error("Erreur inattendue lors de la connexion Google");
+      toast.error(err?.message || "Erreur inattendue lors de la connexion Google");
       setLoading(false);
     }
   };
