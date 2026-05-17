@@ -50,15 +50,53 @@ const sourceFromUrl = (url: string): string => {
   return "web";
 };
 
-// Extrait la première image valide du markdown : ![](url) ou ![alt](url)
-const extractImageFromMarkdown = (md: string): string | null => {
-  if (!md) return null;
+const normalizeListingUrl = (url: string): string => {
+  try {
+    const u = new URL(url);
+    u.hash = "";
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "gclid"].forEach((p) => u.searchParams.delete(p));
+    return u.toString();
+  } catch {
+    return url;
+  }
+};
+
+const looksExpiredOrDead = (text: string): boolean =>
+  /(annonce\s+(supprimée|désactivée|expirée|introuvable)|page\s+introuvable|404|not\s+found|n.?existe\s+plus|a été retirée)/i.test(text || "");
+
+// Extrait la première image valide depuis markdown, metadata Firecrawl ou champs search.
+const extractImage = (result: Partial<FcResult>, candidate?: string | null): string | null => {
+  const direct = candidate || result.image || result.metadata?.ogImage || result.metadata?.image;
+  if (typeof direct === "string" && /^https?:\/\//i.test(direct)) return direct;
+  const md = result.markdown || "";
   const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+\.(?:jpe?g|png|webp)(?:\?[^\s)]*)?)\)/i;
   const m = md.match(re);
-  if (m && m[1]) return m[1];
-  // Fallback : og:image dans HTML brut éventuel
+  if (m?.[1]) return m[1];
   const og = md.match(/og:image["']?\s*content=["'](https?:\/\/[^"']+)["']/i);
   return og?.[1] || null;
+};
+
+const numberFromText = (text: string, pattern: RegExp): number | null => {
+  const m = text.match(pattern);
+  if (!m?.[1]) return null;
+  const value = Number(String(m[1]).replace(/[\s.,]/g, ""));
+  return Number.isFinite(value) ? value : null;
+};
+
+const basicExtract = (src: FcResult, zone: string) => {
+  const text = `${src.title || ""}\n${src.description || ""}\n${(src.markdown || "").slice(0, 1800)}`;
+  return {
+    titre: src.title || "Annonce immobilière détectée",
+    prix: numberFromText(text, /(\d[\d\s.,]{4,})\s*€/i),
+    surface: numberFromText(text, /(\d{2,4})\s*m\s*(?:²|2|ètres carrés)/i),
+    pieces: numberFromText(text, /(\d{1,2})\s*(?:pièces|pieces|p\b)/i),
+    ville: zone,
+    code_postal: (text.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/) || [])[0] || null,
+    type_bien: /maison/i.test(text) ? "maison" : /terrain/i.test(text) ? "terrain" : "appartement",
+    agence: /particulier/i.test(text) ? "Particulier" : null,
+    description: src.description || null,
+    photo: extractImage(src),
+  };
 };
 
 Deno.serve(async (req) => {
