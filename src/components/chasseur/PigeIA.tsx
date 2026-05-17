@@ -25,6 +25,16 @@ const opportunityLabel = (score: number) => {
   return { label: "À surveiller", color: "text-muted-foreground" };
 };
 
+const mergeFreshAnnonces = (current: any[] = [], fresh: any[] = []) => {
+  const seen = new Set<string>();
+  return [...fresh, ...current].filter((a) => {
+    const key = a?.id || a?.url;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 export const PigeIA = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -81,23 +91,33 @@ export const PigeIA = () => {
       }
       const res = (data || {}) as any;
       const status: string = res.status || (res.error ? "scraping_error" : "success");
+      const returnedAnnonces = Array.isArray(res.annonces) ? res.annonces : [];
+      if (returnedAnnonces.length > 0) {
+        qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
+      }
 
       switch (status) {
         case "success": {
-          const count = res.count || 0;
+          const count = returnedAnnonces.length || res.count || 0;
           const rejected = res.rejected_count || 0;
           toast.success(
             `${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} filtrée${rejected > 1 ? "s" : ""} (données incomplètes)` : ""}`
           );
-          qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          if (returnedAnnonces.length > 0) {
+            qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
+          }
           break;
         }
         case "no_results":
           toast.info(res.message || `Aucune annonce trouvée pour "${zone}".`);
           break;
         case "all_existing":
-          toast.info(res.message || "Ces annonces sont déjà dans votre pige.");
-          qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          toast.info(res.message || "Ces annonces sont déjà dans votre pige — liste mise à jour.");
+          await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          if (returnedAnnonces.length > 0) {
+            qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
+          }
           break;
         case "scraping_error":
         default:

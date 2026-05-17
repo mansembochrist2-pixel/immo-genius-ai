@@ -50,15 +50,62 @@ const sourceFromUrl = (url: string): string => {
   return "web";
 };
 
-// Extrait la première image valide du markdown : ![](url) ou ![alt](url)
-const extractImageFromMarkdown = (md: string): string | null => {
-  if (!md) return null;
+type FcResult = {
+  url: string;
+  title?: string;
+  description?: string;
+  markdown?: string;
+  image?: string;
+  metadata?: { ogImage?: string; image?: string; sourceURL?: string; statusCode?: number };
+};
+
+const normalizeListingUrl = (url: string): string => {
+  try {
+    const u = new URL(url);
+    u.hash = "";
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "gclid"].forEach((p) => u.searchParams.delete(p));
+    return u.toString();
+  } catch {
+    return url;
+  }
+};
+
+const looksExpiredOrDead = (text: string): boolean =>
+  /(annonce\s+(supprimée|désactivée|expirée|introuvable)|page\s+introuvable|404|not\s+found|n.?existe\s+plus|a été retirée)/i.test(text || "");
+
+// Extrait la première image valide depuis markdown, metadata Firecrawl ou champs search.
+const extractImage = (result: Partial<FcResult>, candidate?: string | null): string | null => {
+  const direct = candidate || result.image || result.metadata?.ogImage || result.metadata?.image;
+  if (typeof direct === "string" && /^https?:\/\//i.test(direct)) return direct;
+  const md = result.markdown || "";
   const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+\.(?:jpe?g|png|webp)(?:\?[^\s)]*)?)\)/i;
   const m = md.match(re);
-  if (m && m[1]) return m[1];
-  // Fallback : og:image dans HTML brut éventuel
+  if (m?.[1]) return m[1];
   const og = md.match(/og:image["']?\s*content=["'](https?:\/\/[^"']+)["']/i);
   return og?.[1] || null;
+};
+
+const numberFromText = (text: string, pattern: RegExp): number | null => {
+  const m = text.match(pattern);
+  if (!m?.[1]) return null;
+  const value = Number(String(m[1]).replace(/[\s.,]/g, ""));
+  return Number.isFinite(value) ? value : null;
+};
+
+const basicExtract = (src: FcResult, zone: string) => {
+  const text = `${src.title || ""}\n${src.description || ""}\n${(src.markdown || "").slice(0, 1800)}`;
+  return {
+    titre: src.title || "Annonce immobilière détectée",
+    prix: numberFromText(text, /(\d[\d\s.,]{4,})\s*€/i),
+    surface: numberFromText(text, /(\d{2,4})\s*m\s*(?:²|2|ètres carrés)/i),
+    pieces: numberFromText(text, /(\d{1,2})\s*(?:pièces|pieces|p\b)/i),
+    ville: zone,
+    code_postal: (text.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/) || [])[0] || null,
+    type_bien: /maison/i.test(text) ? "maison" : /terrain/i.test(text) ? "terrain" : "appartement",
+    agence: /particulier/i.test(text) ? "Particulier" : null,
+    description: src.description || null,
+    photo: extractImage(src),
+  };
 };
 
 Deno.serve(async (req) => {
@@ -97,53 +144,61 @@ Deno.serve(async (req) => {
 
     // ============ 1) FIRECRAWL SEARCH multi-requêtes ciblées ============
     const queries = [
-      `appartement à vendre ${zoneClean} site:leboncoin.fr`,
+      `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
+      `vente appartement maison ${zoneClean} particulier site:leboncoin.fr`,
       `maison appartement à vendre ${zoneClean} site:seloger.com`,
-      `bien immobilier ${zoneClean} site:bienici.com OR site:pap.fr`,
+      `bien immobilier à vendre ${zoneClean} site:bienici.com`,
+      `vente appartement maison ${zoneClean} site:pap.fr`,
     ];
 
-    type FcResult = { url: string; title?: string; description?: string; markdown?: string };
     const allResults: FcResult[] = [];
     let firecrawlOkCount = 0;
     let firecrawlErrCount = 0;
     let lastFirecrawlError: string | null = null;
 
-    for (const query of queries) {
+    const firecrawlResponses = await Promise.all(queries.map(async (query) => {
       try {
         const fcRes = await fetch("https://api.firecrawl.dev/v2/search", {
           method: "POST",
           headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             query,
-            limit: 8,
+            limit: 10,
             lang: "fr",
             country: "fr",
-            tbs: "qdr:m",
+            tbs: "qdr:w",
             scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
           }),
         });
 
         if (!fcRes.ok) {
           const txt = await fcRes.text();
-          firecrawlErrCount++;
-          lastFirecrawlError = `${fcRes.status}: ${txt.slice(0, 200)}`;
           console.error(`[Firecrawl] query="${query}" status=${fcRes.status} body=${txt.slice(0, 300)}`);
-          if (fcRes.status === 402) return j({ status: "scraping_error", error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
-          if (fcRes.status === 401 || fcRes.status === 403) return j({ status: "scraping_error", error: "Clé Firecrawl invalide ou expirée." }, 502);
-          continue;
+          return { ok: false, query, status: fcRes.status, error: `${fcRes.status}: ${txt.slice(0, 200)}`, list: [] as any[] };
         }
 
         const fcData = await fcRes.json();
         const list: any[] = fcData?.data?.web || fcData?.data || fcData?.web || [];
-        firecrawlOkCount++;
         console.log(`[Firecrawl] query="${query}" results=${list.length}`);
-        for (const r of list) {
-          if (r?.url) allResults.push({ url: r.url, title: r.title, description: r.description, markdown: r.markdown });
-        }
+        return { ok: true, query, status: 200, error: null, list };
       } catch (e) {
-        firecrawlErrCount++;
-        lastFirecrawlError = String((e as Error)?.message || e);
         console.error(`[Firecrawl] query="${query}" exception=`, e);
+        return { ok: false, query, status: 0, error: String((e as Error)?.message || e), list: [] as any[] };
+      }
+    }));
+
+    for (const result of firecrawlResponses) {
+      if (!result.ok) {
+        firecrawlErrCount++;
+        lastFirecrawlError = result.error;
+        if (result.status === 402) return j({ status: "scraping_error", error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
+        if (result.status === 401 || result.status === 403) return j({ status: "scraping_error", error: "Clé Firecrawl invalide ou expirée." }, 502);
+        continue;
+      }
+      firecrawlOkCount++;
+      for (const r of result.list) {
+        const url = normalizeListingUrl(r?.url || r?.metadata?.sourceURL || "");
+        if (url) allResults.push({ url, title: r.title, description: r.description, markdown: r.markdown, image: r.image, metadata: r.metadata });
       }
     }
 
@@ -161,6 +216,8 @@ Deno.serve(async (req) => {
     const validUrlResults = allResults.filter(r => {
       if (!r.url || seen.has(r.url)) return false;
       if (!isRealListingUrl(r.url)) return false;
+      if (r.metadata?.statusCode && r.metadata.statusCode >= 400) return false;
+      if (looksExpiredOrDead(`${r.title || ""}\n${r.description || ""}\n${r.markdown || ""}`)) return false;
       seen.add(r.url);
       return true;
     });
@@ -192,15 +249,23 @@ Deno.serve(async (req) => {
       .eq("user_id", user_id)
       .in("url", urlsCandidates);
     const existingUrls = new Set((existingRows || []).map((r: any) => r.url));
-    const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 10);
+    const alreadyExisting = validUrlResults.filter(r => existingUrls.has(r.url));
+    const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 18);
 
     if (fresh.length === 0) {
+      const { data: existingAnnonces } = await supabase
+        .from("annonces_pige")
+        .select("*")
+        .eq("user_id", user_id)
+        .in("url", alreadyExisting.map(r => r.url))
+        .order("updated_at", { ascending: false })
+        .limit(24);
       return j({
         status: "all_existing",
-        count: 0,
-        annonces: [],
+        count: existingAnnonces?.length || 0,
+        annonces: existingAnnonces || [],
         existing_in_zone: existingZoneCount || 0,
-        message: `Les ${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} détectée${validUrlResults.length > 1 ? "s" : ""} sont déjà dans votre pige.`,
+        message: `${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} déjà détectée${validUrlResults.length > 1 ? "s" : ""} — affichage de la pige existante mis à jour.`,
       });
     }
 
@@ -254,26 +319,33 @@ ${corpus}`;
       parsed = { annonces: [] };
     }
     const extracted: any[] = Array.isArray(parsed.annonces) ? parsed.annonces : [];
+    const extractedByIndex = new Map<number, any>();
+    extracted.forEach((item) => {
+      const idx = Number(item?.index);
+      if (Number.isFinite(idx) && idx > 0) extractedByIndex.set(idx, item);
+    });
 
     // ============ 5) Validation finale + Score + Insert ============
     const inserted: any[] = [];
     const rejected: string[] = [];
 
-    for (const a of extracted) {
-      const src = fresh[(a.index || 1) - 1];
-      if (!src) continue;
+    for (let i = 0; i < fresh.length; i++) {
+      const src = fresh[i];
+      const fallback = basicExtract(src, zoneClean);
+      const ai = extractedByIndex.get(i + 1) || {};
+      const a = { ...fallback, ...ai };
 
       const prix = a.prix ? Number(a.prix) : null;
       const surface = a.surface ? Number(a.surface) : null;
       const titre = a.titre || src.title || "";
 
-      // Photo : IA → fallback markdown
-      const photo: string | null = a.photo || extractImageFromMarkdown(src.markdown || "");
+      // Photo : IA → Firecrawl metadata → markdown
+      const photo: string | null = extractImage(src, a.photo);
 
-      // QUALITÉ : on rejette les annonces incomplètes pour garder un produit crédible
+      // QUALITÉ : on rejette les annonces sans prix/titre ou manifestement mortes.
       if (!titre || titre.length < 8) { rejected.push(`${src.url} — titre manquant`); continue; }
       if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
-      if (!photo) { rejected.push(`${src.url} — pas d'image fiable`); continue; }
+      if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — annonce expirée`); continue; }
 
       const isParticulier = String(a.agence || "").toLowerCase().includes("particulier");
 
@@ -301,7 +373,7 @@ ${corpus}`;
         type_bien: a.type_bien || null,
         agence: a.agence || null,
         date_publication: new Date().toISOString(),
-        photos: [photo],
+        photos: photo ? [photo] : [],
         score_pigeabilite: score,
         analyse_ia: { failles, zone_recherche: zoneClean, generated: false },
         tags: isParticulier ? ["particulier"] : [],
