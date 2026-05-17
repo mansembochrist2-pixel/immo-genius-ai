@@ -144,12 +144,13 @@ Deno.serve(async (req) => {
 
     // ============ 1) FIRECRAWL SEARCH multi-requêtes ciblées ============
     const queries = [
-      `appartement à vendre ${zoneClean} site:leboncoin.fr`,
+      `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
+      `vente appartement maison ${zoneClean} particulier site:leboncoin.fr`,
       `maison appartement à vendre ${zoneClean} site:seloger.com`,
-      `bien immobilier ${zoneClean} site:bienici.com OR site:pap.fr`,
+      `bien immobilier à vendre ${zoneClean} site:bienici.com`,
+      `vente appartement maison ${zoneClean} site:pap.fr`,
     ];
 
-    type FcResult = { url: string; title?: string; description?: string; markdown?: string };
     const allResults: FcResult[] = [];
     let firecrawlOkCount = 0;
     let firecrawlErrCount = 0;
@@ -162,10 +163,10 @@ Deno.serve(async (req) => {
           headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             query,
-            limit: 8,
+            limit: 12,
             lang: "fr",
             country: "fr",
-            tbs: "qdr:m",
+            tbs: "qdr:w",
             scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
           }),
         });
@@ -185,7 +186,8 @@ Deno.serve(async (req) => {
         firecrawlOkCount++;
         console.log(`[Firecrawl] query="${query}" results=${list.length}`);
         for (const r of list) {
-          if (r?.url) allResults.push({ url: r.url, title: r.title, description: r.description, markdown: r.markdown });
+          const url = normalizeListingUrl(r?.url || r?.metadata?.sourceURL || "");
+          if (url) allResults.push({ url, title: r.title, description: r.description, markdown: r.markdown, image: r.image, metadata: r.metadata });
         }
       } catch (e) {
         firecrawlErrCount++;
