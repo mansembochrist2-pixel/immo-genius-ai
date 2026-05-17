@@ -156,14 +156,14 @@ Deno.serve(async (req) => {
     let firecrawlErrCount = 0;
     let lastFirecrawlError: string | null = null;
 
-    for (const query of queries) {
+    const firecrawlResponses = await Promise.all(queries.map(async (query) => {
       try {
         const fcRes = await fetch("https://api.firecrawl.dev/v2/search", {
           method: "POST",
           headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             query,
-            limit: 12,
+            limit: 10,
             lang: "fr",
             country: "fr",
             tbs: "qdr:w",
@@ -173,26 +173,32 @@ Deno.serve(async (req) => {
 
         if (!fcRes.ok) {
           const txt = await fcRes.text();
-          firecrawlErrCount++;
-          lastFirecrawlError = `${fcRes.status}: ${txt.slice(0, 200)}`;
           console.error(`[Firecrawl] query="${query}" status=${fcRes.status} body=${txt.slice(0, 300)}`);
-          if (fcRes.status === 402) return j({ status: "scraping_error", error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
-          if (fcRes.status === 401 || fcRes.status === 403) return j({ status: "scraping_error", error: "Clé Firecrawl invalide ou expirée." }, 502);
-          continue;
+          return { ok: false, query, status: fcRes.status, error: `${fcRes.status}: ${txt.slice(0, 200)}`, list: [] as any[] };
         }
 
         const fcData = await fcRes.json();
         const list: any[] = fcData?.data?.web || fcData?.data || fcData?.web || [];
-        firecrawlOkCount++;
         console.log(`[Firecrawl] query="${query}" results=${list.length}`);
-        for (const r of list) {
-          const url = normalizeListingUrl(r?.url || r?.metadata?.sourceURL || "");
-          if (url) allResults.push({ url, title: r.title, description: r.description, markdown: r.markdown, image: r.image, metadata: r.metadata });
-        }
+        return { ok: true, query, status: 200, error: null, list };
       } catch (e) {
-        firecrawlErrCount++;
-        lastFirecrawlError = String((e as Error)?.message || e);
         console.error(`[Firecrawl] query="${query}" exception=`, e);
+        return { ok: false, query, status: 0, error: String((e as Error)?.message || e), list: [] as any[] };
+      }
+    }));
+
+    for (const result of firecrawlResponses) {
+      if (!result.ok) {
+        firecrawlErrCount++;
+        lastFirecrawlError = result.error;
+        if (result.status === 402) return j({ status: "scraping_error", error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
+        if (result.status === 401 || result.status === 403) return j({ status: "scraping_error", error: "Clé Firecrawl invalide ou expirée." }, 502);
+        continue;
+      }
+      firecrawlOkCount++;
+      for (const r of result.list) {
+        const url = normalizeListingUrl(r?.url || r?.metadata?.sourceURL || "");
+        if (url) allResults.push({ url, title: r.title, description: r.description, markdown: r.markdown, image: r.image, metadata: r.metadata });
       }
     }
 
