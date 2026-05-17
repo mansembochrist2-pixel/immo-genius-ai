@@ -78,8 +78,13 @@ export const PigeIA = () => {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       const count = (data as any)?.count || 0;
-      if (count === 0) toast.info("Aucune opportunité trouvée sur cette zone. Essayez une zone plus large.");
-      else toast.success(`${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""} sur ${zone}`);
+      const scanned = (data as any)?.scanned || 0;
+      const rejected = (data as any)?.rejected_count || 0;
+      if (count === 0) {
+        toast.info((data as any)?.message || "Aucune opportunité fiable détectée sur cette zone.");
+      } else {
+        toast.success(`${count} opportunité${count > 1 ? "s" : ""} fiable${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} annonce${rejected > 1 ? "s" : ""} incomplète${rejected > 1 ? "s" : ""} filtrée${rejected > 1 ? "s" : ""}` : ""}`);
+      }
       qc.invalidateQueries({ queryKey: ["annonces-pige"] });
     } catch (e) {
       handleApiError(e, "Recherche d'opportunités");
