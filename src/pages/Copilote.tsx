@@ -187,10 +187,6 @@ const Copilote = () => {
         lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
         ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
-      if (agentMode && ctxExtras?.inbox?.length) {
-        lines.push(`\n📨 INBOX (IDs pour outils) :`);
-        ctxExtras.inbox.forEach((m: any) => lines.push(`  • id=${m.id} | ${m.canal} | ${m.lu ? "lu" : "non-lu"} | urgence=${m.urgence ?? 0} | "${(m.sujet || "").slice(0, 60)}"`));
-      }
       if (agentMode && ctxExtras?.prospectIds?.length) {
         lines.push(`\n👤 PROSPECTS (IDs) :`);
         ctxExtras.prospectIds.forEach((p: any) => lines.push(`  • id=${p.id} | ${p.nom} (${p.statut})`));
@@ -295,9 +291,7 @@ const Copilote = () => {
               {[
                 { label: "Clients actifs", value: stats.prospects.actifs },
                 { label: lang === "fr" ? "CA ce mois / Total" : "Revenue mo / Total", value: `${stats.sales.ceMois.toLocaleString("fr-FR")} € / ${stats.sales.montantTotal.toLocaleString("fr-FR")} €` },
-                { label: lang === "fr" ? "Inbox non lus" : "Unread inbox", value: stats.inbox.unread },
                 { label: lang === "fr" ? "Opportunités" : "Opportunities", value: stats.opportunites.total },
-                { label: lang === "fr" ? "RDV aujourd'hui" : "Today's meetings", value: stats.events.aujourdhui },
               ].map(i => (
                 <div key={i.label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{i.label}</span>
