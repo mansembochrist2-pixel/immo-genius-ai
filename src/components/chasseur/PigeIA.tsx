@@ -104,6 +104,9 @@ export const PigeIA = () => {
             `${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} filtrée${rejected > 1 ? "s" : ""} (données incomplètes)` : ""}`
           );
           await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          if (returnedAnnonces.length > 0) {
+            qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
+          }
           break;
         }
         case "no_results":
@@ -112,6 +115,9 @@ export const PigeIA = () => {
         case "all_existing":
           toast.info(res.message || "Ces annonces sont déjà dans votre pige — liste mise à jour.");
           await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          if (returnedAnnonces.length > 0) {
+            qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
+          }
           break;
         case "scraping_error":
         default:
