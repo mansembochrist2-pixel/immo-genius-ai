@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import { handleApiError, isCreditsError } from "@/lib/error-handler";
 
 const SECTEURS = ["Résidentiel", "Commercial", "Luxe", "Investissement locatif", "Neuf", "Ancien"];
 
-const Radar = () => {
+export const RadarInner = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -160,19 +159,7 @@ const Radar = () => {
   const nbRisques = opportunites.filter((o: any) => o.type === "risque").length;
 
   return (
-    <AppLayout>
-      <div className="page-header">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="page-title flex items-center gap-3">
-              <RadarIcon className="h-7 w-7 text-primary" />
-              Radar <span className="gradient-text">Prospection</span>
-            </h1>
-            <p className="page-subtitle">Détectez les opportunités vendeurs • Plans d'attaque commerciaux</p>
-          </div>
-          {/* empty-state badge removed for cleaner UX */}
-        </div>
-      </div>
+    <div className="space-y-4">
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -508,8 +495,9 @@ const Radar = () => {
           })}
         </div>
       )}
-    </AppLayout>
+    </div>
   );
 };
 
+const Radar = RadarInner;
 export default Radar;
