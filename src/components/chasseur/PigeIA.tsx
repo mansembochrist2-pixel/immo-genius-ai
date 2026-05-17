@@ -55,7 +55,7 @@ export const PigeIA = () => {
     if (!zone.trim()) { toast.error("Entrez une ville, un quartier ou un code postal"); return; }
     setSearching(true);
     try {
-      const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim() } });
+      const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim(), user_id: user?.id } });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       const count = (data as any)?.count || 0;
