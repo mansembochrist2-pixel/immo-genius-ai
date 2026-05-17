@@ -179,10 +179,6 @@ const Copilote = () => {
 
     const buildBusinessContext = () => {
       const lines = [getAIContext()];
-      if (ctxExtras?.todayEvents?.length) {
-        lines.push(`\n📅 AGENDA DU JOUR :`);
-        ctxExtras.todayEvents.forEach((e: any) => lines.push(`  • ${e.titre} (${e.type}) — ${new Date(e.date_debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}${e.lieu ? " — " + e.lieu : ""}`));
-      }
       if (ctxExtras?.recentClients?.length) {
         lines.push(`\n👥 CLIENTS RÉCENTS :`);
         ctxExtras.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
