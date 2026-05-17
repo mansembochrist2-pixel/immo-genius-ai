@@ -31,41 +31,6 @@ const ensureProfileForSession = async (session: Session) => {
   if (error) console.warn("Profile auto-create failed:", error.message);
 };
 
-const startGmailSyncFromSession = async (session: Session) => {
-  if (!session.provider_token) return;
-
-  const syncKey = `estate-ai-gmail-sync-started:${session.user.id}`;
-  if (sessionStorage.getItem(syncKey) === "true") return;
-  sessionStorage.setItem(syncKey, "true");
-
-  const connect = await supabase.functions.invoke("gmail-connect-from-session", {
-    body: {
-      provider_token: session.provider_token,
-      provider_refresh_token: session.provider_refresh_token,
-      expires_in: 3600,
-    },
-  });
-  if (connect.error) throw connect.error;
-
-  const sync = await supabase.functions.invoke("sync-emails", {
-    body: { provider: "gmail" },
-  });
-  if (sync.error) throw sync.error;
-};
-
-const runPostLoginSideEffects = (session: Session) => {
-  setTimeout(() => {
-    (async () => {
-      try {
-        await ensureProfileForSession(session);
-        await startGmailSyncFromSession(session);
-      } catch (e) {
-        console.warn("Post-login setup failed:", e);
-      }
-    })();
-  }, 0);
-};
-
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
@@ -83,15 +48,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
-        runPostLoginSideEffects(session);
+        setTimeout(() => { ensureProfileForSession(session).catch(() => {}); }, 0);
       }
     });
 
-    // Mode démo : auto-connexion uniquement tant que l'utilisateur ne s'est pas explicitement déconnecté
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const authPage = ["/login", "/signup", "/forgot-password", "/auth/complete"].includes(window.location.pathname);
+      const authPage = ["/login", "/signup", "/forgot-password"].includes(window.location.pathname);
       if (!session && !authPage && localStorage.getItem(demoOptOutKey) !== "true") {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: "demo@estate-ai.app",
@@ -100,12 +63,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!error && data.session) {
           setSession(data.session);
           setUser(data.user);
-          runPostLoginSideEffects(data.session);
+          ensureProfileForSession(data.session).catch(() => {});
         }
       } else {
         setSession(session);
         setUser(session?.user ?? null);
-        if (session) runPostLoginSideEffects(session);
+        if (session) ensureProfileForSession(session).catch(() => {});
       }
       setLoading(false);
     });
