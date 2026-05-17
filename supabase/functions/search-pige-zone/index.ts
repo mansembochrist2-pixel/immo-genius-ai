@@ -313,26 +313,33 @@ ${corpus}`;
       parsed = { annonces: [] };
     }
     const extracted: any[] = Array.isArray(parsed.annonces) ? parsed.annonces : [];
+    const extractedByIndex = new Map<number, any>();
+    extracted.forEach((item) => {
+      const idx = Number(item?.index);
+      if (Number.isFinite(idx) && idx > 0) extractedByIndex.set(idx, item);
+    });
 
     // ============ 5) Validation finale + Score + Insert ============
     const inserted: any[] = [];
     const rejected: string[] = [];
 
-    for (const a of extracted) {
-      const src = fresh[(a.index || 1) - 1];
-      if (!src) continue;
+    for (let i = 0; i < fresh.length; i++) {
+      const src = fresh[i];
+      const fallback = basicExtract(src, zoneClean);
+      const ai = extractedByIndex.get(i + 1) || {};
+      const a = { ...fallback, ...ai };
 
       const prix = a.prix ? Number(a.prix) : null;
       const surface = a.surface ? Number(a.surface) : null;
       const titre = a.titre || src.title || "";
 
-      // Photo : IA → fallback markdown
-      const photo: string | null = a.photo || extractImageFromMarkdown(src.markdown || "");
+      // Photo : IA → Firecrawl metadata → markdown
+      const photo: string | null = extractImage(src, a.photo);
 
-      // QUALITÉ : on rejette les annonces incomplètes pour garder un produit crédible
+      // QUALITÉ : on rejette les annonces sans prix/titre ou manifestement mortes.
       if (!titre || titre.length < 8) { rejected.push(`${src.url} — titre manquant`); continue; }
       if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
-      if (!photo) { rejected.push(`${src.url} — pas d'image fiable`); continue; }
+      if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — annonce expirée`); continue; }
 
       const isParticulier = String(a.agence || "").toLowerCase().includes("particulier");
 
@@ -360,7 +367,7 @@ ${corpus}`;
         type_bien: a.type_bien || null,
         agence: a.agence || null,
         date_publication: new Date().toISOString(),
-        photos: [photo],
+        photos: photo ? [photo] : [],
         score_pigeabilite: score,
         analyse_ia: { failles, zone_recherche: zoneClean, generated: false },
         tags: isParticulier ? ["particulier"] : [],
