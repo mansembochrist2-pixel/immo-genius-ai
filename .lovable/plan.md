@@ -1,85 +1,127 @@
-# Plan d'amélioration globale — Estate AI
+# Restructuration Estate IA → "Copilote IA de conquête de mandats"
 
-Demande très large (10 chantiers). Je propose de la traiter en **4 vagues** ordonnées par dépendance : la synchronisation des données débloque tout le reste, donc elle passe en premier.
+## Nouvelle vision
+Estate IA n'est plus un CRM. C'est un **copilote IA Zero Friction** orienté conquête de mandats, prospection, estimation et création de contenu.
 
----
+## 1. Suppressions massives
 
-## Vague 1 — Fondations data (CRITIQUE)
+### Modules supprimés (UI + routes + composants + données)
+- **Inbox Intelligence** (page Inbox, composants, tables `inbox_messages`)
+- **Mémoire Client / Clients CRM** (page Clients, ClientDetail)
+- **Agenda IA** (page Agenda, composants agenda/, table `events`)
+- **Synchronisation Gmail** (toutes edge functions `gmail-*`, `sync-emails`, `sync-all-gmail`, `oauth-init`, `oauth-callback`, `analyze-inbox`, `gmail-connect-from-session`)
+- **AuthComplete / GoogleSignInButton / gmailOAuth.ts** (flow OAuth Gmail)
+- Widgets dashboard CRM (HotProspects email-based, RappelsWidget agenda)
+- Cron job sync-all-gmail
+- Routes : `/inbox`, `/agenda`, `/clients`, `/auth/complete`
 
-**Objectif : une seule source de vérité partagée entre Dashboard, Copilote, widgets.**
+### Auth simplifiée
+- Garder auth email/password Supabase basique uniquement
+- Supprimer toute logique Google OAuth avec scopes Gmail
+- Onboarding : juste demander **ville/zone principale** → entrée immédiate
 
-1. **Étendre `BusinessContext`** pour exposer aussi : inbox non lus, opportunités (radar), événements agenda à venir, actions recommandées. Aujourd'hui il ne couvre que prospects/sales/tasks.
-2. **Refactor `Dashboard`, `SalesWidget`, `Copilote`** pour consommer **uniquement** `useBusinessData()` (suppression des `useQuery` redondants qui causent les écarts CA 0€ vs 378 500€).
-3. Ajouter aux subscriptions Realtime du `BusinessProvider` les tables : `inbox_messages`, `opportunites`, `events`, `actions_recommandees`.
-4. `getAIContext()` enrichi avec inbox/opportunités/agenda → le Copilote voit exactement ce que voit le Dashboard.
+## 2. Nouvelle architecture de navigation
 
-**Résultat** : chiffres identiques partout, mises à jour temps réel sur tous les modules.
+Sidebar réduite à :
+1. **Dashboard**
+2. **Chasseur de Mandats IA** (parent) → onglets internes
+   - Radar Prospection (existant amélioré)
+   - Pige IA (nouveau)
+3. **Estimation IA** (conservé, polish premium)
+4. **Studio IA** (renommage de Documents IA)
+5. **Copilote** (recentré coach commercial)
+6. **Settings**
 
----
+## 3. Module "Chasseur de Mandats IA"
 
-## Vague 2 — Intelligence connectée (Copilote actif + Actions recommandées)
+Route `/chasseur` avec deux onglets :
 
-5. **Widget "Actions recommandées" du Dashboard** (point 2 de la demande)
-   - Lit la table existante `actions_recommandees`.
-   - Nouvelle edge function `generate-actions-auto` qui scanne inbox non lus + prospects chauds + opportunités + RDV à venir et insère 3-5 actions priorisées.
-   - Bouton "Exécuter" par action (ouvre le module concerné avec contexte) + bouton "Demander au Copilote".
-   - Trigger : auto-régénération toutes les heures + bouton manuel.
+### Radar Prospection
+- Garde la base existante (`/radar` → intégré)
+- Améliorations UI : badges premium, hiérarchie visuelle scores, sensation "radar stratégique"
 
-6. **Copilote agent actif** (point 9)
-   - Nouvelle edge function `copilote-agent` avec **tool calling** (function calling OpenAI) :
-     - `archive_emails(ids)`, `mark_emails_read(ids)`, `create_task(...)`, `create_event(...)`, `update_prospect_status(...)`.
-   - UI Copilote : bandeau "Action proposée — Confirmer / Annuler" (validation humaine obligatoire, conformément à la mémoire projet).
-   - Suppression de l'affichage du nom de modèle IA dans l'UI.
+### Pige IA (nouveau)
+Pour chaque annonce détectée → génération IA :
+- Phrase d'accroche personnalisée
+- Script d'appel
+- Contre-objections
+- Failles détectées
+- Score de **Pigeabilité** (ancienneté, qualité photos/texte, cohérence prix, urgence, baisse prix)
 
-7. **Connectivité modules** (point 10) : audit + ajout des liens manquants : bouton "Envoyer en mémoire client" depuis Inbox, "Créer document depuis estimation" depuis Estimation.
+Affichage : cartes annonces avec score visuel fort + panneau latéral "Stratégie de pige IA".
 
----
+### Backend data
+- Table `annonces_pige` (source, url, titre, prix, surface, ville, date_publication, photos, description, score_pigeabilite, analyse_ia jsonb, statut)
+- Edge function `analyze-annonce-pige` (Lovable AI Gemini)
+- Architecture connecteurs extensible (Leboncoin, SeLoger, etc.) → **phase 1 : seeder + ingestion manuelle URL + analyse IA**. Scraping multi-source = phase 2 (poser l'archi, pas implémenter tous les connecteurs maintenant).
+- Cron quotidien `refresh-pige` pour rescorer
 
-## Vague 3 — Modules métier (Documents, Inbox, Agenda, Radar, Estimation)
+## 4. Studio IA (ex Documents IA)
+- Renommer route `/documents` → `/studio`
+- Renommer partout : sidebar, CTA, titres
+- Sections : Annonces, Posts réseaux sociaux, Scripts vidéos, Emails commerciaux, Scripts d'appel, Brochures
+- UI premium type "studio créatif"
 
-8. **Documents IA** (point 3) — le plus gros morceau
-   - Bouton micro intégré au formulaire mandat (réutilise `useVoiceInput`).
-   - Edge function `extract-mandat-fields` : reçoit transcription → renvoie JSON structuré (nom, prénom, adresse, prix, type) → injection dans champs.
-   - Fix bug templates personnalisés : vérifier `templates` table/state actuel (besoin de regarder le code pour confirmer le bug).
-   - Lecture intelligente template uploadé : edge function `analyze-template` (parse docx → liste champs détectés → mapping auto).
+## 5. Copilote Stratégique
+- Garder `/copilote`
+- Retirer toute injection de contexte Inbox/Mémoire client/Emails
+- Nouveau system prompt : coach négociation immobilier, scripts pige, obtention mandats exclusifs
+- Suggestions prompts mises à jour
 
-9. **Inbox** (point 6)
-   - Catégorie "Urgent" = `urgence >= 7` OU intention `chaud/offre`.
-   - Badges colorés Tous (gris) / Urgent (rouge) / Non lus (bleu) avec compteurs corrects.
-   - Marquage auto `lu = true` à l'ouverture + invalidation des compteurs.
-   - Tooltip "i" sur sentiment/score/priorité (réutilise `ScoreExplainer`).
+## 6. Dashboard refait
+Widgets nouveaux :
+- Opportunités détectées aujourd'hui (count `annonces_pige` créées <24h)
+- Score moyen de pigeabilité
+- Nouveaux biens à piger (top 5)
+- Estimations créées (count)
+- Scripts IA générés (count studio)
+- Actions recommandées (existant, mais filtré sans contexte email)
+- CTA principaux : "Lancer une pige", "Nouvelle estimation", "Studio IA"
 
-10. **Agenda** (point 7) : limiter chaque event à `date_debut` (un seul jour), card compacte. Investigation du composant `AgendaWeekView` nécessaire.
+Supprimer : HotProspects email, RappelsWidget agenda, stats CRM.
 
-11. **Radar** (point 5) : remplacer empty state par illustration + CTA, ajouter bouton "i" tooltip sur score moyen expliquant la pondération (DVF, liquidité, dispersion).
+## 7. Onboarding ultra-court
+1 seule étape : ville + zone principale → redirect `/chasseur` avec radar pré-rempli.
 
-12. **Estimation** (point 4)
-   - Export `.docx` via `lib/docx-export.ts` (existe déjà) — ajouter template estimation complète.
-   - Supprimer le bouton "charger un secteur de test".
-
----
-
-## Vague 4 — Sauvegardes / Archivage
-
-13. **Section "Messages archivés"** dans `/sauvegardes`
-    - Ajouter colonne `archived_at` à `inbox_messages` (migration).
-    - Bouton "Archiver" dans Inbox → set `archived_at = now()`.
-    - Page Sauvegardes : liste archivés, restaurer (`archived_at = null`), supprimer définitivement.
-    - Inbox filtre out les archivés par défaut.
-
----
+## 8. Migration BDD
+- DROP tables : `inbox_messages`, `events`, `user_integrations` (si plus utilisée)
+- DROP cron `sync-all-gmail`
+- CREATE table `annonces_pige` avec RLS user-scoped
+- Garder : `profiles`, `prospects`, `opportunites`, `sales`, `tasks`, `actions_recommandees`, `analyses_zone`, `annonces`, `conversations`, `workflows`, `api_connections`
 
 ## Détails techniques
 
-- **Migrations DB nécessaires** : `inbox_messages.archived_at TIMESTAMPTZ`, éventuellement index sur `actions_recommandees(user_id, statut, score_pertinence)`.
-- **Nouvelles edge functions** : `generate-actions-auto`, `copilote-agent` (tool calling), `extract-mandat-fields`, `analyze-template`.
-- **Realtime** : ajouter 4 tables au channel existant `business-sync`.
-- **Pas de changement** : routing, auth, design system (tokens existants suffisent).
+**Fichiers supprimés** :
+- `src/pages/Inbox.tsx`, `Agenda.tsx`, `Clients.tsx`, `AuthComplete.tsx`
+- `src/components/agenda/*`, `src/components/clients/*`, `GoogleSignInButton.tsx`
+- `src/components/dashboard/HotProspects.tsx`, `RappelsWidget.tsx`
+- `src/lib/gmailOAuth.ts`
+- `supabase/functions/oauth-init`, `oauth-callback`, `sync-emails`, `sync-all-gmail`, `gmail-connect-from-session`, `analyze-inbox`
 
----
+**Fichiers créés** :
+- `src/pages/Chasseur.tsx` (onglets Radar + Pige)
+- `src/pages/PigeIA.tsx` (ou sous-composant)
+- `src/pages/Studio.tsx` (renommé de Documents)
+- `src/components/dashboard/OpportunitiesToday.tsx`, `PigeabiliteScore.tsx`, `StudioActivity.tsx`
+- `supabase/functions/analyze-annonce-pige/index.ts`
+- `supabase/functions/refresh-pige/index.ts`
 
-## Estimation & livraison
+**Fichiers modifiés** :
+- `src/App.tsx` (routes)
+- `src/components/AppSidebar.tsx` (nav)
+- `src/pages/Dashboard.tsx` (widgets)
+- `src/pages/Onboarding.tsx` (1 étape)
+- `src/pages/Login.tsx`, `Signup.tsx` (retrait Google OAuth)
+- `src/pages/Copilote.tsx` (recentrage prompt)
+- `src/pages/Radar.tsx` (polish + intégration parent Chasseur)
+- `supabase/functions/copilote-agent` (system prompt)
 
-Plan trop volumineux pour un seul tour. Je propose de **livrer vague par vague**, en validant avec toi entre chaque (sinon risque de régression massive).
+## Hors-scope (à confirmer / phase 2)
+- Connecteurs scraping live Leboncoin/SeLoger (légalement sensibles, nécessitent infra dédiée) → phase 1 = ingestion par URL + seeds + architecture extensible prête.
+- Génération vidéo IA Studio.
+- Migration de données existantes Inbox/Agenda (perdues à la suppression — confirmer OK).
 
-**Question avant de démarrer** : on commence par la Vague 1 (fondations data, sans laquelle le reste est bancal) — OK ? Ou tu préfères prioriser une vague spécifique en premier (ex : Documents IA dictée vocale qui est très visible) ?
+## Confirmation requise
+1. **OK pour DROP des tables `inbox_messages`, `events`, `user_integrations`** ? (perte définitive des données)
+2. **OK pour scraping différé** (phase 1 = ingestion URL + IA, phase 2 = connecteurs sources) ?
+3. **Auth : on garde email/password Supabase uniquement** (suppression totale du bouton Google) ?
