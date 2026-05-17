@@ -50,6 +50,15 @@ const sourceFromUrl = (url: string): string => {
   return "web";
 };
 
+type FcResult = {
+  url: string;
+  title?: string;
+  description?: string;
+  markdown?: string;
+  image?: string;
+  metadata?: { ogImage?: string; image?: string; sourceURL?: string; statusCode?: number };
+};
+
 const normalizeListingUrl = (url: string): string => {
   try {
     const u = new URL(url);
