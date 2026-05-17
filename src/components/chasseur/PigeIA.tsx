@@ -3,8 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Loader2, ExternalLink, Sparkles, Trash2, Target, AlertTriangle, MessageSquare, Lightbulb, Radar, Zap, TrendingUp, MapPin } from "lucide-react";
+import { Search, Loader2, ExternalLink, Sparkles, Trash2, Target, AlertTriangle, MessageSquare, Lightbulb, Radar, Zap, TrendingUp, MapPin, Send } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,11 +27,29 @@ const opportunityLabel = (score: number) => {
 
 export const PigeIA = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [zone, setZone] = useState("");
   const [searching, setSearching] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [selected, setSelected] = useState<any>(null);
+
+  const sendToCopilote = (a: any) => {
+    const ai = a.analyse_ia || {};
+    const lines = [
+      `J'ai détecté une opportunité de pige sur "${a.titre}" (${a.ville || ""}${a.code_postal ? " " + a.code_postal : ""}).`,
+      `Bien : ${a.type_bien || "—"}, ${a.surface ? a.surface + " m²" : "surface N/C"}${a.pieces ? `, ${a.pieces} pièces` : ""}, prix ${a.prix ? Number(a.prix).toLocaleString("fr-FR") + " €" : "N/C"}.`,
+      `Vendeur : ${a.agence || "N/C"} · Source : ${a.source || "N/C"} · Score pigeabilité : ${a.score_pigeabilite}/100.`,
+      a.url ? `Lien annonce : ${a.url}` : "",
+      ai.strategie_approche ? `\nStratégie IA déjà générée : ${ai.strategie_approche}` : "",
+      ai.accroche ? `Accroche : "${ai.accroche}"` : "",
+      ai.failles?.length ? `Failles : ${ai.failles.join(" · ")}` : "",
+      `\nAide-moi à transformer cette opportunité en mandat : prochain pas concret, meilleur canal de contact, et 2 angles d'approche complémentaires à la stratégie déjà générée.`,
+    ].filter(Boolean).join("\n");
+    sessionStorage.setItem("copilote_prefill", lines);
+    toast.success("Contexte envoyé au Copilote IA");
+    navigate("/copilote");
+  };
 
   const { data: annonces = [], isLoading } = useQuery({
     queryKey: ["annonces-pige"],
@@ -59,8 +78,13 @@ export const PigeIA = () => {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       const count = (data as any)?.count || 0;
-      if (count === 0) toast.info("Aucune opportunité trouvée sur cette zone. Essayez une zone plus large.");
-      else toast.success(`${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""} sur ${zone}`);
+      const scanned = (data as any)?.scanned || 0;
+      const rejected = (data as any)?.rejected_count || 0;
+      if (count === 0) {
+        toast.info((data as any)?.message || "Aucune opportunité fiable détectée sur cette zone.");
+      } else {
+        toast.success(`${count} opportunité${count > 1 ? "s" : ""} fiable${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} annonce${rejected > 1 ? "s" : ""} incomplète${rejected > 1 ? "s" : ""} filtrée${rejected > 1 ? "s" : ""}` : ""}`);
+      }
       qc.invalidateQueries({ queryKey: ["annonces-pige"] });
     } catch (e) {
       handleApiError(e, "Recherche d'opportunités");
@@ -258,12 +282,22 @@ export const PigeIA = () => {
                   )}
                 </div>
 
-                {!selected.analyse_ia?.generated && (
-                  <Button onClick={() => generateStrategy(selected)} disabled={generatingFor === selected.id} className="w-full gap-2">
-                    {generatingFor === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    Générer la stratégie de pige IA
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {!selected.analyse_ia?.generated ? (
+                    <Button onClick={() => generateStrategy(selected)} disabled={generatingFor === selected.id} className="flex-1 gap-2">
+                      {generatingFor === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      Générer la stratégie de pige IA
+                    </Button>
+                  ) : (
+                    <Button onClick={() => generateStrategy(selected)} variant="outline" disabled={generatingFor === selected.id} className="flex-1 gap-2">
+                      {generatingFor === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      Régénérer la stratégie
+                    </Button>
+                  )}
+                  <Button onClick={() => sendToCopilote(selected)} variant="secondary" className="flex-1 gap-2">
+                    <Send className="h-4 w-4" /> Envoyer au Copilote IA
                   </Button>
-                )}
+                </div>
 
                 {selected.analyse_ia?.accroche && (
                   <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">

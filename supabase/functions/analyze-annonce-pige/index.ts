@@ -31,32 +31,41 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Annonce introuvable" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const prompt = `Tu es un coach senior en pige immobilière française. Pour l'annonce suivante, génère une stratégie complète d'approche du vendeur.
+    const prixM2 = annonce.prix && annonce.surface ? Math.round(Number(annonce.prix) / Number(annonce.surface)) : null;
+    const prompt = `Tu es un directeur commercial senior en immobilier français, expert en pige et conquête de mandats. Analyse l'annonce ci-dessous et génère une stratégie d'approche professionnelle, concrète et actionnable.
 
 ANNONCE :
 - Titre : ${annonce.titre}
-- Prix : ${annonce.prix ? annonce.prix + " €" : "N/C"}
+- Prix : ${annonce.prix ? annonce.prix + " €" : "N/C"}${prixM2 ? ` (${prixM2} €/m²)` : ""}
 - Surface : ${annonce.surface ? annonce.surface + " m²" : "N/C"}
 - Pièces : ${annonce.pieces || "N/C"}
 - Ville : ${annonce.ville || "N/C"} ${annonce.code_postal || ""}
 - Type : ${annonce.type_bien || "N/C"}
 - Vendeur : ${annonce.agence || "N/C"}
+- Source : ${annonce.source || "N/C"}
 - Description : ${annonce.description || "N/C"}
 - Score pigeabilité : ${annonce.score_pigeabilite}/100
 
-Retourne UNIQUEMENT un JSON valide (sans markdown) :
+Retourne UNIQUEMENT un JSON valide (sans markdown, sans commentaires) :
 {
   "accroche": "phrase d'accroche puissante 1 ligne pour ouvrir l'appel",
-  "script_appel": "script complet d'appel en 4-6 lignes, ton humain et chaleureux, posant des questions ouvertes",
-  "failles": ["faille marketing 1", "faille 2", "faille 3"],
+  "script_appel": "script complet d'appel en 5-8 lignes : présentation brève + question ouverte + transition vers la prise de RDV. Ton humain, chaleureux, professionnel.",
+  "failles": ["faille marketing concrète 1", "faille 2", "faille 3"],
   "contre_objections": [
-    {"objection": "Je vends en direct, pas besoin d'agence", "reponse": "..."},
+    {"objection": "Je vends en direct, pas besoin d'agence", "reponse": "réponse précise et empathique"},
     {"objection": "J'ai déjà une agence", "reponse": "..."},
-    {"objection": "Vos honoraires sont trop élevés", "reponse": "..."}
+    {"objection": "Vos honoraires sont trop élevés", "reponse": "..."},
+    {"objection": "Rappelez-moi dans 3 mois", "reponse": "..."}
   ],
-  "opportunites": ["levier commercial 1", "levier 2", "levier 3"],
-  "arguments_negociation": ["argument 1", "argument 2"],
-  "strategie_approche": "résumé en 2 phrases de la meilleure approche"
+  "opportunites": ["levier commercial concret 1", "levier 2", "levier 3"],
+  "arguments_negociation": ["argument chiffré 1", "argument 2"],
+  "strategie_approche": "résumé en 2-3 phrases de la meilleure approche pour ce vendeur",
+  "potentiel_mandat": "faible|moyen|fort",
+  "potentiel_exclusivite": "faible|moyen|fort",
+  "niveau_urgence": "faible|moyen|fort",
+  "niveau_concurrence": "faible|moyen|fort",
+  "estimation_commission": "estimation honoraires en € si mandat décroché (calcul ~5% du prix)",
+  "conseils_contact": ["conseil 1 (canal + moment)", "conseil 2", "conseil 3"]
 }`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -65,6 +74,7 @@ Retourne UNIQUEMENT un JSON valide (sans markdown) :
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
       }),
     });
 
