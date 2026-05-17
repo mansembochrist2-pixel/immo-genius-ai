@@ -210,6 +210,8 @@ Deno.serve(async (req) => {
     const validUrlResults = allResults.filter(r => {
       if (!r.url || seen.has(r.url)) return false;
       if (!isRealListingUrl(r.url)) return false;
+      if (r.metadata?.statusCode && r.metadata.statusCode >= 400) return false;
+      if (looksExpiredOrDead(`${r.title || ""}\n${r.description || ""}\n${r.markdown || ""}`)) return false;
       seen.add(r.url);
       return true;
     });
@@ -241,15 +243,23 @@ Deno.serve(async (req) => {
       .eq("user_id", user_id)
       .in("url", urlsCandidates);
     const existingUrls = new Set((existingRows || []).map((r: any) => r.url));
-    const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 10);
+    const alreadyExisting = validUrlResults.filter(r => existingUrls.has(r.url));
+    const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 18);
 
     if (fresh.length === 0) {
+      const { data: existingAnnonces } = await supabase
+        .from("annonces_pige")
+        .select("*")
+        .eq("user_id", user_id)
+        .in("url", alreadyExisting.map(r => r.url))
+        .order("updated_at", { ascending: false })
+        .limit(24);
       return j({
         status: "all_existing",
-        count: 0,
-        annonces: [],
+        count: existingAnnonces?.length || 0,
+        annonces: existingAnnonces || [],
         existing_in_zone: existingZoneCount || 0,
-        message: `Les ${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} détectée${validUrlResults.length > 1 ? "s" : ""} sont déjà dans votre pige.`,
+        message: `${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} déjà détectée${validUrlResults.length > 1 ? "s" : ""} — affichage de la pige existante mis à jour.`,
       });
     }
 
