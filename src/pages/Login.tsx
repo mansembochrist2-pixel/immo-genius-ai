@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { Sparkles, ShieldCheck, Check } from "lucide-react";
 import authBg3d from "@/assets/auth-bg-3d.jpg";
 
@@ -19,63 +18,39 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error("Veuillez remplir tous les champs");
-      return;
-    }
+    if (!email || !password) { toast.error("Veuillez remplir tous les champs"); return; }
     setIsLoading(true);
     const { error } = await login(email, password);
     setIsLoading(false);
-    if (error) {
-      toast.error(error);
-    } else {
-      toast.success("Connexion réussie");
-      navigate("/dashboard");
-    }
+    if (error) toast.error(error);
+    else { toast.success("Connexion réussie"); navigate("/dashboard"); }
   };
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      {/* Left: 3D visual panel */}
       <div className="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-secondary/40 via-background to-primary/5">
-        <img
-          src={authBg3d}
-          alt="Illustration 3D d'immeubles haussmanniens premium Estate AI"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        <img src={authBg3d} alt="Estate AI" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-tr from-background/60 via-transparent to-background/30" />
-        {/* Animated glow blobs over image */}
-        <div className="absolute top-1/4 -left-20 w-[400px] h-[400px] rounded-full bg-primary/20 blur-[100px] animate-pulse" style={{ animationDuration: "9s" }} />
-        <div className="absolute bottom-1/4 right-0 w-[350px] h-[350px] rounded-full bg-accent/15 blur-[100px] animate-pulse" style={{ animationDuration: "11s" }} />
-
-        {/* Brand & quote */}
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <Link to="/" className="inline-flex items-center gap-2">
             <span className="text-2xl font-bold font-display gradient-text">Estate AI</span>
           </Link>
-
           <div className="space-y-6 max-w-md">
             <div className="inline-flex items-center gap-2 bg-card/80 backdrop-blur-md border border-border rounded-full px-3 py-1.5 text-xs font-medium">
               <Sparkles className="h-3.5 w-3.5 text-accent" />
-              <span>L'IA de confiance pour vos mandats</span>
+              <span>Le copilote IA de conquête de mandats</span>
             </div>
             <blockquote className="text-2xl font-display font-semibold leading-snug">
-              "Je traite ma boîte mail en 20 minutes le matin au lieu de 2 heures. Et je n'oublie plus une seule relance."
+              "En 3 semaines j'ai décroché 4 mandats grâce à la Pige IA. Aucun CRM ne m'avait fait ça."
             </blockquote>
             <div className="text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Nicolas R.</p>
               <p>Agent immobilier indépendant</p>
             </div>
-
             <div className="grid grid-cols-1 gap-2 pt-4">
-              {[
-                "OAuth Google sécurisé · aucun email stocké",
-                "100% conforme RGPD · hébergement EU",
-                "8 modules IA synchronisés",
-              ].map((t, i) => (
+              {["Zero friction · aucune config", "Pige IA + Radar prospection", "Estimation premium IA"].map((t, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm bg-card/70 backdrop-blur-md border border-border/60 rounded-lg px-3 py-2">
-                  <Check className="h-4 w-4 text-success shrink-0" />
-                  <span>{t}</span>
+                  <Check className="h-4 w-4 text-success shrink-0" /><span>{t}</span>
                 </div>
               ))}
             </div>
@@ -83,22 +58,15 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Right: form */}
       <div className="flex items-center justify-center p-6 sm:p-10 relative overflow-hidden">
-        {/* Mobile background blobs */}
-        <div className="lg:hidden absolute top-1/4 -left-32 w-[400px] h-[400px] rounded-full bg-primary/10 blur-[100px] animate-pulse" style={{ animationDuration: "10s" }} />
-        <div className="lg:hidden absolute bottom-1/4 -right-32 w-[400px] h-[400px] rounded-full bg-accent/10 blur-[100px] animate-pulse" style={{ animationDuration: "12s" }} />
-
         <div className="w-full max-w-md animate-fade-in relative z-10">
           <div className="text-center mb-8 lg:hidden">
             <h1 className="text-3xl font-bold font-display gradient-text">Estate AI</h1>
-            <p className="text-muted-foreground mt-2">Votre assistant immobilier intelligent</p>
           </div>
-
           <Card className="border-border/60 shadow-xl bg-card/95 backdrop-blur-xl">
             <CardHeader>
               <CardTitle className="font-display text-2xl">Bon retour parmi nous</CardTitle>
-              <CardDescription>Connectez-vous à votre espace agent</CardDescription>
+              <CardDescription>Connectez-vous à votre copilote</CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4">
@@ -112,25 +80,18 @@ const Login = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-3">
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 shadow-md" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Connexion..." : "Se connecter"}
                 </Button>
-                <div className="relative w-full">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">ou</span></div>
-                </div>
-                <GoogleSignInButton />
                 <div className="flex justify-between w-full text-sm pt-2">
-                  <Link to="/forgot-password" className="text-muted-foreground hover:text-primary transition-colors">Mot de passe oublié ?</Link>
-                  <Link to="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">Créer un compte</Link>
+                  <Link to="/forgot-password" className="text-muted-foreground hover:text-primary">Mot de passe oublié ?</Link>
+                  <Link to="/signup" className="text-primary font-medium">Créer un compte</Link>
                 </div>
               </CardFooter>
             </form>
           </Card>
-
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-6">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Connexion chiffrée · Données isolées par agent</span>
+            <ShieldCheck className="h-3.5 w-3.5" /><span>Connexion chiffrée · RGPD · hébergement EU</span>
           </div>
         </div>
       </div>

@@ -145,6 +145,81 @@ export type Database = {
         }
         Relationships: []
       }
+      annonces_pige: {
+        Row: {
+          adresse: string | null
+          agence: string | null
+          analyse_ia: Json | null
+          code_postal: string | null
+          created_at: string
+          date_publication: string | null
+          description: string | null
+          id: string
+          photos: Json | null
+          pieces: number | null
+          prix: number | null
+          score_pigeabilite: number | null
+          source: string
+          statut: string
+          surface: number | null
+          tags: string[] | null
+          titre: string
+          type_bien: string | null
+          updated_at: string
+          url: string | null
+          user_id: string
+          ville: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          agence?: string | null
+          analyse_ia?: Json | null
+          code_postal?: string | null
+          created_at?: string
+          date_publication?: string | null
+          description?: string | null
+          id?: string
+          photos?: Json | null
+          pieces?: number | null
+          prix?: number | null
+          score_pigeabilite?: number | null
+          source?: string
+          statut?: string
+          surface?: number | null
+          tags?: string[] | null
+          titre: string
+          type_bien?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id: string
+          ville?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          agence?: string | null
+          analyse_ia?: Json | null
+          code_postal?: string | null
+          created_at?: string
+          date_publication?: string | null
+          description?: string | null
+          id?: string
+          photos?: Json | null
+          pieces?: number | null
+          prix?: number | null
+          score_pigeabilite?: number | null
+          source?: string
+          statut?: string
+          surface?: number | null
+          tags?: string[] | null
+          titre?: string
+          type_bien?: string | null
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+          ville?: string | null
+        }
+        Relationships: []
+      }
       api_connections: {
         Row: {
           config: Json | null
@@ -201,130 +276,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      events: {
-        Row: {
-          client_id: string | null
-          created_at: string
-          date_debut: string
-          date_fin: string | null
-          description: string | null
-          id: string
-          lieu: string | null
-          source_module: string | null
-          statut: string
-          titre: string
-          type: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          client_id?: string | null
-          created_at?: string
-          date_debut: string
-          date_fin?: string | null
-          description?: string | null
-          id?: string
-          lieu?: string | null
-          source_module?: string | null
-          statut?: string
-          titre: string
-          type?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          client_id?: string | null
-          created_at?: string
-          date_debut?: string
-          date_fin?: string | null
-          description?: string | null
-          id?: string
-          lieu?: string | null
-          source_module?: string | null
-          statut?: string
-          titre?: string
-          type?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "events_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "prospects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      inbox_messages: {
-        Row: {
-          analyse_ia: Json | null
-          archived_at: string | null
-          canal: string
-          client_id: string | null
-          contenu: string
-          created_at: string
-          direction: string
-          id: string
-          intention: string | null
-          lu: boolean | null
-          repondu: boolean | null
-          reponses_suggerees: Json | null
-          source_externe_id: string | null
-          sujet: string | null
-          updated_at: string
-          urgence: number | null
-          user_id: string
-        }
-        Insert: {
-          analyse_ia?: Json | null
-          archived_at?: string | null
-          canal?: string
-          client_id?: string | null
-          contenu: string
-          created_at?: string
-          direction?: string
-          id?: string
-          intention?: string | null
-          lu?: boolean | null
-          repondu?: boolean | null
-          reponses_suggerees?: Json | null
-          source_externe_id?: string | null
-          sujet?: string | null
-          updated_at?: string
-          urgence?: number | null
-          user_id: string
-        }
-        Update: {
-          analyse_ia?: Json | null
-          archived_at?: string | null
-          canal?: string
-          client_id?: string | null
-          contenu?: string
-          created_at?: string
-          direction?: string
-          id?: string
-          intention?: string | null
-          lu?: boolean | null
-          repondu?: boolean | null
-          reponses_suggerees?: Json | null
-          source_externe_id?: string | null
-          sujet?: string | null
-          updated_at?: string
-          urgence?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inbox_messages_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "prospects"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       opportunites: {
         Row: {
@@ -605,54 +556,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      user_integrations: {
-        Row: {
-          access_token: string | null
-          created_at: string
-          email: string | null
-          expires_at: string | null
-          id: string
-          last_error: string | null
-          last_sync_at: string | null
-          provider: string
-          refresh_token: string | null
-          scope: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token?: string | null
-          created_at?: string
-          email?: string | null
-          expires_at?: string | null
-          id?: string
-          last_error?: string | null
-          last_sync_at?: string | null
-          provider: string
-          refresh_token?: string | null
-          scope?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string | null
-          created_at?: string
-          email?: string | null
-          expires_at?: string | null
-          id?: string
-          last_error?: string | null
-          last_sync_at?: string | null
-          provider?: string
-          refresh_token?: string | null
-          scope?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       workflows: {
         Row: {
