@@ -104,32 +104,56 @@ Deno.serve(async (req) => {
 
     type FcResult = { url: string; title?: string; description?: string; markdown?: string };
     const allResults: FcResult[] = [];
+    let firecrawlOkCount = 0;
+    let firecrawlErrCount = 0;
+    let lastFirecrawlError: string | null = null;
 
     for (const query of queries) {
-      const fcRes = await fetch("https://api.firecrawl.dev/v2/search", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query,
-          limit: 8,
-          lang: "fr",
-          country: "fr",
-          tbs: "qdr:m", // annonces du mois — évite vieilleries expirées
-          scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
-        }),
-      });
+      try {
+        const fcRes = await fetch("https://api.firecrawl.dev/v2/search", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query,
+            limit: 8,
+            lang: "fr",
+            country: "fr",
+            tbs: "qdr:m",
+            scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
+          }),
+        });
 
-      if (!fcRes.ok) {
-        const txt = await fcRes.text();
-        console.error(`Firecrawl ${fcRes.status}: ${txt}`);
-        if (fcRes.status === 402) return j({ error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
-        continue;
+        if (!fcRes.ok) {
+          const txt = await fcRes.text();
+          firecrawlErrCount++;
+          lastFirecrawlError = `${fcRes.status}: ${txt.slice(0, 200)}`;
+          console.error(`[Firecrawl] query="${query}" status=${fcRes.status} body=${txt.slice(0, 300)}`);
+          if (fcRes.status === 402) return j({ status: "scraping_error", error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
+          if (fcRes.status === 401 || fcRes.status === 403) return j({ status: "scraping_error", error: "Clé Firecrawl invalide ou expirée." }, 502);
+          continue;
+        }
+
+        const fcData = await fcRes.json();
+        const list: any[] = fcData?.data?.web || fcData?.data || fcData?.web || [];
+        firecrawlOkCount++;
+        console.log(`[Firecrawl] query="${query}" results=${list.length}`);
+        for (const r of list) {
+          if (r?.url) allResults.push({ url: r.url, title: r.title, description: r.description, markdown: r.markdown });
+        }
+      } catch (e) {
+        firecrawlErrCount++;
+        lastFirecrawlError = String((e as Error)?.message || e);
+        console.error(`[Firecrawl] query="${query}" exception=`, e);
       }
-      const fcData = await fcRes.json();
-      const list: any[] = fcData?.data?.web || fcData?.data || fcData?.web || [];
-      for (const r of list) {
-        if (r?.url) allResults.push({ url: r.url, title: r.title, description: r.description, markdown: r.markdown });
-      }
+    }
+
+    // Si TOUTES les requêtes Firecrawl ont échoué → erreur scraping
+    if (firecrawlOkCount === 0) {
+      return j({
+        status: "scraping_error",
+        error: "Erreur lors de la récupération des annonces. Le service de scraping est indisponible.",
+        details: lastFirecrawlError,
+      }, 502);
     }
 
     // ============ 2) Filtre URLs (vraies pages d'annonces uniquement) ============
@@ -141,11 +165,26 @@ Deno.serve(async (req) => {
       return true;
     });
 
+    console.log(`[Pige] zone="${zoneClean}" firecrawl_raw=${allResults.length} valid_urls=${validUrlResults.length}`);
+
+    // Compte les annonces déjà en base pour CETTE zone (pour message contextuel)
+    const { count: existingZoneCount } = await supabase
+      .from("annonces_pige")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user_id)
+      .or(`ville.ilike.%${zoneClean}%,code_postal.ilike.%${zoneClean}%`);
+
     if (validUrlResults.length === 0) {
-      return j({ count: 0, annonces: [], message: "Aucune annonce détaillée trouvée. Essayez une zone plus précise (ex: 'Paris 16', 'Lyon 6ème')." });
+      return j({
+        status: "no_results",
+        count: 0,
+        annonces: [],
+        existing_in_zone: existingZoneCount || 0,
+        message: `Aucune annonce trouvée pour "${zoneClean}". Essayez une zone plus précise (ex: "Paris 16", "Cannes Centre").`,
+      });
     }
 
-    // ============ 3) Filtre doublons en DB (par URL pour cet utilisateur) ============
+    // ============ 3) Filtre doublons en DB ============
     const urlsCandidates = validUrlResults.map(r => r.url);
     const { data: existingRows } = await supabase
       .from("annonces_pige")
@@ -156,7 +195,13 @@ Deno.serve(async (req) => {
     const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 10);
 
     if (fresh.length === 0) {
-      return j({ count: 0, annonces: [], message: "Toutes les annonces de cette zone sont déjà dans votre pige." });
+      return j({
+        status: "all_existing",
+        count: 0,
+        annonces: [],
+        existing_in_zone: existingZoneCount || 0,
+        message: `Les ${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} détectée${validUrlResults.length > 1 ? "s" : ""} sont déjà dans votre pige.`,
+      });
     }
 
     // ============ 4) Extraction structurée via Lovable AI ============
@@ -265,14 +310,30 @@ ${corpus}`;
       else if (error) console.error("Insert error:", error);
     }
 
+    console.log(`[Pige] zone="${zoneClean}" inserted=${inserted.length} rejected=${rejected.length} fresh=${fresh.length}`);
+
+    if (inserted.length === 0) {
+      return j({
+        status: "no_results",
+        count: 0,
+        annonces: [],
+        rejected_count: rejected.length,
+        scanned: validUrlResults.length,
+        message: rejected.length > 0
+          ? `${rejected.length} annonce${rejected.length > 1 ? "s" : ""} détectée${rejected.length > 1 ? "s" : ""} mais incomplète${rejected.length > 1 ? "s" : ""} (image, prix ou titre manquant). Essayez une autre zone.`
+          : `Aucune annonce exploitable trouvée pour "${zoneClean}".`,
+      });
+    }
+
     return j({
+      status: "success",
       count: inserted.length,
       annonces: inserted,
       rejected_count: rejected.length,
       scanned: validUrlResults.length,
     });
   } catch (e) {
-    console.error("search-pige-zone fatal:", e);
-    return j({ error: String((e as Error).message || e) }, 500);
+    console.error("[search-pige-zone] fatal:", e);
+    return j({ status: "scraping_error", error: String((e as Error).message || e) }, 500);
   }
 });

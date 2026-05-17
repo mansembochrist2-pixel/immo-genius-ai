@@ -75,17 +75,35 @@ export const PigeIA = () => {
     setSearching(true);
     try {
       const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim(), user_id: user?.id } });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const count = (data as any)?.count || 0;
-      const scanned = (data as any)?.scanned || 0;
-      const rejected = (data as any)?.rejected_count || 0;
-      if (count === 0) {
-        toast.info((data as any)?.message || "Aucune opportunité fiable détectée sur cette zone.");
-      } else {
-        toast.success(`${count} opportunité${count > 1 ? "s" : ""} fiable${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} annonce${rejected > 1 ? "s" : ""} incomplète${rejected > 1 ? "s" : ""} filtrée${rejected > 1 ? "s" : ""}` : ""}`);
+      if (error && !data) {
+        toast.error("Erreur lors de la récupération des annonces. Réessayez dans un instant.");
+        return;
       }
-      qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+      const res = (data || {}) as any;
+      const status: string = res.status || (res.error ? "scraping_error" : "success");
+
+      switch (status) {
+        case "success": {
+          const count = res.count || 0;
+          const rejected = res.rejected_count || 0;
+          toast.success(
+            `${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} filtrée${rejected > 1 ? "s" : ""} (données incomplètes)` : ""}`
+          );
+          qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          break;
+        }
+        case "no_results":
+          toast.info(res.message || `Aucune annonce trouvée pour "${zone}".`);
+          break;
+        case "all_existing":
+          toast.info(res.message || "Ces annonces sont déjà dans votre pige.");
+          qc.invalidateQueries({ queryKey: ["annonces-pige"] });
+          break;
+        case "scraping_error":
+        default:
+          toast.error(res.error || "Erreur lors de la récupération des annonces.");
+          break;
+      }
     } catch (e) {
       handleApiError(e, "Recherche d'opportunités");
     } finally {
