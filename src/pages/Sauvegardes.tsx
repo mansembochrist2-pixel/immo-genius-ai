@@ -49,44 +49,10 @@ const Sauvegardes = () => {
     enabled: !!user,
   });
 
-  const { data: archivedMessages = [], isLoading: loadingArchived } = useQuery({
-    queryKey: ["archived-messages"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inbox_messages")
-        .select("*")
-        .not("archived_at", "is", null)
-        .order("archived_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
-
-  const restoreMessageMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("inbox_messages").update({ archived_at: null }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["archived-messages"] });
-      queryClient.invalidateQueries({ queryKey: ["inbox-messages"] });
-      toast.success("Message restauré dans la boîte de réception");
-    },
-    onError: (e: any) => toast.error(e?.message || "Erreur de restauration"),
-  });
-
-  const deleteMessageMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("inbox_messages").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["archived-messages"] });
-      toast.success("Message supprimé définitivement");
-    },
-    onError: (e: any) => toast.error(e?.message || "Erreur de suppression"),
-  });
+  const archivedMessages: any[] = [];
+  const loadingArchived = false;
+  const restoreMessageMutation = { mutate: (_id: string) => { toast.info("Fonctionnalité retirée"); } };
+  const deleteMessageMutation = { mutate: (_id: string) => { toast.info("Fonctionnalité retirée"); } };
 
   const deleteAnnonceMutation = useMutation({
     mutationFn: async (id: string) => {
