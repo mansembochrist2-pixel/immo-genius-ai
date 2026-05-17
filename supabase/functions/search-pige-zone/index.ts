@@ -1,5 +1,5 @@
-// Recherche RÉELLE d'annonces immobilières par zone
-// Pipeline : Firecrawl Search (scraping multi-sources) → Lovable AI (extraction structurée) → insert annonces_pige
+// Recherche RÉELLE d'annonces immobilières par zone (Firecrawl-first)
+// Pipeline : Firecrawl Search → validation URL/image → extraction IA structurée → dédup → insert
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 const corsHeaders = {
@@ -9,6 +9,57 @@ const corsHeaders = {
 
 const j = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+// === Heuristiques URL : on ne garde QUE les pages d'annonces réelles ===
+// Évite pages de recherche / listing / catégorie / 404
+const isRealListingUrl = (url: string): boolean => {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    const path = u.pathname;
+
+    // Anti-patterns globaux (recherche, listing, catégorie)
+    const bad = /\/(recherche|search|annonces?\/?$|achat\/?$|ventes_immobilieres\/?$|liste|resultat|categories?)/i;
+    if (bad.test(path)) return false;
+    if (path === "/" || path.length < 6) return false;
+
+    // Patterns spécifiques par plateforme
+    if (host.includes("leboncoin.fr")) return /\/ad\/ventes_immobilieres\/\d+/i.test(path) || /\/vi\/\d+/i.test(path);
+    if (host.includes("seloger.com")) return /\d{4,}\.htm/i.test(path) || /\/annonces\/(achat|location|achat-de-prestige)\/.+\d+/i.test(path);
+    if (host.includes("bienici.com")) return /\/annonce\/.+\/[a-z0-9-]+/i.test(path);
+    if (host.includes("pap.fr")) return /\/annonces\/.+-r\d+/i.test(path) || /-h\d+/i.test(path);
+    if (host.includes("logic-immo")) return /\/detail-/i.test(path);
+    if (host.includes("orpi.com")) return /\/annonce/i.test(path);
+    if (host.includes("century21.fr")) return /\/annonce/i.test(path);
+
+    // Inconnu : on rejette pour rester strict
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+const sourceFromUrl = (url: string): string => {
+  if (url.includes("leboncoin")) return "leboncoin";
+  if (url.includes("seloger")) return "seloger";
+  if (url.includes("bienici")) return "bienici";
+  if (url.includes("pap.fr")) return "pap";
+  if (url.includes("logic-immo")) return "logic-immo";
+  if (url.includes("orpi")) return "orpi";
+  if (url.includes("century21")) return "century21";
+  return "web";
+};
+
+// Extrait la première image valide du markdown : ![](url) ou ![alt](url)
+const extractImageFromMarkdown = (md: string): string | null => {
+  if (!md) return null;
+  const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+\.(?:jpe?g|png|webp)(?:\?[^\s)]*)?)\)/i;
+  const m = md.match(re);
+  if (m && m[1]) return m[1];
+  // Fallback : og:image dans HTML brut éventuel
+  const og = md.match(/og:image["']?\s*content=["'](https?:\/\/[^"']+)["']/i);
+  return og?.[1] || null;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -25,7 +76,7 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return j({ error: "LOVABLE_API_KEY manquant" }, 500);
     if (!FIRECRAWL_API_KEY) return j({ error: "FIRECRAWL_API_KEY manquant — connectez Firecrawl" }, 500);
 
-    // Resolve user_id from JWT, fallback body (demo)
+    // Resolve user_id
     let user_id: string | null = bodyUserId || null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
@@ -44,10 +95,11 @@ Deno.serve(async (req) => {
 
     const zoneClean = zone.trim();
 
-    // ============ 1) FIRECRAWL SEARCH — vraies pages d'annonces ============
+    // ============ 1) FIRECRAWL SEARCH multi-requêtes ciblées ============
     const queries = [
-      `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
-      `appartement à vendre ${zoneClean} site:seloger.com OR site:bienici.com OR site:pap.fr`,
+      `appartement à vendre ${zoneClean} site:leboncoin.fr`,
+      `maison appartement à vendre ${zoneClean} site:seloger.com`,
+      `bien immobilier ${zoneClean} site:bienici.com OR site:pap.fr`,
     ];
 
     type FcResult = { url: string; title?: string; description?: string; markdown?: string };
@@ -56,23 +108,21 @@ Deno.serve(async (req) => {
     for (const query of queries) {
       const fcRes = await fetch("https://api.firecrawl.dev/v2/search", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           query,
-          limit: 6,
+          limit: 8,
           lang: "fr",
           country: "fr",
+          tbs: "qdr:m", // annonces du mois — évite vieilleries expirées
           scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
         }),
       });
 
       if (!fcRes.ok) {
         const txt = await fcRes.text();
-        console.error(`Firecrawl error ${fcRes.status}: ${txt}`);
-        if (fcRes.status === 402) return j({ error: "Crédits Firecrawl épuisés." }, 402);
+        console.error(`Firecrawl ${fcRes.status}: ${txt}`);
+        if (fcRes.status === 402) return j({ error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
         continue;
       }
       const fcData = await fcRes.json();
@@ -82,37 +132,53 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (allResults.length === 0) {
-      return j({ count: 0, annonces: [], message: "Aucune annonce trouvée pour cette zone. Essayez un terme plus précis (ex: 'Paris 16ème')." });
-    }
-
-    // Dedupe by URL
+    // ============ 2) Filtre URLs (vraies pages d'annonces uniquement) ============
     const seen = new Set<string>();
-    const unique = allResults.filter(r => {
-      if (seen.has(r.url)) return false;
+    const validUrlResults = allResults.filter(r => {
+      if (!r.url || seen.has(r.url)) return false;
+      if (!isRealListingUrl(r.url)) return false;
       seen.add(r.url);
       return true;
-    }).slice(0, 12);
+    });
 
-    // ============ 2) Extraction structurée via Lovable AI ============
-    const corpus = unique.map((r, i) => `--- ANNONCE #${i + 1} ---
+    if (validUrlResults.length === 0) {
+      return j({ count: 0, annonces: [], message: "Aucune annonce détaillée trouvée. Essayez une zone plus précise (ex: 'Paris 16', 'Lyon 6ème')." });
+    }
+
+    // ============ 3) Filtre doublons en DB (par URL pour cet utilisateur) ============
+    const urlsCandidates = validUrlResults.map(r => r.url);
+    const { data: existingRows } = await supabase
+      .from("annonces_pige")
+      .select("url")
+      .eq("user_id", user_id)
+      .in("url", urlsCandidates);
+    const existingUrls = new Set((existingRows || []).map((r: any) => r.url));
+    const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 10);
+
+    if (fresh.length === 0) {
+      return j({ count: 0, annonces: [], message: "Toutes les annonces de cette zone sont déjà dans votre pige." });
+    }
+
+    // ============ 4) Extraction structurée via Lovable AI ============
+    const corpus = fresh.map((r, i) => `--- ANNONCE #${i + 1} ---
 URL: ${r.url}
 TITRE: ${r.title || ""}
 DESCRIPTION: ${r.description || ""}
 CONTENU:
 ${(r.markdown || "").slice(0, 2500)}`).join("\n\n");
 
-    const extractPrompt = `Tu es un extracteur de données immobilières. À partir des annonces ci-dessous (scrapées en temps réel sur Leboncoin/SeLoger/PAP/Bienici), extrais pour CHAQUE annonce les champs suivants en JSON strict.
+    const extractPrompt = `Tu es un extracteur de données immobilières françaises strict. Pour CHAQUE annonce ci-dessous, extrais les champs en JSON.
 
-Renvoie UNIQUEMENT du JSON valide au format :
-{"annonces":[{"index":1,"titre":"...","prix":350000,"surface":75,"pieces":3,"ville":"...","code_postal":"75016","type_bien":"appartement","agence":"Particulier ou nom agence","description":"résumé 1-2 phrases","photo":"https://..."}]}
+Renvoie UNIQUEMENT du JSON valide :
+{"annonces":[{"index":1,"titre":"...","prix":350000,"surface":75,"pieces":3,"ville":"...","code_postal":"75016","type_bien":"appartement","agence":"Particulier","description":"résumé 1-2 phrases factuel","photo":"https://..."}]}
 
-Règles :
-- "prix" et "surface" doivent être des nombres (sans €, sans m²). null si introuvable.
+Règles STRICTES :
+- "prix" et "surface" : nombres uniquement (sans € ni m²). null si introuvable.
 - "type_bien" : appartement | maison | terrain | local | autre
-- "agence" : "Particulier" si annonce de particulier, sinon le nom (ex: "Century 21").
-- Ignore les annonces sans prix ou hors zone "${zoneClean}".
-- Garde la photo principale si présente dans le markdown (![](url) ou ![alt](url)).
+- "agence" : "Particulier" si annonce particulier, sinon le nom de l'agence.
+- "photo" : URL image principale trouvée dans le markdown (![](url)). null sinon.
+- IGNORE complètement (ne mets PAS dans la liste) toute annonce qui n'a PAS de prix OU pas de titre clair OU qui semble être une page de recherche/listing.
+- Ne fabrique JAMAIS de données. Si une info manque, mets null.
 
 ANNONCES :
 ${corpus}`;
@@ -129,9 +195,9 @@ ${corpus}`;
 
     if (!aiRes.ok) {
       const txt = await aiRes.text();
-      if (aiRes.status === 429) return j({ error: "Limite IA atteinte, réessayez." }, 429);
+      if (aiRes.status === 429) return j({ error: "Limite IA atteinte, réessayez dans un instant." }, 429);
       if (aiRes.status === 402) return j({ error: "Crédits IA épuisés." }, 402);
-      throw new Error(`Gateway error ${aiRes.status}: ${txt}`);
+      throw new Error(`Gateway ${aiRes.status}: ${txt}`);
     }
     const aiData = await aiRes.json();
     const content: string = aiData.choices?.[0]?.message?.content || "{}";
@@ -144,35 +210,43 @@ ${corpus}`;
     }
     const extracted: any[] = Array.isArray(parsed.annonces) ? parsed.annonces : [];
 
-    // ============ 3) Score + insert ============
+    // ============ 5) Validation finale + Score + Insert ============
     const inserted: any[] = [];
+    const rejected: string[] = [];
+
     for (const a of extracted) {
-      const src = unique[(a.index || 1) - 1];
+      const src = fresh[(a.index || 1) - 1];
       if (!src) continue;
+
       const prix = a.prix ? Number(a.prix) : null;
       const surface = a.surface ? Number(a.surface) : null;
+      const titre = a.titre || src.title || "";
+
+      // Photo : IA → fallback markdown
+      const photo: string | null = a.photo || extractImageFromMarkdown(src.markdown || "");
+
+      // QUALITÉ : on rejette les annonces incomplètes pour garder un produit crédible
+      if (!titre || titre.length < 8) { rejected.push(`${src.url} — titre manquant`); continue; }
+      if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
+      if (!photo) { rejected.push(`${src.url} — pas d'image fiable`); continue; }
+
       const isParticulier = String(a.agence || "").toLowerCase().includes("particulier");
 
       let score = 45;
       if (isParticulier) score += 30;
       if (a.description && String(a.description).length < 100) score += 10;
-      if (prix && surface && prix / surface < 4500) score += 5;
+      if (surface && prix / surface < 4500) score += 5;
       score = Math.min(100, Math.max(0, score));
 
       const failles: string[] = [];
       if (isParticulier) failles.push("Vendeur particulier — ouverture probable à un mandat");
       if (a.description && String(a.description).length < 100) failles.push("Description très courte — défaut de mise en valeur");
-      if (!a.photo) failles.push("Pas de photo principale détectée");
 
       const { data: row, error } = await supabase.from("annonces_pige").insert({
         user_id,
-        source: src.url.includes("leboncoin") ? "leboncoin"
-              : src.url.includes("seloger") ? "seloger"
-              : src.url.includes("bienici") ? "bienici"
-              : src.url.includes("pap.fr") ? "pap"
-              : "web",
+        source: sourceFromUrl(src.url),
         url: src.url,
-        titre: a.titre || src.title || "Annonce sans titre",
+        titre,
         description: a.description || src.description || null,
         prix,
         surface,
@@ -182,7 +256,7 @@ ${corpus}`;
         type_bien: a.type_bien || null,
         agence: a.agence || null,
         date_publication: new Date().toISOString(),
-        photos: a.photo ? [a.photo] : [],
+        photos: [photo],
         score_pigeabilite: score,
         analyse_ia: { failles, zone_recherche: zoneClean, generated: false },
         tags: isParticulier ? ["particulier"] : [],
@@ -194,10 +268,11 @@ ${corpus}`;
     return j({
       count: inserted.length,
       annonces: inserted,
-      sources: unique.map(u => ({ url: u.url, title: u.title || "" })),
+      rejected_count: rejected.length,
+      scanned: validUrlResults.length,
     });
   } catch (e) {
-    console.error("search-pige-zone error:", e);
+    console.error("search-pige-zone fatal:", e);
     return j({ error: String((e as Error).message || e) }, 500);
   }
 });
