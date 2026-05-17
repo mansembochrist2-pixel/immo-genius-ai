@@ -27,11 +27,29 @@ const opportunityLabel = (score: number) => {
 
 export const PigeIA = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [zone, setZone] = useState("");
   const [searching, setSearching] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [selected, setSelected] = useState<any>(null);
+
+  const sendToCopilote = (a: any) => {
+    const ai = a.analyse_ia || {};
+    const lines = [
+      `J'ai détecté une opportunité de pige sur "${a.titre}" (${a.ville || ""}${a.code_postal ? " " + a.code_postal : ""}).`,
+      `Bien : ${a.type_bien || "—"}, ${a.surface ? a.surface + " m²" : "surface N/C"}${a.pieces ? `, ${a.pieces} pièces` : ""}, prix ${a.prix ? Number(a.prix).toLocaleString("fr-FR") + " €" : "N/C"}.`,
+      `Vendeur : ${a.agence || "N/C"} · Source : ${a.source || "N/C"} · Score pigeabilité : ${a.score_pigeabilite}/100.`,
+      a.url ? `Lien annonce : ${a.url}` : "",
+      ai.strategie_approche ? `\nStratégie IA déjà générée : ${ai.strategie_approche}` : "",
+      ai.accroche ? `Accroche : "${ai.accroche}"` : "",
+      ai.failles?.length ? `Failles : ${ai.failles.join(" · ")}` : "",
+      `\nAide-moi à transformer cette opportunité en mandat : prochain pas concret, meilleur canal de contact, et 2 angles d'approche complémentaires à la stratégie déjà générée.`,
+    ].filter(Boolean).join("\n");
+    sessionStorage.setItem("copilote_prefill", lines);
+    toast.success("Contexte envoyé au Copilote IA");
+    navigate("/copilote");
+  };
 
   const { data: annonces = [], isLoading } = useQuery({
     queryKey: ["annonces-pige"],
