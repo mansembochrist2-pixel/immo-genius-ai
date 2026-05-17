@@ -282,12 +282,22 @@ export const PigeIA = () => {
                   )}
                 </div>
 
-                {!selected.analyse_ia?.generated && (
-                  <Button onClick={() => generateStrategy(selected)} disabled={generatingFor === selected.id} className="w-full gap-2">
-                    {generatingFor === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    Générer la stratégie de pige IA
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {!selected.analyse_ia?.generated ? (
+                    <Button onClick={() => generateStrategy(selected)} disabled={generatingFor === selected.id} className="flex-1 gap-2">
+                      {generatingFor === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      Générer la stratégie de pige IA
+                    </Button>
+                  ) : (
+                    <Button onClick={() => generateStrategy(selected)} variant="outline" disabled={generatingFor === selected.id} className="flex-1 gap-2">
+                      {generatingFor === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      Régénérer la stratégie
+                    </Button>
+                  )}
+                  <Button onClick={() => sendToCopilote(selected)} variant="secondary" className="flex-1 gap-2">
+                    <Send className="h-4 w-4" /> Envoyer au Copilote IA
                   </Button>
-                )}
+                </div>
 
                 {selected.analyse_ia?.accroche && (
                   <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
