@@ -310,14 +310,30 @@ ${corpus}`;
       else if (error) console.error("Insert error:", error);
     }
 
+    console.log(`[Pige] zone="${zoneClean}" inserted=${inserted.length} rejected=${rejected.length} fresh=${fresh.length}`);
+
+    if (inserted.length === 0) {
+      return j({
+        status: "no_results",
+        count: 0,
+        annonces: [],
+        rejected_count: rejected.length,
+        scanned: validUrlResults.length,
+        message: rejected.length > 0
+          ? `${rejected.length} annonce${rejected.length > 1 ? "s" : ""} détectée${rejected.length > 1 ? "s" : ""} mais incomplète${rejected.length > 1 ? "s" : ""} (image, prix ou titre manquant). Essayez une autre zone.`
+          : `Aucune annonce exploitable trouvée pour "${zoneClean}".`,
+      });
+    }
+
     return j({
+      status: "success",
       count: inserted.length,
       annonces: inserted,
       rejected_count: rejected.length,
       scanned: validUrlResults.length,
     });
   } catch (e) {
-    console.error("search-pige-zone fatal:", e);
-    return j({ error: String((e as Error).message || e) }, 500);
+    console.error("[search-pige-zone] fatal:", e);
+    return j({ status: "scraping_error", error: String((e as Error).message || e) }, 500);
   }
 });
