@@ -356,10 +356,10 @@ export const PigeIA = () => {
   }, [annonces, byCategory.top.length]);
 
   const kpis = [
-    { label: "Opportunités totales", value: annonces.length, icon: Radar },
+    { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
     { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
-    { label: "Particuliers", value: annonces.filter((a: any) => a.contact_vendeur?.type === "particulier").length, icon: Target },
-    { label: "Score moyen", value: annonces.length ? Math.round(annonces.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / annonces.length) + "/100" : "—", icon: TrendingUp },
+    { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck },
+    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(annonces.filter(matchesActiveZone).reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
   ];
 
   const renderCard = (a: any) => {
