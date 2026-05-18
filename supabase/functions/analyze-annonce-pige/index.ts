@@ -65,7 +65,17 @@ Retourne UNIQUEMENT un JSON valide (sans markdown, sans commentaires) :
   "niveau_urgence": "faible|moyen|fort",
   "niveau_concurrence": "faible|moyen|fort",
   "estimation_commission": "estimation honoraires en € si mandat décroché (calcul ~5% du prix)",
-  "conseils_contact": ["conseil 1 (canal + moment)", "conseil 2", "conseil 3"]
+  "conseils_contact": ["conseil 1 (canal + moment)", "conseil 2", "conseil 3"],
+  "fiche_proprietaire": {
+    "resume_vendeur": "synthèse opérationnelle en 2 phrases, sans inventer d'identité",
+    "profil_probable": "particulier|agence|indetermine",
+    "motivations_probables": ["hypothèse vérifiable 1", "hypothèse vérifiable 2"],
+    "points_douleur": ["problème probable détecté dans l'annonce", "..."],
+    "angle_approche": "angle commercial prioritaire pour obtenir un RDV",
+    "informations_a_valider": ["question à poser 1", "question à poser 2", "question à poser 3"],
+    "prochaine_action": "action simple à faire maintenant",
+    "niveau_priorite": "faible|moyen|fort"
+  }
 }`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -93,8 +103,18 @@ Retourne UNIQUEMENT un JSON valide (sans markdown, sans commentaires) :
       if (m) strategy = JSON.parse(m[0]);
     } catch (_) {}
 
+    const fiche = strategy.fiche_proprietaire || {
+      resume_vendeur: `Vendeur ${annonce.contact_vendeur?.type || "à qualifier"} détecté sur ${annonce.ville || "la zone"}. Priorité : vérifier la motivation, le calendrier et l'ouverture à un accompagnement professionnel.`,
+      profil_probable: annonce.contact_vendeur?.type || "indetermine",
+      motivations_probables: ["Vendre dans de bonnes conditions", "Obtenir plus de visibilité ou un meilleur prix"],
+      points_douleur: strategy.failles || [],
+      angle_approche: strategy.strategie_approche || "Qualifier le projet puis proposer un rendez-vous d'estimation/stratégie.",
+      informations_a_valider: ["Pourquoi vendez-vous maintenant ?", "Depuis quand le bien est-il en vente ?", "Avez-vous déjà eu des offres ou visites qualifiées ?"],
+      prochaine_action: "Appeler avec une accroche personnalisée et proposer un point de 15 minutes.",
+      niveau_priorite: strategy.potentiel_mandat || "moyen",
+    };
     const merged = { ...(annonce.analyse_ia || {}), ...strategy, generated: true };
-    await supabase.from("annonces_pige").update({ analyse_ia: merged, statut: "analysee" }).eq("id", annonce_id);
+    await supabase.from("annonces_pige").update({ analyse_ia: merged, fiche_proprietaire: fiche, statut: "analysee" }).eq("id", annonce_id);
 
     return new Response(JSON.stringify({ ok: true, analyse: merged }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
