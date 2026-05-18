@@ -112,6 +112,10 @@ const listingMatchesSearchZone = (annonce: any, zone: string) => {
   if (target.arrondissement) {
     const { city, arr, cp } = target.arrondissement;
     if (adCp) return adCp === cp;
+    const conflictingCp = haystack.match(new RegExp(`\\b${escapeRegex(cp.slice(0, 3))}(\\d{2})\\b`))?.[0];
+    if (conflictingCp && conflictingCp !== cp) return false;
+    const conflictingArr = haystack.match(new RegExp(`(^|[^a-z0-9])${escapeRegex(city)}\\s*(\\d{1,2})(?:e|eme|er)?([^a-z0-9]|$)`))?.[2];
+    if (conflictingArr && Number(conflictingArr) !== arr) return false;
     const arrHit = hasPhrase(haystack, cp)
       || new RegExp(`(^|[^a-z0-9])${escapeRegex(city)}\\s*${arr}(?:e|eme|er)?([^a-z0-9]|$)`).test(haystack)
       || new RegExp(`(^|[^a-z0-9])${arr}(?:e|eme|er)?\\s*(?:arrondissement|arr\\.?)([^a-z0-9]|$)`).test(haystack);
