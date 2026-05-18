@@ -1,6 +1,6 @@
 import { lazy, type ComponentType } from "react";
 
-type RouteModule = { default: ComponentType<any> };
+type RouteModule = { default: ComponentType };
 type RouteLoader = () => Promise<RouteModule>;
 
 const CHUNK_RELOAD_KEY = "__estate_ai_chunk_reload_at__";
