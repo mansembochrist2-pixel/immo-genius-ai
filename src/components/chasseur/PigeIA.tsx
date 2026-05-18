@@ -282,7 +282,7 @@ export const PigeIA = () => {
   const toggleVivier = (a: any) => {
     const newVal = !a.saved_to_vivier;
     updateAnnonce.mutate({ id: a.id, patch: { saved_to_vivier: newVal } });
-    toast.success(newVal ? "✓ Ajouté à votre Vivier de mandats" : "Retiré du Vivier");
+    toast.success(newVal ? "✓ Annonce enregistrée" : "Annonce retirée des enregistrés");
     if (selected?.id === a.id) setSelected({ ...selected, saved_to_vivier: newVal });
   };
 
