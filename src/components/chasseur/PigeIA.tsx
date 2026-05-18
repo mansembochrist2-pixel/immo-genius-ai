@@ -315,9 +315,10 @@ export const PigeIA = () => {
   };
 
   const byCategory = useMemo(() => {
-    const buckets: Record<string, any[]> = { vivier: [], top: [], moyenne: [], faible: [], surveiller: [] };
+    const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
+    // Tant qu'aucune recherche n'a été lancée dans la session, on n'affiche AUCUNE catégorie.
+    if (!activeZone) return buckets;
     for (const a of annonces) {
-      if ((a as any).saved_to_vivier) buckets.vivier.push(a);
       if (!matchesActiveZone(a)) continue;
       const cat = (a as any).categorie_opportunite
         || ((a as any).score_pigeabilite >= 75 ? "top"
@@ -327,6 +328,16 @@ export const PigeIA = () => {
     }
     return buckets;
   }, [annonces, activeZone]);
+
+  const savedAnnonces = useMemo(
+    () => annonces.filter((a: any) => a.saved_to_vivier),
+    [annonces]
+  );
+
+  const zoneAnnoncesCount = useMemo(
+    () => (activeZone ? annonces.filter(matchesActiveZone).length : 0),
+    [annonces, activeZone]
+  );
 
   // ---- Insights marché (dérivés des annonces de la zone visible) ----
   const insights = useMemo(() => {
