@@ -2,28 +2,47 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Loader2, ExternalLink, Sparkles, Trash2, Target, AlertTriangle, MessageSquare, Lightbulb, Radar, Zap, TrendingUp, MapPin, Send } from "lucide-react";
-import { useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Search, Loader2, ExternalLink, Sparkles, Trash2, Target, AlertTriangle,
+  MessageSquare, Lightbulb, Radar, Zap, TrendingUp, MapPin, Send, Phone, Mail,
+  Info, Flame, CheckCircle2, Eye, Camera, Clock, ArrowDown,
+} from "lucide-react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { handleApiError } from "@/lib/error-handler";
+import { cn } from "@/lib/utils";
 
 const scoreBadgeColor = (score: number) => {
-  if (score >= 75) return "bg-success/15 text-success border-success/30";
+  if (score >= 75) return "bg-destructive/15 text-destructive border-destructive/30";
   if (score >= 50) return "bg-warning/15 text-warning border-warning/30";
+  if (score >= 25) return "bg-primary/10 text-primary border-primary/20";
   return "bg-muted text-muted-foreground border-border";
 };
 
-const opportunityLabel = (score: number) => {
-  if (score >= 85) return { label: "🔥 Opportunité chaude", color: "text-destructive" };
-  if (score >= 70) return { label: "⚡ Forte opportunité", color: "text-warning" };
-  if (score >= 50) return { label: "💡 Opportunité moyenne", color: "text-primary" };
-  return { label: "À surveiller", color: "text-muted-foreground" };
-};
+const CATEGORIES = [
+  { key: "top",        label: "🔥 Top opportunités",  min: 75, color: "text-destructive" },
+  { key: "moyenne",    label: "⚡ Moyennes",          min: 50, color: "text-warning" },
+  { key: "faible",     label: "💡 Faibles",           min: 25, color: "text-primary" },
+  { key: "surveiller", label: "👁 À surveiller",      min: 0,  color: "text-muted-foreground" },
+] as const;
+
+const WORKFLOW = [
+  { key: "a_appeler",     label: "À appeler",     color: "bg-primary/15 text-primary" },
+  { key: "contacte",      label: "Contacté",      color: "bg-info/15 text-info" },
+  { key: "relance",       label: "Relance",       color: "bg-warning/15 text-warning" },
+  { key: "rdv_pris",      label: "RDV pris",      color: "bg-accent/20 text-accent-foreground" },
+  { key: "mandat_signe",  label: "✅ Mandat signé", color: "bg-success/15 text-success" },
+  { key: "refus",         label: "Refus",         color: "bg-destructive/10 text-destructive" },
+  { key: "a_surveiller",  label: "À surveiller",  color: "bg-muted text-muted-foreground" },
+];
 
 const mergeFreshAnnonces = (current: any[] = [], fresh: any[] = []) => {
   const seen = new Set<string>();
@@ -35,6 +54,99 @@ const mergeFreshAnnonces = (current: any[] = [], fresh: any[] = []) => {
   });
 };
 
+// ------ ScoreBreakdown popover ------
+const ScoreBreakdown = ({ annonce }: { annonce: any }) => {
+  const score = annonce.score_pigeabilite || 0;
+  const breakdown: any[] = Array.isArray(annonce.score_breakdown) ? annonce.score_breakdown : [];
+  const synthese =
+    score >= 75 ? "Mandat hautement probable — priorité 1."
+    : score >= 50 ? "Cible intéressante — qualification rapide recommandée."
+    : score >= 25 ? "Potentiel limité — à approcher si bande passante."
+    : "À surveiller — peu d'angles immédiats.";
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-mono", scoreBadgeColor(score))}
+        >
+          {score}/100 <Info className="h-3 w-3 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-96 p-0" align="end" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b border-border/40 bg-muted/30 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Score de mandatabilité
+            </h4>
+            <Badge className={cn("font-mono", scoreBadgeColor(score))}>{score}/100</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{synthese}</p>
+        </div>
+        <div className="p-4 space-y-2 max-h-80 overflow-y-auto">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Critères pondérés</p>
+          {breakdown.length === 0 && (
+            <p className="text-xs text-muted-foreground italic">Aucun détail — score calculé sur données partielles.</p>
+          )}
+          {breakdown.map((c, i) => (
+            <div key={i} className="border border-border/30 rounded-md p-2.5 bg-card/40">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-medium">{c.label}</p>
+                <span className={cn(
+                  "text-[10px] font-mono px-1.5 py-0.5 rounded",
+                  c.status === "positive" && "bg-success/10 text-success",
+                  c.status === "negative" && "bg-destructive/10 text-destructive",
+                  c.status === "neutral"  && "bg-muted/40 text-muted-foreground",
+                )}>
+                  {c.weight > 0 ? `+${c.weight}` : c.weight}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">{c.detail}</p>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+// ------ Workflow status badge with dropdown ------
+const WorkflowBadge = ({ annonce, onChange }: { annonce: any; onChange: (s: string) => void }) => {
+  const current = WORKFLOW.find(w => w.key === (annonce.workflow_statut || "a_appeler")) || WORKFLOW[0];
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className={cn("text-[10px] px-2 py-1 rounded-md font-medium border border-border/40 hover:opacity-80", current.color)}
+        >
+          {current.label}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-1" align="start" onClick={(e) => e.stopPropagation()}>
+        <div className="space-y-0.5">
+          {WORKFLOW.map(w => (
+            <button
+              key={w.key}
+              onClick={() => onChange(w.key)}
+              className={cn(
+                "w-full text-left text-xs px-2 py-1.5 rounded hover:bg-secondary transition-colors",
+                w.key === current.key && "bg-secondary font-medium",
+              )}
+            >
+              <span className={cn("inline-block px-1.5 py-0.5 rounded mr-2 text-[10px]", w.color)}>•</span>
+              {w.label}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 export const PigeIA = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -43,21 +155,53 @@ export const PigeIA = () => {
   const [searching, setSearching] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [selected, setSelected] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>("top");
+  const [notesDraft, setNotesDraft] = useState<string>("");
 
   const sendToCopilote = (a: any) => {
     const ai = a.analyse_ia || {};
+    const contact = a.contact_vendeur || {};
+    const sig = a.signaux_marche || {};
+    const qual = a.qualite_annonce || {};
+    const breakdown = Array.isArray(a.score_breakdown) ? a.score_breakdown : [];
+
     const lines = [
-      `J'ai détecté une opportunité de pige sur "${a.titre}" (${a.ville || ""}${a.code_postal ? " " + a.code_postal : ""}).`,
-      `Bien : ${a.type_bien || "—"}, ${a.surface ? a.surface + " m²" : "surface N/C"}${a.pieces ? `, ${a.pieces} pièces` : ""}, prix ${a.prix ? Number(a.prix).toLocaleString("fr-FR") + " €" : "N/C"}.`,
-      `Vendeur : ${a.agence || "N/C"} · Source : ${a.source || "N/C"} · Score pigeabilité : ${a.score_pigeabilite}/100.`,
-      a.url ? `Lien annonce : ${a.url}` : "",
-      ai.strategie_approche ? `\nStratégie IA déjà générée : ${ai.strategie_approche}` : "",
-      ai.accroche ? `Accroche : "${ai.accroche}"` : "",
-      ai.failles?.length ? `Failles : ${ai.failles.join(" · ")}` : "",
-      `\nAide-moi à transformer cette opportunité en mandat : prochain pas concret, meilleur canal de contact, et 2 angles d'approche complémentaires à la stratégie déjà générée.`,
+      `### Opportunité de pige à transformer en mandat`,
+      `**Bien** : ${a.titre}`,
+      `**Localisation** : ${a.ville || "—"}${a.code_postal ? " " + a.code_postal : ""}${a.adresse ? ` · ${a.adresse}` : ""}`,
+      `**Caractéristiques** : ${a.type_bien || "—"}${a.surface ? ` · ${a.surface} m²` : ""}${a.pieces ? ` · ${a.pieces}p` : ""}`,
+      `**Prix** : ${a.prix ? Number(a.prix).toLocaleString("fr-FR") + " €" : "N/C"}${sig.prix_m2 ? ` (${sig.prix_m2} €/m²)` : ""}`,
+      ``,
+      `**Vendeur** : ${contact.type || "inconnu"}${contact.agence_nom ? ` (${contact.agence_nom})` : ""}${contact.nom ? ` · ${contact.nom}` : ""}`,
+      contact.telephone ? `**Téléphone** : ${contact.telephone}` : "",
+      contact.email ? `**Email** : ${contact.email}` : "",
+      a.url ? `**Source** : ${a.url}` : "",
+      ``,
+      `**Score mandatabilité** : ${a.score_pigeabilite}/100 — catégorie "${a.categorie_opportunite || "moyenne"}"`,
+      breakdown.length ? `**Critères** : ${breakdown.map((c: any) => `${c.label} (${c.weight > 0 ? "+" : ""}${c.weight})`).join(", ")}` : "",
+      ``,
+      `**Signaux marché** : ${[
+        sig.baisse_prix_detectee && "baisse de prix",
+        sig.multi_diffusion && `multi-diffusion (${(sig.sources_detectees || []).join(", ")})`,
+        sig.ancienneté_jours && `${sig.ancienneté_jours}j en ligne`,
+      ].filter(Boolean).join(" · ") || "RAS"}`,
+      `**Qualité annonce** : ${qual.nb_photos ?? "?"} photos (${qual.qualite_photos || "?"}) · description ${qual.longueur_description || 0} car.`,
+      ``,
+      ai.strategie_approche ? `**Stratégie IA déjà générée** : ${ai.strategie_approche}` : "",
+      ai.accroche ? `**Accroche** : "${ai.accroche}"` : "",
+      ai.failles?.length ? `**Failles** : ${ai.failles.join(" · ")}` : "",
+      a.notes_agent ? `\n**Mes notes** : ${a.notes_agent}` : "",
+      ``,
+      `---`,
+      `Aide-moi à transformer cette opportunité en mandat. Donne-moi :`,
+      `1. Le meilleur canal et le bon moment pour le contacter`,
+      `2. Une accroche personnalisée à utiliser dans les 30 premières secondes`,
+      `3. 2 angles complémentaires à la stratégie déjà générée`,
+      `4. Le plan de relance sur 14 jours si pas de retour`,
     ].filter(Boolean).join("\n");
+
     sessionStorage.setItem("copilote_prefill", lines);
-    toast.success("Contexte envoyé au Copilote IA");
+    toast.success("Contexte complet envoyé au Copilote IA");
     navigate("/copilote");
   };
 
@@ -80,55 +224,45 @@ export const PigeIA = () => {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["annonces-pige"] }); toast.success("Annonce supprimée"); },
   });
 
+  const updateAnnonce = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) => {
+      const { error } = await supabase.from("annonces_pige").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["annonces-pige"] }),
+  });
+
   const runSearch = async () => {
     if (!zone.trim()) { toast.error("Entrez une ville, un quartier ou un code postal"); return; }
     setSearching(true);
     try {
       const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim(), user_id: user?.id } });
-      if (error && !data) {
-        toast.error("Erreur lors de la récupération des annonces. Réessayez dans un instant.");
-        return;
-      }
+      if (error && !data) { toast.error("Erreur lors de la récupération des annonces."); return; }
       const res = (data || {}) as any;
       const status: string = res.status || (res.error ? "scraping_error" : "success");
       const returnedAnnonces = Array.isArray(res.annonces) ? res.annonces : [];
       if (returnedAnnonces.length > 0) {
         qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
       }
-
       switch (status) {
         case "success": {
           const count = returnedAnnonces.length || res.count || 0;
           const rejected = res.rejected_count || 0;
-          toast.success(
-            `${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} filtrée${rejected > 1 ? "s" : ""} (données incomplètes)` : ""}`
-          );
+          toast.success(`${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} filtrée${rejected > 1 ? "s" : ""}` : ""}`);
           await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
-          if (returnedAnnonces.length > 0) {
-            qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
-          }
           break;
         }
         case "no_results":
-          toast.info(res.message || `Aucune annonce trouvée pour "${zone}".`);
-          break;
+          toast.info(res.message || `Aucune annonce trouvée pour "${zone}".`); break;
         case "all_existing":
-          toast.info(res.message || "Ces annonces sont déjà dans votre pige — liste mise à jour.");
-          await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
-          if (returnedAnnonces.length > 0) {
-            qc.setQueryData(["annonces-pige"], (old: any[] = []) => mergeFreshAnnonces(old, returnedAnnonces));
-          }
-          break;
-        case "scraping_error":
+          toast.info(res.message || "Pige existante mise à jour.");
+          await qc.invalidateQueries({ queryKey: ["annonces-pige"] }); break;
         default:
           toast.error(res.error || "Erreur lors de la récupération des annonces.");
-          break;
       }
     } catch (e) {
       handleApiError(e, "Recherche d'opportunités");
-    } finally {
-      setSearching(false);
-    }
+    } finally { setSearching(false); }
   };
 
   const generateStrategy = async (annonce: any) => {
@@ -139,22 +273,109 @@ export const PigeIA = () => {
       if ((data as any)?.error) throw new Error((data as any).error);
       toast.success("Stratégie IA générée");
       qc.invalidateQueries({ queryKey: ["annonces-pige"] });
-      // Reopen the dialog with fresh data
       const { data: fresh } = await supabase.from("annonces_pige").select("*").eq("id", annonce.id).single();
       if (fresh) setSelected(fresh);
-    } catch (e) {
-      handleApiError(e, "Génération stratégie IA");
-    } finally {
-      setGeneratingFor(null);
-    }
+    } catch (e) { handleApiError(e, "Génération stratégie IA"); }
+    finally { setGeneratingFor(null); }
   };
 
+  // ---- Categorisation ----
+  const byCategory = useMemo(() => {
+    const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
+    for (const a of annonces) {
+      const cat = (a as any).categorie_opportunite
+        || ((a as any).score_pigeabilite >= 75 ? "top"
+          : (a as any).score_pigeabilite >= 50 ? "moyenne"
+          : (a as any).score_pigeabilite >= 25 ? "faible" : "surveiller");
+      (buckets[cat] || buckets.surveiller).push(a);
+    }
+    return buckets;
+  }, [annonces]);
+
+  // ---- Insights marché (dérivés des annonces de la zone visible) ----
+  const insights = useMemo(() => {
+    if (annonces.length < 3) return [];
+    const list: string[] = [];
+    const particuliers = annonces.filter((a: any) => (a.contact_vendeur?.type || "") === "particulier").length;
+    const pctPart = Math.round((particuliers / annonces.length) * 100);
+    if (pctPart >= 40) list.push(`👤 ${pctPart}% de vendeurs particuliers — terrain favorable pour la conquête`);
+    const baisses = annonces.filter((a: any) => a.signaux_marche?.baisse_prix_detectee).length;
+    if (baisses >= 2) list.push(`📉 ${baisses} annonces avec baisse de prix — marché sous tension côté vendeurs`);
+    const multi = annonces.filter((a: any) => a.signaux_marche?.multi_diffusion).length;
+    if (multi >= 2) list.push(`🌐 ${multi} biens multi-diffusés — mandats simples détectés (cible mandat exclusif)`);
+    const topCount = byCategory.top.length;
+    if (topCount >= 3) list.push(`🔥 ${topCount} top opportunités — concentrez vos appels aujourd'hui`);
+    return list;
+  }, [annonces, byCategory.top.length]);
+
   const kpis = [
-    { label: "Opportunités détectées", value: annonces.length, icon: Radar },
+    { label: "Opportunités totales", value: annonces.length, icon: Radar },
+    { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
+    { label: "Particuliers", value: annonces.filter((a: any) => a.contact_vendeur?.type === "particulier").length, icon: Target },
     { label: "Score moyen", value: annonces.length ? Math.round(annonces.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / annonces.length) + "/100" : "—", icon: TrendingUp },
-    { label: "🔥 Pige chaudes (≥75)", value: annonces.filter((a: any) => a.score_pigeabilite >= 75).length, icon: Zap },
-    { label: "Particuliers", value: annonces.filter((a: any) => (a.tags || []).includes("particulier")).length, icon: Target },
   ];
+
+  const renderCard = (a: any) => {
+    const photo = (a.photos as any[])?.[0];
+    const daysOnline = a.date_publication ? Math.round((Date.now() - new Date(a.date_publication).getTime()) / 86400000) : null;
+    const contact = a.contact_vendeur || {};
+    const sig = a.signaux_marche || {};
+    return (
+      <Card key={a.id} className="rounded-2xl overflow-hidden hover:border-primary/40 transition-all cursor-pointer group" onClick={() => { setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
+        {photo ? (
+          <div className="h-40 bg-secondary/30 overflow-hidden relative">
+            <img src={photo} alt={a.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
+            <div className="absolute top-2 left-2 flex gap-1">
+              {contact.type === "particulier" && <Badge className="bg-success/90 text-white border-0 text-[10px]">Particulier</Badge>}
+              {sig.baisse_prix_detectee && <Badge className="bg-warning/90 text-white border-0 text-[10px] gap-1"><ArrowDown className="h-2.5 w-2.5" />Baisse</Badge>}
+              {sig.multi_diffusion && <Badge className="bg-primary/90 text-white border-0 text-[10px]">Multi-diff</Badge>}
+            </div>
+          </div>
+        ) : (
+          <div className="h-40 bg-gradient-to-br from-secondary/40 to-secondary/10 flex items-center justify-center">
+            <Radar className="h-10 w-10 text-muted-foreground/20" />
+          </div>
+        )}
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-semibold line-clamp-2 flex-1">{a.titre}</h3>
+            <div onClick={(e) => e.stopPropagation()}><ScoreBreakdown annonce={a} /></div>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+            {a.prix && <span className="font-semibold text-foreground">{Number(a.prix).toLocaleString("fr-FR")} €</span>}
+            {a.surface && <span>· {a.surface} m²</span>}
+            {a.pieces && <span>· {a.pieces}p</span>}
+            {sig.prix_m2 && <span className="text-[10px]">· {sig.prix_m2} €/m²</span>}
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            {a.ville && <span className="flex items-center gap-1"><MapPin className="h-2.5 w-2.5" />{a.ville}</span>}
+            {daysOnline !== null && <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" />{daysOnline}j</span>}
+            <span className="flex items-center gap-1"><Camera className="h-2.5 w-2.5" />{a.qualite_annonce?.nb_photos ?? 0}</span>
+          </div>
+          {(contact.telephone || contact.email) && (
+            <div className="flex items-center gap-2 text-[10px] text-success font-medium border-t border-border/30 pt-2">
+              {contact.telephone && <span className="flex items-center gap-1"><Phone className="h-2.5 w-2.5" />{contact.telephone}</span>}
+              {contact.email && <span className="flex items-center gap-1 truncate"><Mail className="h-2.5 w-2.5" />{contact.email}</span>}
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+            <WorkflowBadge annonce={a} onChange={(s) => updateAnnonce.mutate({ id: a.id, patch: { workflow_statut: s } })} />
+            <div className="flex items-center gap-1">
+              {a.analyse_ia?.generated && <CheckCircle2 className="h-3 w-3 text-success" />}
+              {a.url && (
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); window.open(a.url, "_blank"); }}>
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              )}
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); deleteM.mutate(a.id); }}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -163,12 +384,12 @@ export const PigeIA = () => {
         <CardContent className="p-8">
           <div className="flex items-center gap-2 mb-3">
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Moteur de pige IA · Détection automatique</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Chasseur de mandats · Détection IA temps réel</p>
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
             Quelle zone souhaitez-vous <span className="gradient-text">piger</span> ?
           </h2>
-          <p className="text-sm text-muted-foreground mb-6">L'IA scanne Leboncoin, SeLoger, Bien'ici… et détecte automatiquement les meilleures opportunités de mandats.</p>
+          <p className="text-sm text-muted-foreground mb-6">L'IA scanne Leboncoin, SeLoger, Bien'ici, PAP… extrait les données vendeur et scorent la mandatabilité.</p>
 
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
@@ -198,6 +419,22 @@ export const PigeIA = () => {
         </CardContent>
       </Card>
 
+      {/* Insights marché */}
+      {insights.length > 0 && (
+        <Card className="rounded-2xl border-accent/30 bg-accent/5">
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase tracking-wider text-accent-foreground/70 font-semibold mb-2 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> Insights marché — votre pige
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {insights.map((ins, i) => (
+                <Badge key={i} variant="outline" className="bg-background/60 text-xs py-1 px-3">{ins}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
@@ -213,13 +450,13 @@ export const PigeIA = () => {
         ))}
       </div>
 
-      {/* Results grid */}
+      {/* Results */}
       {searching && annonces.length === 0 ? (
         <Card className="rounded-2xl border-dashed">
           <CardContent className="py-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
             <p className="text-sm font-medium">L'IA scanne les annonces sur {zone}…</p>
-            <p className="text-xs text-muted-foreground mt-1">Cela prend généralement 10-30 secondes.</p>
+            <p className="text-xs text-muted-foreground mt-1">10-30 secondes.</p>
           </CardContent>
         </Card>
       ) : isLoading ? (
@@ -229,97 +466,93 @@ export const PigeIA = () => {
           <CardContent className="py-16 text-center">
             <Radar className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm font-medium">Lancez votre première recherche d'opportunités</p>
-            <p className="text-xs text-muted-foreground mt-1">Entrez une zone ci-dessus pour que l'IA détecte les annonces piégeables.</p>
+            <p className="text-xs text-muted-foreground mt-1">Entrez une zone ci-dessus pour démarrer la pige.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {annonces.map((a: any) => {
-            const opp = opportunityLabel(a.score_pigeabilite || 0);
-            const photo = (a.photos as any[])?.[0];
-            const daysOnline = a.date_publication ? Math.round((Date.now() - new Date(a.date_publication).getTime()) / 86400000) : null;
-            return (
-              <Card key={a.id} className="rounded-2xl overflow-hidden hover:border-primary/40 transition-all cursor-pointer group" onClick={() => setSelected(a)}>
-                {photo ? (
-                  <div className="h-40 bg-secondary/30 overflow-hidden">
-                    <img src={photo} alt={a.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
-                  </div>
-                ) : (
-                  <div className="h-40 bg-gradient-to-br from-secondary/40 to-secondary/10 flex items-center justify-center">
-                    <Radar className="h-10 w-10 text-muted-foreground/20" />
-                  </div>
-                )}
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold line-clamp-2 flex-1">{a.titre}</h3>
-                    <Badge className={`text-[10px] shrink-0 ${scoreBadgeColor(a.score_pigeabilite || 0)}`}>
-                      {a.score_pigeabilite || 0}
-                    </Badge>
-                  </div>
-                  <p className={`text-[11px] font-semibold ${opp.color}`}>{opp.label}</p>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-                    {a.prix && <span className="font-semibold text-foreground">{Number(a.prix).toLocaleString("fr-FR")} €</span>}
-                    {a.surface && <span>· {a.surface} m²</span>}
-                    {a.pieces && <span>· {a.pieces}p</span>}
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    {a.ville && <span className="flex items-center gap-1"><MapPin className="h-2.5 w-2.5" />{a.ville}</span>}
-                    {a.agence && <span>· {a.agence}</span>}
-                    {daysOnline !== null && <span>· {daysOnline}j en ligne</span>}
-                  </div>
-                  <div className="flex items-center gap-1 pt-2 border-t border-border/50">
-                    <Button
-                      size="sm"
-                      variant={a.analyse_ia?.generated ? "outline" : "default"}
-                      className="flex-1 h-8 text-xs gap-1"
-                      disabled={generatingFor === a.id}
-                      onClick={(e) => { e.stopPropagation(); generateStrategy(a); }}
-                    >
-                      {generatingFor === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                      {a.analyse_ia?.generated ? "Voir stratégie" : "Générer stratégie IA"}
-                    </Button>
-                    {a.url && (
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); window.open(a.url, "_blank"); }}>
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    )}
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); deleteM.mutate(a.id); }}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="bg-card border border-border rounded-2xl p-1 h-auto flex flex-wrap">
+            {CATEGORIES.map(c => (
+              <TabsTrigger key={c.key} value={c.key} className="rounded-xl text-xs gap-2">
+                <span className={c.color}>{c.label}</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">{byCategory[c.key]?.length || 0}</Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {CATEGORIES.map(c => (
+            <TabsContent key={c.key} value={c.key} className="mt-4">
+              {(byCategory[c.key] || []).length === 0 ? (
+                <Card className="rounded-2xl border-dashed">
+                  <CardContent className="py-10 text-center text-xs text-muted-foreground">
+                    Aucune annonce dans cette catégorie.
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {(byCategory[c.key] || []).map(renderCard)}
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
       )}
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
           {selected && (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3 pr-8">
                   <span className="flex-1">{selected.titre}</span>
-                  <Badge className={scoreBadgeColor(selected.score_pigeabilite || 0)}>
-                    {selected.score_pigeabilite || 0}/100
-                  </Badge>
+                  <ScoreBreakdown annonce={selected} />
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
+                {/* Top row : prix / surface / source */}
                 <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                  {selected.prix && <span className="font-semibold text-foreground">{Number(selected.prix).toLocaleString("fr-FR")} €</span>}
+                  {selected.prix && <span className="font-semibold text-foreground text-sm">{Number(selected.prix).toLocaleString("fr-FR")} €</span>}
                   {selected.surface && <span>{selected.surface} m²</span>}
+                  {selected.pieces && <span>· {selected.pieces}p</span>}
+                  {selected.signaux_marche?.prix_m2 && <span>· {selected.signaux_marche.prix_m2} €/m²</span>}
                   {selected.ville && <span>· {selected.ville}</span>}
-                  {selected.agence && <span>· {selected.agence}</span>}
+                  <WorkflowBadge annonce={selected} onChange={(s) => { updateAnnonce.mutate({ id: selected.id, patch: { workflow_statut: s } }); setSelected({ ...selected, workflow_statut: s }); }} />
                   {selected.url && (
-                    <a href={selected.url} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                    <a href={selected.url} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1 ml-auto">
                       Voir annonce <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                 </div>
 
+                {/* Contact vendeur */}
+                {(selected.contact_vendeur?.telephone || selected.contact_vendeur?.email || selected.contact_vendeur?.nom) && (
+                  <div className="rounded-xl border border-success/30 bg-success/5 p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-success font-semibold mb-2 flex items-center gap-1">
+                      <Phone className="h-3 w-3" /> Contact vendeur ({selected.contact_vendeur?.type || "?"})
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                      {selected.contact_vendeur?.nom && <div><span className="text-muted-foreground text-xs">Nom</span><br />{selected.contact_vendeur.nom}</div>}
+                      {selected.contact_vendeur?.telephone && <div><span className="text-muted-foreground text-xs">Téléphone</span><br /><a href={`tel:${selected.contact_vendeur.telephone}`} className="text-primary font-medium">{selected.contact_vendeur.telephone}</a></div>}
+                      {selected.contact_vendeur?.email && <div><span className="text-muted-foreground text-xs">Email</span><br /><a href={`mailto:${selected.contact_vendeur.email}`} className="text-primary font-medium break-all">{selected.contact_vendeur.email}</a></div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Signaux marché */}
+                {selected.signaux_marche && (selected.signaux_marche.baisse_prix_detectee || selected.signaux_marche.multi_diffusion || selected.signaux_marche.ancienneté_jours) && (
+                  <div className="rounded-xl border border-warning/30 bg-warning/5 p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-warning font-semibold mb-2 flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" /> Signaux marché
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {selected.signaux_marche.baisse_prix_detectee && <Badge className="bg-warning/15 text-warning border-warning/30">Baisse de prix détectée</Badge>}
+                      {selected.signaux_marche.multi_diffusion && <Badge className="bg-primary/15 text-primary border-primary/30">Multi-diffusion ({(selected.signaux_marche.sources_detectees || []).join(", ")})</Badge>}
+                      {selected.signaux_marche.ancienneté_jours && <Badge variant="outline">{selected.signaux_marche.ancienneté_jours}j en ligne</Badge>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-2">
                   {!selected.analyse_ia?.generated ? (
                     <Button onClick={() => generateStrategy(selected)} disabled={generatingFor === selected.id} className="flex-1 gap-2">
@@ -329,7 +562,7 @@ export const PigeIA = () => {
                   ) : (
                     <Button onClick={() => generateStrategy(selected)} variant="outline" disabled={generatingFor === selected.id} className="flex-1 gap-2">
                       {generatingFor === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      Régénérer la stratégie
+                      Régénérer
                     </Button>
                   )}
                   <Button onClick={() => sendToCopilote(selected)} variant="secondary" className="flex-1 gap-2">
@@ -337,10 +570,29 @@ export const PigeIA = () => {
                   </Button>
                 </div>
 
+                {/* Notes agent */}
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Mes notes</p>
+                  <Textarea
+                    value={notesDraft}
+                    onChange={(e) => setNotesDraft(e.target.value)}
+                    onBlur={() => {
+                      if (notesDraft !== (selected.notes_agent || "")) {
+                        updateAnnonce.mutate({ id: selected.id, patch: { notes_agent: notesDraft } });
+                        setSelected({ ...selected, notes_agent: notesDraft });
+                        toast.success("Notes enregistrées");
+                      }
+                    }}
+                    placeholder="Notes terrain, retour d'appel, infos vendeur…"
+                    className="text-sm min-h-[80px]"
+                  />
+                </div>
+
+                {/* IA outputs */}
                 {selected.analyse_ia?.accroche && (
                   <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
                     <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" /> Phrase d'accroche
+                      <Sparkles className="h-3 w-3" /> Accroche
                     </p>
                     <p className="text-sm italic">"{selected.analyse_ia.accroche}"</p>
                   </div>
@@ -393,6 +645,12 @@ export const PigeIA = () => {
                   <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
                     <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2">Stratégie d'approche</p>
                     <p className="text-sm">{selected.analyse_ia.strategie_approche}</p>
+                  </div>
+                )}
+                {selected.analyse_ia?.estimation_commission && (
+                  <div className="rounded-xl border border-accent/40 bg-accent/10 p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-accent-foreground font-semibold mb-1">💰 Commission potentielle</p>
+                    <p className="text-lg font-bold">{selected.analyse_ia.estimation_commission}</p>
                   </div>
                 )}
               </div>
