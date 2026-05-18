@@ -240,6 +240,7 @@ export const PigeIA = () => {
   const [selected, setSelected] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("top");
   const [notesDraft, setNotesDraft] = useState<string>("");
+  const [savedOpen, setSavedOpen] = useState(false);
 
   const sendToCopilote = (a: any) => {
     const ai = a.analyse_ia || {};
@@ -371,19 +372,7 @@ export const PigeIA = () => {
     finally { setGeneratingFor(null); }
   };
 
-  // ---- Categorisation (scopée par zone active, sauf Vivier qui reste persistant) ----
-  const matchesActiveZone = (a: any) => {
-    if (!activeZone) return true;
-    const z = activeZone.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const zr = String(a.zone_recherche || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (zr && zr === z) return true;
-    const ville = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const cp = String(a.code_postal || "");
-    const cpMatch = z.match(/\b\d{5}\b/)?.[0];
-    if (cpMatch && cp === cpMatch) return true;
-    const cityTokens = z.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
-    return cityTokens.some(t => ville.includes(t));
-  };
+  const matchesActiveZone = (a: any) => activeZone ? listingMatchesSearchZone(a, activeZone) : false;
 
   const byCategory = useMemo(() => {
     const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
@@ -412,19 +401,20 @@ export const PigeIA = () => {
 
   // ---- Insights marché (dérivés des annonces de la zone visible) ----
   const insights = useMemo(() => {
-    if (annonces.length < 3) return [];
+    const scoped = activeZone ? annonces.filter(matchesActiveZone) : [];
+    if (scoped.length < 3) return [];
     const list: string[] = [];
-    const particuliers = annonces.filter((a: any) => (a.contact_vendeur?.type || "") === "particulier").length;
-    const pctPart = Math.round((particuliers / annonces.length) * 100);
+    const particuliers = scoped.filter((a: any) => (a.contact_vendeur?.type || "") === "particulier").length;
+    const pctPart = Math.round((particuliers / scoped.length) * 100);
     if (pctPart >= 40) list.push(`👤 ${pctPart}% de vendeurs particuliers — terrain favorable pour la conquête`);
-    const baisses = annonces.filter((a: any) => a.signaux_marche?.baisse_prix_detectee).length;
+    const baisses = scoped.filter((a: any) => a.signaux_marche?.baisse_prix_detectee).length;
     if (baisses >= 2) list.push(`📉 ${baisses} annonces avec baisse de prix — marché sous tension côté vendeurs`);
-    const multi = annonces.filter((a: any) => a.signaux_marche?.multi_diffusion).length;
+    const multi = scoped.filter((a: any) => a.signaux_marche?.multi_diffusion).length;
     if (multi >= 2) list.push(`🌐 ${multi} biens multi-diffusés — mandats simples détectés (cible mandat exclusif)`);
     const topCount = byCategory.top.length;
     if (topCount >= 3) list.push(`🔥 ${topCount} top opportunités — concentrez vos appels aujourd'hui`);
     return list;
-  }, [annonces, byCategory.top.length]);
+  }, [annonces, activeZone, byCategory.top.length]);
 
   const kpis = [
     { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
