@@ -60,6 +60,8 @@ const mergeFreshAnnonces = (current: any[] = [], fresh: any[] = []) => {
 const ScoreBreakdown = ({ annonce }: { annonce: any }) => {
   const score = annonce.score_pigeabilite || 0;
   const breakdown: any[] = Array.isArray(annonce.score_breakdown) ? annonce.score_breakdown : [];
+  const sumWeights = breakdown.reduce((s, c) => s + (Number(c.weight) || 0), 0);
+  const base = score - sumWeights;
   const synthese =
     score >= 75 ? "Mandat hautement probable — priorité 1."
     : score >= 50 ? "Cible intéressante — qualification rapide recommandée."
@@ -88,7 +90,11 @@ const ScoreBreakdown = ({ annonce }: { annonce: any }) => {
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{synthese}</p>
         </div>
         <div className="p-4 space-y-2 max-h-80 overflow-y-auto">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Critères pondérés</p>
+          <div className="flex items-center justify-between bg-secondary/40 rounded-md px-2 py-1.5 text-[11px]">
+            <span className="text-muted-foreground">Base de calcul</span>
+            <span className="font-mono">{base}</span>
+          </div>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold pt-1">Critères pondérés</p>
           {breakdown.length === 0 && (
             <p className="text-xs text-muted-foreground italic">Aucun détail — score calculé sur données partielles.</p>
           )}
@@ -108,6 +114,10 @@ const ScoreBreakdown = ({ annonce }: { annonce: any }) => {
               <p className="text-[11px] text-muted-foreground">{c.detail}</p>
             </div>
           ))}
+          <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-2 text-xs font-semibold">
+            <span>Total = {base} {sumWeights >= 0 ? "+" : ""} {sumWeights}</span>
+            <span className="font-mono">{score}/100</span>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
