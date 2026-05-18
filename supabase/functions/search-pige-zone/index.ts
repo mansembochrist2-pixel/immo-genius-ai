@@ -101,10 +101,10 @@ const numberFromText = (text: string, pattern: RegExp): number | null => {
 
 // Extraction contact (RGPD-safe : uniquement ce que le vendeur a lui-même publié dans le texte)
 const extractContact = (text: string) => {
-  const tel = text.match(/(?:0|\+33\s?)[1-9](?:[\s.\-]?\d{2}){4}/);
+  const tel = text.match(/(?:0|\+33\s?)[1-9](?:[\s.-]?\d{2}){4}/);
   const email = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
   return {
-    telephone: tel ? tel[0].replace(/[\s.\-]/g, "").replace(/^\+33/, "0") : null,
+    telephone: tel ? tel[0].replace(/[\s.-]/g, "").replace(/^\+33/, "0") : null,
     email: email ? email[0] : null,
   };
 };
@@ -125,6 +125,82 @@ const basicExtract = (src: FcResult, zone: string) => {
     quartier: null as string | null,
     etage: null as string | null,
   };
+};
+
+const normalizeZoneText = (value: unknown) => String(value || "")
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[’']/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasPhrase = (text: string, phrase: string) => new RegExp(`(^|[^a-z0-9])${escapeRegex(phrase).replace(/\s+/g, "\\s+")}([^a-z0-9]|$)`, "i").test(text);
+
+const parseSearchZone = (zone: string) => {
+  const norm = normalizeZoneText(zone);
+  const cp = norm.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/)?.[0] || null;
+  const cities: Record<string, { prefix: string; max: number }> = {
+    paris: { prefix: "750", max: 20 },
+    marseille: { prefix: "130", max: 16 },
+    lyon: { prefix: "690", max: 9 },
+  };
+  const city = Object.keys(cities).find((c) => hasPhrase(norm, c));
+  let arrondissement: { city: string; arr: number; cp: string } | null = null;
+  if (city) {
+    const cfg = cities[city];
+    const cpArr = cp?.startsWith(cfg.prefix) ? Number(cp.slice(3)) : null;
+    const typedArr = Number(norm.match(new RegExp(`\\b${city}\\s+(\\d{1,2})(?:e|eme|er)?\\b`))?.[1] || norm.match(/\b(\d{1,2})(?:e|eme|er)?\s*(?:arrondissement|arr\.?)/)?.[1] || 0);
+    const arr = cpArr || typedArr;
+    if (arr >= 1 && arr <= cfg.max) arrondissement = { city, arr, cp: `${cfg.prefix}${String(arr).padStart(2, "0")}` };
+  }
+  let cityName = arrondissement?.city || norm
+    .replace(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/g, " ")
+    .replace(/\b\d{1,2}(?:e|eme|er)?\b/g, " ")
+    .replace(/\b(a|au|aux|en|dans|sur|vente|immobilier|appartement|maison|centre|quartier|arrondissement|arr)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cityName === "cannet") cityName = "le cannet";
+  const aliases = cityName === "le cannet" ? ["le cannet", "cannet"] : cityName ? [cityName] : [];
+  return { norm, postalCode: arrondissement?.cp || cp, arrondissement, cityName, aliases };
+};
+
+const listingMatchesSearchZone = (candidate: any, src: FcResult, zone: string): boolean => {
+  const target = parseSearchZone(zone);
+  const adCp = String(candidate.code_postal || "").trim();
+  const adVille = normalizeZoneText(candidate.ville);
+  const haystack = normalizeZoneText([
+    candidate.titre,
+    candidate.description,
+    candidate.adresse,
+    candidate.quartier,
+    candidate.ville,
+    candidate.code_postal,
+    src.title,
+    src.description,
+    (src.markdown || "").slice(0, 3000),
+    src.url,
+  ].filter(Boolean).join("\n"));
+
+  if (target.arrondissement) {
+    const { city, arr, cp } = target.arrondissement;
+    if (adCp) return adCp === cp;
+    const conflictingCp = haystack.match(new RegExp(`\\b${escapeRegex(cp.slice(0, 3))}(\\d{2})\\b`))?.[0];
+    if (conflictingCp && conflictingCp !== cp) return false;
+    const conflictingArr = haystack.match(new RegExp(`(^|[^a-z0-9])${escapeRegex(city)}\\s*(\\d{1,2})(?:e|eme|er)?([^a-z0-9]|$)`))?.[2];
+    if (conflictingArr && Number(conflictingArr) !== arr) return false;
+    const arrHit = hasPhrase(haystack, cp)
+      || new RegExp(`(^|[^a-z0-9])${escapeRegex(city)}\\s*${arr}(?:e|eme|er)?([^a-z0-9]|$)`).test(haystack)
+      || new RegExp(`(^|[^a-z0-9])${arr}(?:e|eme|er)?\\s*(?:arrondissement|arr\\.?)([^a-z0-9]|$)`).test(haystack);
+    return (adVille === city || hasPhrase(haystack, city)) && arrHit;
+  }
+  if (target.postalCode) return adCp === target.postalCode || hasPhrase(haystack, target.postalCode);
+  if (target.aliases.length > 0) {
+    if (adVille) return target.aliases.some((alias) => adVille === alias);
+    return target.aliases.some((alias) => hasPhrase(haystack, alias));
+  }
+  return false;
 };
 
 const categorize = (score: number): string => {
@@ -236,29 +312,26 @@ Deno.serve(async (req) => {
     );
 
     const zoneClean = zone.trim();
-    const zoneNorm = zoneClean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    // Extract postal code if present in the zone (e.g. "75016" or "13008 Marseille")
-    const zoneCpMatch = zoneClean.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/);
-    const zoneCp = zoneCpMatch ? zoneCpMatch[0] : null;
-    const zoneCpPrefix = zoneCp ? zoneCp.slice(0, 2) : null;
-    // Extract city tokens (remove postal code & digits)
-    const cityTokens = zoneNorm.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
+    const parsedZone = parseSearchZone(zoneClean);
+    const strictZoneLabel = parsedZone.arrondissement
+      ? `${parsedZone.arrondissement.city} ${parsedZone.arrondissement.arr}e arrondissement ${parsedZone.arrondissement.cp}`
+      : parsedZone.postalCode || parsedZone.cityName || zoneClean;
 
     const queries = [
-      `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
-      `vente appartement maison ${zoneClean} particulier site:leboncoin.fr`,
-      `maison appartement à vendre ${zoneClean} site:seloger.com`,
-      `bien immobilier à vendre ${zoneClean} site:bienici.com`,
-      `vente appartement maison ${zoneClean} site:pap.fr`,
-      `appartement maison à vendre ${zoneClean} site:logic-immo.com`,
-      `bien à vendre ${zoneClean} site:immobilier.lefigaro.fr`,
-      `vente immobilière ${zoneClean} site:avendrealouer.fr`,
-      `appartement maison ${zoneClean} site:paruvendu.fr`,
-      `immobilier vente ${zoneClean} site:ouestfrance-immo.com`,
-      `appartement maison à vendre ${zoneClean} site:orpi.com`,
-      `bien à vendre ${zoneClean} site:century21.fr`,
-      `vente appartement maison ${zoneClean} site:laforet.com`,
-      `bien immobilier à vendre ${zoneClean} site:guy-hoquet.com`,
+      `appartement maison à vendre ${strictZoneLabel} site:leboncoin.fr`,
+      `vente appartement maison ${strictZoneLabel} particulier site:leboncoin.fr`,
+      `maison appartement à vendre ${strictZoneLabel} site:seloger.com`,
+      `bien immobilier à vendre ${strictZoneLabel} site:bienici.com`,
+      `vente appartement maison ${strictZoneLabel} site:pap.fr`,
+      `appartement maison à vendre ${strictZoneLabel} site:logic-immo.com`,
+      `bien à vendre ${strictZoneLabel} site:immobilier.lefigaro.fr`,
+      `vente immobilière ${strictZoneLabel} site:avendrealouer.fr`,
+      `appartement maison ${strictZoneLabel} site:paruvendu.fr`,
+      `immobilier vente ${strictZoneLabel} site:ouestfrance-immo.com`,
+      `appartement maison à vendre ${strictZoneLabel} site:orpi.com`,
+      `bien à vendre ${strictZoneLabel} site:century21.fr`,
+      `vente appartement maison ${strictZoneLabel} site:laforet.com`,
+      `bien immobilier à vendre ${strictZoneLabel} site:guy-hoquet.com`,
     ];
 
     const allResults: FcResult[] = [];
@@ -352,12 +425,15 @@ Deno.serve(async (req) => {
         .from("annonces_pige").select("*").eq("user_id", user_id)
         .in("url", alreadyExisting.map(r => r.url))
         .order("updated_at", { ascending: false }).limit(30);
+      const strictlyMatchingExisting = (existingAnnonces || []).filter((row: any) => listingMatchesSearchZone(row, { url: row.url || "", title: row.titre, description: row.description, markdown: "" }, zoneClean));
       return j({
         status: "all_existing",
-        count: existingAnnonces?.length || 0,
-        annonces: existingAnnonces || [],
+        count: strictlyMatchingExisting.length,
+        annonces: strictlyMatchingExisting,
         existing_in_zone: existingZoneCount || 0,
-        message: `${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} déjà détectée${validUrlResults.length > 1 ? "s" : ""} — pige existante mise à jour.`,
+        message: strictlyMatchingExisting.length > 0
+          ? `${strictlyMatchingExisting.length} annonce${strictlyMatchingExisting.length > 1 ? "s" : ""} déjà détectée${strictlyMatchingExisting.length > 1 ? "s" : ""} sur ${zoneClean}.`
+          : `Aucune annonce strictement située sur "${zoneClean}".`,
       });
     }
 
@@ -457,19 +533,10 @@ ${corpus}`;
       if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
       if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — expirée`); continue; }
 
-      // STRICT zone filter — reject ads that don't match the searched zone
-      const adVilleNorm = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const adCp = String(a.code_postal || "");
-      const adText = `${titre}\n${a.description || ""}\n${src.title || ""}\n${(src.markdown || "").slice(0, 2000)}`
-        .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      let zoneMatch = false;
-      if (zoneCp && (adCp === zoneCp || adText.includes(zoneCp))) zoneMatch = true;
-      if (!zoneMatch && zoneCpPrefix && adCp.startsWith(zoneCpPrefix)) zoneMatch = true;
-      if (!zoneMatch && cityTokens.length > 0) {
-        const cityHit = cityTokens.some(t => adVilleNorm.includes(t) || adText.includes(t));
-        if (cityHit) zoneMatch = true;
+      if (!listingMatchesSearchZone({ ...a, titre }, src, zoneClean)) {
+        rejected.push(`${src.url} — hors zone stricte (${a.ville || "?"} ${a.code_postal || "?"})`);
+        continue;
       }
-      if (!zoneMatch) { rejected.push(`${src.url} — hors zone (${a.ville || "?"} ${adCp})`); continue; }
 
       // Contact (fallback regex si IA n'a rien trouvé)
       const fullText = `${src.title || ""}\n${src.description || ""}\n${src.markdown || ""}`;
@@ -519,8 +586,8 @@ ${corpus}`;
         prix,
         surface,
         pieces: a.pieces ? Number(a.pieces) : null,
-        ville: a.ville || null,
-        code_postal: a.code_postal || null,
+        ville: parsedZone.arrondissement ? parsedZone.arrondissement.city : (a.ville || parsedZone.cityName || null),
+        code_postal: a.code_postal || parsedZone.postalCode || null,
         adresse: a.quartier || null,
         type_bien: a.type_bien || null,
         agence: a.agence || null,

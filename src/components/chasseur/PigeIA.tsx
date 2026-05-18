@@ -10,9 +10,9 @@ import {
   Search, Loader2, ExternalLink, Sparkles, Trash2, Target, AlertTriangle,
   MessageSquare, Lightbulb, Radar, Zap, TrendingUp, MapPin, Send, Phone, Mail,
   Info, Flame, CheckCircle2, Eye, Camera, Clock, ArrowDown, Bookmark, BookmarkCheck,
-  HelpCircle, Briefcase,
+  HelpCircle, Briefcase, UserRound, ClipboardList,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +53,81 @@ const mergeFreshAnnonces = (current: any[] = [], fresh: any[] = []) => {
     seen.add(key);
     return true;
   });
+};
+
+const normalizeZoneText = (value: unknown) => String(value || "")
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[’']/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasPhrase = (text: string, phrase: string) => new RegExp(`(^|[^a-z0-9])${escapeRegex(phrase).replace(/\s+/g, "\\s+")}([^a-z0-9]|$)`, "i").test(text);
+
+const parseSearchZone = (zone: string) => {
+  const norm = normalizeZoneText(zone);
+  const cp = norm.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/)?.[0] || null;
+  const cities: Record<string, { prefix: string; max: number }> = {
+    paris: { prefix: "750", max: 20 },
+    marseille: { prefix: "130", max: 16 },
+    lyon: { prefix: "690", max: 9 },
+  };
+  const city = Object.keys(cities).find((c) => hasPhrase(norm, c));
+  let arrondissement: { city: string; arr: number; cp: string } | null = null;
+  if (city) {
+    const cfg = cities[city];
+    const cpArr = cp?.startsWith(cfg.prefix) ? Number(cp.slice(3)) : null;
+    const typedArr = Number(norm.match(new RegExp(`\\b${city}\\s+(\\d{1,2})(?:e|eme|er)?\\b`))?.[1] || norm.match(/\b(\d{1,2})(?:e|eme|er)?\s*(?:arrondissement|arr\.?)/)?.[1] || 0);
+    const arr = cpArr || typedArr;
+    if (arr >= 1 && arr <= cfg.max) arrondissement = { city, arr, cp: `${cfg.prefix}${String(arr).padStart(2, "0")}` };
+  }
+
+  let cityName = arrondissement?.city || norm
+    .replace(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/g, " ")
+    .replace(/\b\d{1,2}(?:e|eme|er)?\b/g, " ")
+    .replace(/\b(a|au|aux|en|dans|sur|vente|immobilier|appartement|maison|centre|quartier|arrondissement|arr)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cityName === "cannet") cityName = "le cannet";
+  const aliases = cityName === "le cannet" ? ["le cannet", "cannet"] : cityName ? [cityName] : [];
+  return { norm, postalCode: arrondissement?.cp || cp, arrondissement, cityName, aliases };
+};
+
+const listingMatchesSearchZone = (annonce: any, zone: string) => {
+  if (!zone) return false;
+  const target = parseSearchZone(zone);
+  const adCp = String(annonce.code_postal || "").trim();
+  const adVille = normalizeZoneText(annonce.ville);
+  const haystack = normalizeZoneText([
+    annonce.titre,
+    annonce.description,
+    annonce.adresse,
+    annonce.ville,
+    annonce.code_postal,
+    annonce.zone_recherche,
+  ].filter(Boolean).join("\n"));
+
+  if (target.arrondissement) {
+    const { city, arr, cp } = target.arrondissement;
+    if (adCp) return adCp === cp;
+    const conflictingCp = haystack.match(new RegExp(`\\b${escapeRegex(cp.slice(0, 3))}(\\d{2})\\b`))?.[0];
+    if (conflictingCp && conflictingCp !== cp) return false;
+    const conflictingArr = haystack.match(new RegExp(`(^|[^a-z0-9])${escapeRegex(city)}\\s*(\\d{1,2})(?:e|eme|er)?([^a-z0-9]|$)`))?.[2];
+    if (conflictingArr && Number(conflictingArr) !== arr) return false;
+    const arrHit = hasPhrase(haystack, cp)
+      || new RegExp(`(^|[^a-z0-9])${escapeRegex(city)}\\s*${arr}(?:e|eme|er)?([^a-z0-9]|$)`).test(haystack)
+      || new RegExp(`(^|[^a-z0-9])${arr}(?:e|eme|er)?\\s*(?:arrondissement|arr\\.?)([^a-z0-9]|$)`).test(haystack);
+    return (adVille === city || hasPhrase(haystack, city)) && arrHit;
+  }
+
+  if (target.postalCode) return adCp === target.postalCode || hasPhrase(haystack, target.postalCode);
+  if (target.aliases.length > 0) {
+    if (adVille) return target.aliases.some((alias) => adVille === alias);
+    return target.aliases.some((alias) => hasPhrase(haystack, alias));
+  }
+  return false;
 };
 
 // ------ ScoreBreakdown popover ------
@@ -169,6 +244,7 @@ export const PigeIA = () => {
   const [selected, setSelected] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("top");
   const [notesDraft, setNotesDraft] = useState<string>("");
+  const [savedOpen, setSavedOpen] = useState(false);
 
   const sendToCopilote = (a: any) => {
     const ai = a.analyse_ia || {};
@@ -300,26 +376,20 @@ export const PigeIA = () => {
     finally { setGeneratingFor(null); }
   };
 
-  // ---- Categorisation (scopée par zone active, sauf Vivier qui reste persistant) ----
-  const matchesActiveZone = (a: any) => {
-    if (!activeZone) return true;
-    const z = activeZone.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const zr = String(a.zone_recherche || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (zr && zr === z) return true;
-    const ville = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const cp = String(a.code_postal || "");
-    const cpMatch = z.match(/\b\d{5}\b/)?.[0];
-    if (cpMatch && cp === cpMatch) return true;
-    const cityTokens = z.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
-    return cityTokens.some(t => ville.includes(t));
-  };
+  const matchesActiveZone = useCallback(
+    (a: any) => activeZone ? listingMatchesSearchZone(a, activeZone) : false,
+    [activeZone]
+  );
+  const zoneAnnonces = useMemo(
+    () => activeZone ? annonces.filter(matchesActiveZone) : [],
+    [annonces, activeZone, matchesActiveZone]
+  );
 
   const byCategory = useMemo(() => {
     const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
     // Tant qu'aucune recherche n'a été lancée dans la session, on n'affiche AUCUNE catégorie.
     if (!activeZone) return buckets;
-    for (const a of annonces) {
-      if (!matchesActiveZone(a)) continue;
+    for (const a of zoneAnnonces) {
       const cat = (a as any).categorie_opportunite
         || ((a as any).score_pigeabilite >= 75 ? "top"
           : (a as any).score_pigeabilite >= 50 ? "moyenne"
@@ -327,7 +397,7 @@ export const PigeIA = () => {
       (buckets[cat] || buckets.surveiller).push(a);
     }
     return buckets;
-  }, [annonces, activeZone]);
+  }, [zoneAnnonces, activeZone]);
 
   const savedAnnonces = useMemo(
     () => annonces.filter((a: any) => a.saved_to_vivier),
@@ -335,31 +405,32 @@ export const PigeIA = () => {
   );
 
   const zoneAnnoncesCount = useMemo(
-    () => (activeZone ? annonces.filter(matchesActiveZone).length : 0),
-    [annonces, activeZone]
+    () => zoneAnnonces.length,
+    [zoneAnnonces]
   );
 
   // ---- Insights marché (dérivés des annonces de la zone visible) ----
   const insights = useMemo(() => {
-    if (annonces.length < 3) return [];
+    const scoped = zoneAnnonces;
+    if (scoped.length < 3) return [];
     const list: string[] = [];
-    const particuliers = annonces.filter((a: any) => (a.contact_vendeur?.type || "") === "particulier").length;
-    const pctPart = Math.round((particuliers / annonces.length) * 100);
+    const particuliers = scoped.filter((a: any) => (a.contact_vendeur?.type || "") === "particulier").length;
+    const pctPart = Math.round((particuliers / scoped.length) * 100);
     if (pctPart >= 40) list.push(`👤 ${pctPart}% de vendeurs particuliers — terrain favorable pour la conquête`);
-    const baisses = annonces.filter((a: any) => a.signaux_marche?.baisse_prix_detectee).length;
+    const baisses = scoped.filter((a: any) => a.signaux_marche?.baisse_prix_detectee).length;
     if (baisses >= 2) list.push(`📉 ${baisses} annonces avec baisse de prix — marché sous tension côté vendeurs`);
-    const multi = annonces.filter((a: any) => a.signaux_marche?.multi_diffusion).length;
+    const multi = scoped.filter((a: any) => a.signaux_marche?.multi_diffusion).length;
     if (multi >= 2) list.push(`🌐 ${multi} biens multi-diffusés — mandats simples détectés (cible mandat exclusif)`);
     const topCount = byCategory.top.length;
     if (topCount >= 3) list.push(`🔥 ${topCount} top opportunités — concentrez vos appels aujourd'hui`);
     return list;
-  }, [annonces, byCategory.top.length]);
+  }, [zoneAnnonces, byCategory.top.length]);
 
   const kpis = [
     { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
     { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
     { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck },
-    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(annonces.filter(matchesActiveZone).reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
+    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(zoneAnnonces.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
   ];
 
   const renderCard = (a: any) => {
@@ -367,8 +438,9 @@ export const PigeIA = () => {
     const daysOnline = a.date_publication ? Math.round((Date.now() - new Date(a.date_publication).getTime()) / 86400000) : null;
     const contact = a.contact_vendeur || {};
     const sig = a.signaux_marche || {};
+    const ficheReady = a.fiche_proprietaire && Object.keys(a.fiche_proprietaire || {}).length > 0;
     return (
-      <Card key={a.id} className="rounded-2xl overflow-hidden hover:border-primary/40 transition-all cursor-pointer group" onClick={() => { setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
+      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSavedOpen(false); setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
         {photo ? (
           <div className="h-40 bg-secondary/30 overflow-hidden relative">
             <img src={photo} alt={a.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
@@ -385,8 +457,12 @@ export const PigeIA = () => {
         )}
         <CardContent className="p-4 space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-sm font-semibold line-clamp-2 flex-1">{a.titre}</h3>
+            <h3 className="text-sm font-semibold leading-snug line-clamp-2 flex-1">{a.titre}</h3>
             <div onClick={(e) => e.stopPropagation()}><ScoreBreakdown annonce={a} /></div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {contact.type === "particulier" && <Badge variant="outline" className="bg-success/10 text-success border-success/25 text-[10px]">Particulier</Badge>}
+            {ficheReady && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] gap-1"><UserRound className="h-2.5 w-2.5" />Fiche prête</Badge>}
           </div>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
             {a.prix && <span className="font-semibold text-foreground">{Number(a.prix).toLocaleString("fr-FR")} €</span>}
@@ -409,6 +485,7 @@ export const PigeIA = () => {
             <WorkflowBadge annonce={a} onChange={(s) => updateAnnonce.mutate({ id: a.id, patch: { workflow_statut: s } })} />
             <div className="flex items-center gap-1">
               {a.analyse_ia?.generated && <CheckCircle2 className="h-3 w-3 text-success" />}
+              {ficheReady && <UserRound className="h-3 w-3 text-primary" />}
               <Button
                 size="icon"
                 variant="ghost"
@@ -438,9 +515,15 @@ export const PigeIA = () => {
       {/* Search hero */}
       <Card className="bg-gradient-to-br from-primary/5 via-card to-accent/5 border-primary/20 rounded-3xl overflow-hidden">
         <CardContent className="p-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Chasseur de mandats · Détection IA temps réel</p>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold truncate">Chasseur de mandats · Détection IA temps réel</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setSavedOpen(true)} className="rounded-xl gap-2 shrink-0 bg-background/80">
+              <BookmarkCheck className="h-3.5 w-3.5" /> Enregistrés
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{savedAnnonces.length}</Badge>
+            </Button>
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
             Quelle zone souhaitez-vous <span className="gradient-text">piger</span> ?
@@ -512,23 +595,6 @@ export const PigeIA = () => {
       <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* Results */}
-      {/* Section "Enregistrés" — persistante, indépendante des recherches */}
-      {savedAnnonces.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookmarkCheck className="h-4 w-4 text-accent-foreground" />
-              <h3 className="text-sm font-semibold">Mes annonces enregistrées</h3>
-              <Badge variant="outline" className="text-[10px]">{savedAnnonces.length}</Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground">Toujours visibles — survivent aux recherches et rafraîchissements.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {savedAnnonces.map(renderCard)}
-          </div>
-        </div>
-      )}
-
       {/* Résultats de la recherche en cours */}
       {searching && zoneAnnoncesCount === 0 ? (
         <Card className="rounded-2xl border-dashed">
@@ -546,7 +612,7 @@ export const PigeIA = () => {
             <Radar className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm font-medium">Lancez une recherche pour détecter des opportunités</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Les résultats sont scopés à la zone recherchée. Seules vos annonces enregistrées (🔖) restent visibles entre les sessions.
+              Les résultats sont strictement limités à la zone demandée. Vos annonces enregistrées restent disponibles via le bouton dédié.
             </p>
           </CardContent>
         </Card>
@@ -606,6 +672,28 @@ export const PigeIA = () => {
         </Tabs>
       )}
 
+      <Dialog open={savedOpen} onOpenChange={setSavedOpen}>
+        <DialogContent className="max-w-6xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookmarkCheck className="h-5 w-5 text-primary" /> Mes annonces enregistrées
+              <Badge variant="outline" className="ml-1">{savedAnnonces.length}</Badge>
+            </DialogTitle>
+          </DialogHeader>
+          {savedAnnonces.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 py-14 text-center">
+              <Bookmark className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium">Aucune annonce enregistrée</p>
+              <p className="text-xs text-muted-foreground mt-1">Cliquez sur l’icône signet d’une annonce intéressante pour la retrouver ici.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {savedAnnonces.map(renderCard)}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
@@ -660,6 +748,64 @@ export const PigeIA = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Fiche propriétaire */}
+                <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1">
+                        <UserRound className="h-3.5 w-3.5" /> Fiche propriétaire
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Résumé vendeur, angles d’approche et questions de qualification.</p>
+                    </div>
+                    {selected.fiche_proprietaire && Object.keys(selected.fiche_proprietaire || {}).length > 0 && (
+                      <Badge className="bg-success/15 text-success border-success/25">Prête</Badge>
+                    )}
+                  </div>
+                  {selected.fiche_proprietaire && Object.keys(selected.fiche_proprietaire || {}).length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                      <div className="lg:col-span-2 rounded-xl bg-background/70 border border-border/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Synthèse</p>
+                        <p className="text-sm leading-relaxed">{selected.fiche_proprietaire.resume_vendeur || selected.fiche_proprietaire.angle_approche || "Fiche prête à qualifier."}</p>
+                        {selected.fiche_proprietaire.angle_approche && (
+                          <p className="text-sm text-primary font-medium mt-3">{selected.fiche_proprietaire.angle_approche}</p>
+                        )}
+                      </div>
+                      <div className="rounded-xl bg-background/70 border border-border/40 p-3 space-y-2">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Profil</p>
+                          <p className="text-sm capitalize">{selected.fiche_proprietaire.profil_probable || selected.contact_vendeur?.type || "À qualifier"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Priorité</p>
+                          <p className="text-sm capitalize">{selected.fiche_proprietaire.niveau_priorite || selected.analyse_ia?.potentiel_mandat || "Moyen"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Prochaine action</p>
+                          <p className="text-xs text-muted-foreground">{selected.fiche_proprietaire.prochaine_action || "Appeler et qualifier le projet."}</p>
+                        </div>
+                      </div>
+                      {selected.fiche_proprietaire.informations_a_valider?.length > 0 && (
+                        <div className="lg:col-span-3 rounded-xl bg-background/70 border border-border/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1"><ClipboardList className="h-3 w-3" /> Questions à valider</p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            {selected.fiche_proprietaire.informations_a_valider.slice(0, 3).map((q: string, i: number) => (
+                              <div key={i} className="text-xs rounded-lg bg-secondary/40 p-2">{q}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl bg-background/70 border border-dashed border-primary/25 p-3">
+                      <p className="text-sm text-muted-foreground">Générez la stratégie IA : la fiche propriétaire sera créée automatiquement au même endroit.</p>
+                      <Button size="sm" onClick={() => generateStrategy(selected)} disabled={generatingFor === selected.id} className="gap-2 shrink-0">
+                        {generatingFor === selected.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        Préparer la fiche
+                      </Button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-2">
