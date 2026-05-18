@@ -44,6 +44,30 @@ const queryClient = new QueryClient({
 // Lightweight fallback (matches bg → no black flash between routes)
 const RouteFallback = () => <div className="min-h-screen bg-background" aria-hidden />;
 
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { hasError: isChunkLoadError(error) };
+  }
+
+  componentDidCatch(error: unknown, _info: ErrorInfo) {
+    if (!isChunkLoadError(error)) throw error;
+  }
+
+  componentDidMount() {
+    resetChunkReloadGuard();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <RouteFallback />;
+    }
+
+    return this.props.children;
+  }
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -54,36 +78,38 @@ const App = () => (
           <Sonner />
           <CookieConsent />
           <BrowserRouter>
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/landing" element={<Index />} />
-                <Route path="/index" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/pricing" element={<Index />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/chasseur" element={<Chasseur />} />
-                <Route path="/radar" element={<Navigate to="/chasseur?tab=radar" replace />} />
-                <Route path="/copilote" element={<Copilote />} />
-                <Route path="/studio" element={<Documents />} />
-                <Route path="/documents" element={<Navigate to="/studio" replace />} />
-                <Route path="/estimation" element={<EstimationIA />} />
-                <Route path="/sauvegardes" element={<Sauvegardes />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/faq" element={<FAQ />} />
-                <Route path="/aide" element={<FAQ />} />
-                <Route path="/inbox" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/agenda" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/clients" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/mentions-legales" element={<MentionsLegales />} />
-                <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
-                <Route path="/cgu" element={<CGU />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <ChunkErrorBoundary>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/landing" element={<Index />} />
+                  <Route path="/index" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/pricing" element={<Index />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/chasseur" element={<Chasseur />} />
+                  <Route path="/radar" element={<Navigate to="/chasseur?tab=radar" replace />} />
+                  <Route path="/copilote" element={<Copilote />} />
+                  <Route path="/studio" element={<Documents />} />
+                  <Route path="/documents" element={<Navigate to="/studio" replace />} />
+                  <Route path="/estimation" element={<EstimationIA />} />
+                  <Route path="/sauvegardes" element={<Sauvegardes />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/aide" element={<FAQ />} />
+                  <Route path="/inbox" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/agenda" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/clients" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/mentions-legales" element={<MentionsLegales />} />
+                  <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+                  <Route path="/cgu" element={<CGU />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ChunkErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </BusinessProvider>
@@ -91,15 +117,5 @@ const App = () => (
     </AuthProvider>
   </QueryClientProvider>
 );
-
-// Preload helpers (used by sidebar on hover/focus → switching is instant)
-export const preloadRoute = {
-  dashboard: () => import("./pages/Dashboard"),
-  chasseur: () => import("./pages/Chasseur"),
-  copilote: () => import("./pages/Copilote"),
-  studio: () => import("./pages/Documents"),
-  estimation: () => import("./pages/EstimationIA"),
-  settings: () => import("./pages/Settings"),
-};
 
 export default App;
