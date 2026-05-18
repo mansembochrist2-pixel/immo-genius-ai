@@ -680,8 +680,8 @@ export const PigeIA = () => {
                     className={cn("gap-2", selected.saved_to_vivier && "bg-accent text-accent-foreground hover:bg-accent/90")}
                   >
                     {selected.saved_to_vivier
-                      ? <><BookmarkCheck className="h-4 w-4" /> Dans le Vivier</>
-                      : <><Bookmark className="h-4 w-4" /> Enregistrer dans Vivier</>}
+                      ? <><BookmarkCheck className="h-4 w-4" /> Enregistrée</>
+                      : <><Bookmark className="h-4 w-4" /> Enregistrer</>}
                   </Button>
                   <Button onClick={() => sendToCopilote(selected)} variant="secondary" className="flex-1 gap-2">
                     <Send className="h-4 w-4" /> Copilote IA
