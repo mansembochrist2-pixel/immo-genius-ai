@@ -77,14 +77,15 @@ const App = () => (
             <ChunkErrorBoundary>
               <Suspense fallback={<RouteFallback />}>
                 <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/landing" element={<Index />} />
-                  <Route path="/index" element={<Index />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/pricing" element={<Index />} />
+                  {/* Mode audit : accès direct au dashboard sans authentification */}
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/landing" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/index" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/signup" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/forgot-password" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/chasseur" element={<Chasseur />} />
                   <Route path="/radar" element={<Navigate to="/chasseur?tab=radar" replace />} />
