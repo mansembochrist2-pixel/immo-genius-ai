@@ -29,7 +29,6 @@ const scoreBadgeColor = (score: number) => {
 };
 
 const CATEGORIES = [
-  { key: "vivier",     label: "💼 Vivier de mandats", min: 0,  color: "text-accent-foreground", info: "Vos biens enregistrés — vous bossez dessus en priorité. Toujours visibles, même après nouvelle recherche." },
   { key: "top",        label: "🔥 Top opportunités",  min: 75, color: "text-destructive",       info: "Score ≥ 75/100 : vendeur particulier, signaux faibles côté vendeur, prix accessible. À appeler dans la journée." },
   { key: "moyenne",    label: "⚡ Moyennes",          min: 50, color: "text-warning",           info: "Score 50–74 : potentiel correct, qualification rapide recommandée pour confirmer la mandatabilité." },
   { key: "faible",     label: "💡 Faibles",           min: 25, color: "text-primary",           info: "Score 25–49 : angles limités. À traiter si vous avez de la bande passante." },
