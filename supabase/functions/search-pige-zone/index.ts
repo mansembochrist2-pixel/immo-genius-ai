@@ -26,6 +26,12 @@ const isRealListingUrl = (url: string): boolean => {
     if (host.includes("logic-immo")) return /\/detail-/i.test(path);
     if (host.includes("orpi.com")) return /\/annonce/i.test(path);
     if (host.includes("century21.fr")) return /\/annonce/i.test(path);
+    if (host.includes("laforet.com")) return /\/annonce/i.test(path) || /-\d{4,}/i.test(path);
+    if (host.includes("guy-hoquet.com")) return /\/annonce/i.test(path) || /-\d{4,}/i.test(path);
+    if (host.includes("lefigaro.fr")) return /\/annonces\/.+\/\d+/i.test(path) || /-\d{5,}\.html?$/i.test(path);
+    if (host.includes("avendrealouer.fr")) return /\/vente\/.+\/.+\d+/i.test(path);
+    if (host.includes("paruvendu.fr")) return /\/immobilier\/.+\d+/i.test(path) || /\/annonce\//i.test(path);
+    if (host.includes("ouestfrance-immo.com")) return /\/(vente|immobilier-)/i.test(path) && /\d{4,}/.test(path);
     return false;
   } catch { return false; }
 };
@@ -38,6 +44,12 @@ const sourceFromUrl = (url: string): string => {
   if (url.includes("logic-immo")) return "logic-immo";
   if (url.includes("orpi")) return "orpi";
   if (url.includes("century21")) return "century21";
+  if (url.includes("laforet")) return "laforet";
+  if (url.includes("guy-hoquet")) return "guy-hoquet";
+  if (url.includes("lefigaro")) return "figaro";
+  if (url.includes("avendrealouer")) return "avendrealouer";
+  if (url.includes("paruvendu")) return "paruvendu";
+  if (url.includes("ouestfrance-immo")) return "ouestfrance";
   return "web";
 };
 
@@ -224,6 +236,13 @@ Deno.serve(async (req) => {
     );
 
     const zoneClean = zone.trim();
+    const zoneNorm = zoneClean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Extract postal code if present in the zone (e.g. "75016" or "13008 Marseille")
+    const zoneCpMatch = zoneClean.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/);
+    const zoneCp = zoneCpMatch ? zoneCpMatch[0] : null;
+    const zoneCpPrefix = zoneCp ? zoneCp.slice(0, 2) : null;
+    // Extract city tokens (remove postal code & digits)
+    const cityTokens = zoneNorm.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
 
     const queries = [
       `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
@@ -231,6 +250,15 @@ Deno.serve(async (req) => {
       `maison appartement à vendre ${zoneClean} site:seloger.com`,
       `bien immobilier à vendre ${zoneClean} site:bienici.com`,
       `vente appartement maison ${zoneClean} site:pap.fr`,
+      `appartement maison à vendre ${zoneClean} site:logic-immo.com`,
+      `bien à vendre ${zoneClean} site:immobilier.lefigaro.fr`,
+      `vente immobilière ${zoneClean} site:avendrealouer.fr`,
+      `appartement maison ${zoneClean} site:paruvendu.fr`,
+      `immobilier vente ${zoneClean} site:ouestfrance-immo.com`,
+      `appartement maison à vendre ${zoneClean} site:orpi.com`,
+      `bien à vendre ${zoneClean} site:century21.fr`,
+      `vente appartement maison ${zoneClean} site:laforet.com`,
+      `bien immobilier à vendre ${zoneClean} site:guy-hoquet.com`,
     ];
 
     const allResults: FcResult[] = [];
@@ -429,6 +457,20 @@ ${corpus}`;
       if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
       if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — expirée`); continue; }
 
+      // STRICT zone filter — reject ads that don't match the searched zone
+      const adVilleNorm = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const adCp = String(a.code_postal || "");
+      const adText = `${titre}\n${a.description || ""}\n${src.title || ""}\n${(src.markdown || "").slice(0, 2000)}`
+        .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      let zoneMatch = false;
+      if (zoneCp && (adCp === zoneCp || adText.includes(zoneCp))) zoneMatch = true;
+      if (!zoneMatch && zoneCpPrefix && adCp.startsWith(zoneCpPrefix)) zoneMatch = true;
+      if (!zoneMatch && cityTokens.length > 0) {
+        const cityHit = cityTokens.some(t => adVilleNorm.includes(t) || adText.includes(t));
+        if (cityHit) zoneMatch = true;
+      }
+      if (!zoneMatch) { rejected.push(`${src.url} — hors zone (${a.ville || "?"} ${adCp})`); continue; }
+
       // Contact (fallback regex si IA n'a rien trouvé)
       const fullText = `${src.title || ""}\n${src.description || ""}\n${src.markdown || ""}`;
       const regexContact = extractContact(fullText);
@@ -491,6 +533,7 @@ ${corpus}`;
         qualite_annonce,
         categorie_opportunite,
         workflow_statut: "a_appeler",
+        zone_recherche: zoneClean,
         analyse_ia: { failles, opportunites, zone_recherche: zoneClean, generated: false },
         tags,
       }).select().single();

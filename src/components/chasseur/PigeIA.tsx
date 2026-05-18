@@ -9,7 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Search, Loader2, ExternalLink, Sparkles, Trash2, Target, AlertTriangle,
   MessageSquare, Lightbulb, Radar, Zap, TrendingUp, MapPin, Send, Phone, Mail,
-  Info, Flame, CheckCircle2, Eye, Camera, Clock, ArrowDown,
+  Info, Flame, CheckCircle2, Eye, Camera, Clock, ArrowDown, Bookmark, BookmarkCheck,
+  HelpCircle, Briefcase,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,10 +29,11 @@ const scoreBadgeColor = (score: number) => {
 };
 
 const CATEGORIES = [
-  { key: "top",        label: "🔥 Top opportunités",  min: 75, color: "text-destructive" },
-  { key: "moyenne",    label: "⚡ Moyennes",          min: 50, color: "text-warning" },
-  { key: "faible",     label: "💡 Faibles",           min: 25, color: "text-primary" },
-  { key: "surveiller", label: "👁 À surveiller",      min: 0,  color: "text-muted-foreground" },
+  { key: "vivier",     label: "💼 Vivier de mandats", min: 0,  color: "text-accent-foreground", info: "Vos biens enregistrés — vous bossez dessus en priorité. Toujours visibles, même après nouvelle recherche." },
+  { key: "top",        label: "🔥 Top opportunités",  min: 75, color: "text-destructive",       info: "Score ≥ 75/100 : vendeur particulier, signaux faibles côté vendeur, prix accessible. À appeler dans la journée." },
+  { key: "moyenne",    label: "⚡ Moyennes",          min: 50, color: "text-warning",           info: "Score 50–74 : potentiel correct, qualification rapide recommandée pour confirmer la mandatabilité." },
+  { key: "faible",     label: "💡 Faibles",           min: 25, color: "text-primary",           info: "Score 25–49 : angles limités. À traiter si vous avez de la bande passante." },
+  { key: "surveiller", label: "👁 À surveiller",      min: 0,  color: "text-muted-foreground",  info: "Score < 25 : pas d'angle immédiat (vendeur déjà chez un confrère, prix élevé). Surveillez les évolutions." },
 ] as const;
 
 const WORKFLOW = [
@@ -58,6 +60,8 @@ const mergeFreshAnnonces = (current: any[] = [], fresh: any[] = []) => {
 const ScoreBreakdown = ({ annonce }: { annonce: any }) => {
   const score = annonce.score_pigeabilite || 0;
   const breakdown: any[] = Array.isArray(annonce.score_breakdown) ? annonce.score_breakdown : [];
+  const sumWeights = breakdown.reduce((s, c) => s + (Number(c.weight) || 0), 0);
+  const base = score - sumWeights;
   const synthese =
     score >= 75 ? "Mandat hautement probable — priorité 1."
     : score >= 50 ? "Cible intéressante — qualification rapide recommandée."
@@ -86,7 +90,11 @@ const ScoreBreakdown = ({ annonce }: { annonce: any }) => {
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{synthese}</p>
         </div>
         <div className="p-4 space-y-2 max-h-80 overflow-y-auto">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Critères pondérés</p>
+          <div className="flex items-center justify-between bg-secondary/40 rounded-md px-2 py-1.5 text-[11px]">
+            <span className="text-muted-foreground">Base de calcul</span>
+            <span className="font-mono">{base}</span>
+          </div>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold pt-1">Critères pondérés</p>
           {breakdown.length === 0 && (
             <p className="text-xs text-muted-foreground italic">Aucun détail — score calculé sur données partielles.</p>
           )}
@@ -106,6 +114,10 @@ const ScoreBreakdown = ({ annonce }: { annonce: any }) => {
               <p className="text-[11px] text-muted-foreground">{c.detail}</p>
             </div>
           ))}
+          <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-2 text-xs font-semibold">
+            <span>Total = {base} {sumWeights >= 0 ? "+" : ""} {sumWeights}</span>
+            <span className="font-mono">{score}/100</span>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
@@ -152,6 +164,7 @@ export const PigeIA = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [zone, setZone] = useState("");
+  const [activeZone, setActiveZone] = useState<string>(""); // zone effectivement recherchée
   const [searching, setSearching] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [selected, setSelected] = useState<any>(null);
@@ -235,6 +248,8 @@ export const PigeIA = () => {
   const runSearch = async () => {
     if (!zone.trim()) { toast.error("Entrez une ville, un quartier ou un code postal"); return; }
     setSearching(true);
+    setActiveZone(zone.trim());
+    setActiveTab("top");
     try {
       const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim(), user_id: user?.id } });
       if (error && !data) { toast.error("Erreur lors de la récupération des annonces."); return; }
@@ -248,7 +263,7 @@ export const PigeIA = () => {
         case "success": {
           const count = returnedAnnonces.length || res.count || 0;
           const rejected = res.rejected_count || 0;
-          toast.success(`${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} filtrée${rejected > 1 ? "s" : ""}` : ""}`);
+          toast.success(`${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""} sur ${zone.trim()}${rejected ? ` · ${rejected} hors zone/incomplètes` : ""}`);
           await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
           break;
         }
@@ -265,6 +280,13 @@ export const PigeIA = () => {
     } finally { setSearching(false); }
   };
 
+  const toggleVivier = (a: any) => {
+    const newVal = !a.saved_to_vivier;
+    updateAnnonce.mutate({ id: a.id, patch: { saved_to_vivier: newVal } });
+    toast.success(newVal ? "✓ Ajouté à votre Vivier de mandats" : "Retiré du Vivier");
+    if (selected?.id === a.id) setSelected({ ...selected, saved_to_vivier: newVal });
+  };
+
   const generateStrategy = async (annonce: any) => {
     setGeneratingFor(annonce.id);
     try {
@@ -279,10 +301,25 @@ export const PigeIA = () => {
     finally { setGeneratingFor(null); }
   };
 
-  // ---- Categorisation ----
+  // ---- Categorisation (scopée par zone active, sauf Vivier qui reste persistant) ----
+  const matchesActiveZone = (a: any) => {
+    if (!activeZone) return true;
+    const z = activeZone.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const zr = String(a.zone_recherche || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (zr && zr === z) return true;
+    const ville = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const cp = String(a.code_postal || "");
+    const cpMatch = z.match(/\b\d{5}\b/)?.[0];
+    if (cpMatch && cp === cpMatch) return true;
+    const cityTokens = z.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
+    return cityTokens.some(t => ville.includes(t));
+  };
+
   const byCategory = useMemo(() => {
-    const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
+    const buckets: Record<string, any[]> = { vivier: [], top: [], moyenne: [], faible: [], surveiller: [] };
     for (const a of annonces) {
+      if ((a as any).saved_to_vivier) buckets.vivier.push(a);
+      if (!matchesActiveZone(a)) continue;
       const cat = (a as any).categorie_opportunite
         || ((a as any).score_pigeabilite >= 75 ? "top"
           : (a as any).score_pigeabilite >= 50 ? "moyenne"
@@ -290,7 +327,7 @@ export const PigeIA = () => {
       (buckets[cat] || buckets.surveiller).push(a);
     }
     return buckets;
-  }, [annonces]);
+  }, [annonces, activeZone]);
 
   // ---- Insights marché (dérivés des annonces de la zone visible) ----
   const insights = useMemo(() => {
@@ -362,6 +399,15 @@ export const PigeIA = () => {
             <WorkflowBadge annonce={a} onChange={(s) => updateAnnonce.mutate({ id: a.id, patch: { workflow_statut: s } })} />
             <div className="flex items-center gap-1">
               {a.analyse_ia?.generated && <CheckCircle2 className="h-3 w-3 text-success" />}
+              <Button
+                size="icon"
+                variant="ghost"
+                className={cn("h-7 w-7 transition-all hover:scale-110", a.saved_to_vivier && "text-accent-foreground")}
+                title={a.saved_to_vivier ? "Retirer du Vivier de mandats" : "Enregistrer dans le Vivier de mandats"}
+                onClick={(e) => { e.stopPropagation(); toggleVivier(a); }}
+              >
+                {a.saved_to_vivier ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
+              </Button>
               {a.url && (
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); window.open(a.url, "_blank"); }}>
                   <ExternalLink className="h-3 w-3" />
@@ -437,18 +483,23 @@ export const PigeIA = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map((k) => (
-          <Card key={k.label} className="bg-card border-border rounded-2xl">
+        {kpis.map((k, i) => (
+          <Card
+            key={k.label}
+            className="bg-card border-border rounded-2xl transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 duration-300"
+            style={{ animation: `fadeInUp 0.5s ease-out ${i * 80}ms both` }}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{k.label}</p>
-                <k.icon className="h-3.5 w-3.5 text-primary/60" />
+                <k.icon className="h-3.5 w-3.5 text-primary/60 transition-transform group-hover:scale-110" />
               </div>
-              <p className="text-2xl font-bold">{k.value}</p>
+              <p className="text-2xl font-bold tabular-nums">{k.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
+      <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* Results */}
       {searching && annonces.length === 0 ? (
@@ -473,9 +524,24 @@ export const PigeIA = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-card border border-border rounded-2xl p-1 h-auto flex flex-wrap">
             {CATEGORIES.map(c => (
-              <TabsTrigger key={c.key} value={c.key} className="rounded-xl text-xs gap-2">
+              <TabsTrigger key={c.key} value={c.key} className="rounded-xl text-xs gap-2 group">
                 <span className={c.color}>{c.label}</span>
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">{byCategory[c.key]?.length || 0}</Badge>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                      className="opacity-50 hover:opacity-100 cursor-help"
+                    >
+                      <HelpCircle className="h-3 w-3" />
+                    </span>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 text-xs" align="center" onClick={(e) => e.stopPropagation()}>
+                    {c.info}
+                  </PopoverContent>
+                </Popover>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -484,7 +550,11 @@ export const PigeIA = () => {
               {(byCategory[c.key] || []).length === 0 ? (
                 <Card className="rounded-2xl border-dashed">
                   <CardContent className="py-10 text-center text-xs text-muted-foreground">
-                    Aucune annonce dans cette catégorie.
+                    {c.key === "vivier"
+                      ? "Aucun bien enregistré pour l'instant. Cliquez sur l'icône 🔖 d'une annonce pour l'ajouter à votre Vivier de mandats."
+                      : activeZone
+                        ? `Aucune annonce dans cette catégorie pour "${activeZone}".`
+                        : "Aucune annonce dans cette catégorie."}
                   </CardContent>
                 </Card>
               ) : (
@@ -565,8 +635,17 @@ export const PigeIA = () => {
                       Régénérer
                     </Button>
                   )}
+                  <Button
+                    onClick={() => toggleVivier(selected)}
+                    variant={selected.saved_to_vivier ? "default" : "outline"}
+                    className={cn("gap-2", selected.saved_to_vivier && "bg-accent text-accent-foreground hover:bg-accent/90")}
+                  >
+                    {selected.saved_to_vivier
+                      ? <><BookmarkCheck className="h-4 w-4" /> Dans le Vivier</>
+                      : <><Bookmark className="h-4 w-4" /> Enregistrer dans Vivier</>}
+                  </Button>
                   <Button onClick={() => sendToCopilote(selected)} variant="secondary" className="flex-1 gap-2">
-                    <Send className="h-4 w-4" /> Envoyer au Copilote IA
+                    <Send className="h-4 w-4" /> Copilote IA
                   </Button>
                 </div>
 
