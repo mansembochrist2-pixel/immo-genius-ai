@@ -150,15 +150,21 @@ export type Database = {
           adresse: string | null
           agence: string | null
           analyse_ia: Json | null
+          categorie_opportunite: string | null
           code_postal: string | null
+          contact_vendeur: Json | null
           created_at: string
           date_publication: string | null
           description: string | null
           id: string
+          notes_agent: string | null
           photos: Json | null
           pieces: number | null
           prix: number | null
+          qualite_annonce: Json | null
+          score_breakdown: Json | null
           score_pigeabilite: number | null
+          signaux_marche: Json | null
           source: string
           statut: string
           surface: number | null
@@ -169,20 +175,27 @@ export type Database = {
           url: string | null
           user_id: string
           ville: string | null
+          workflow_statut: string | null
         }
         Insert: {
           adresse?: string | null
           agence?: string | null
           analyse_ia?: Json | null
+          categorie_opportunite?: string | null
           code_postal?: string | null
+          contact_vendeur?: Json | null
           created_at?: string
           date_publication?: string | null
           description?: string | null
           id?: string
+          notes_agent?: string | null
           photos?: Json | null
           pieces?: number | null
           prix?: number | null
+          qualite_annonce?: Json | null
+          score_breakdown?: Json | null
           score_pigeabilite?: number | null
+          signaux_marche?: Json | null
           source?: string
           statut?: string
           surface?: number | null
@@ -193,20 +206,27 @@ export type Database = {
           url?: string | null
           user_id: string
           ville?: string | null
+          workflow_statut?: string | null
         }
         Update: {
           adresse?: string | null
           agence?: string | null
           analyse_ia?: Json | null
+          categorie_opportunite?: string | null
           code_postal?: string | null
+          contact_vendeur?: Json | null
           created_at?: string
           date_publication?: string | null
           description?: string | null
           id?: string
+          notes_agent?: string | null
           photos?: Json | null
           pieces?: number | null
           prix?: number | null
+          qualite_annonce?: Json | null
+          score_breakdown?: Json | null
           score_pigeabilite?: number | null
+          signaux_marche?: Json | null
           source?: string
           statut?: string
           surface?: number | null
@@ -217,6 +237,7 @@ export type Database = {
           url?: string | null
           user_id?: string
           ville?: string | null
+          workflow_statut?: string | null
         }
         Relationships: []
       }
