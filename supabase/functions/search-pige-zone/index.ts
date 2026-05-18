@@ -224,6 +224,13 @@ Deno.serve(async (req) => {
     );
 
     const zoneClean = zone.trim();
+    const zoneNorm = zoneClean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Extract postal code if present in the zone (e.g. "75016" or "13008 Marseille")
+    const zoneCpMatch = zoneClean.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/);
+    const zoneCp = zoneCpMatch ? zoneCpMatch[0] : null;
+    const zoneCpPrefix = zoneCp ? zoneCp.slice(0, 2) : null;
+    // Extract city tokens (remove postal code & digits)
+    const cityTokens = zoneNorm.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
 
     const queries = [
       `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
@@ -231,6 +238,15 @@ Deno.serve(async (req) => {
       `maison appartement à vendre ${zoneClean} site:seloger.com`,
       `bien immobilier à vendre ${zoneClean} site:bienici.com`,
       `vente appartement maison ${zoneClean} site:pap.fr`,
+      `appartement maison à vendre ${zoneClean} site:logic-immo.com`,
+      `bien à vendre ${zoneClean} site:immobilier.lefigaro.fr`,
+      `vente immobilière ${zoneClean} site:avendrealouer.fr`,
+      `appartement maison ${zoneClean} site:paruvendu.fr`,
+      `immobilier vente ${zoneClean} site:ouestfrance-immo.com`,
+      `appartement maison à vendre ${zoneClean} site:orpi.com`,
+      `bien à vendre ${zoneClean} site:century21.fr`,
+      `vente appartement maison ${zoneClean} site:laforet.com`,
+      `bien immobilier à vendre ${zoneClean} site:guy-hoquet.com`,
     ];
 
     const allResults: FcResult[] = [];

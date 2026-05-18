@@ -156,12 +156,14 @@ export type Database = {
           created_at: string
           date_publication: string | null
           description: string | null
+          fiche_proprietaire: Json
           id: string
           notes_agent: string | null
           photos: Json | null
           pieces: number | null
           prix: number | null
           qualite_annonce: Json | null
+          saved_to_vivier: boolean
           score_breakdown: Json | null
           score_pigeabilite: number | null
           signaux_marche: Json | null
@@ -176,6 +178,7 @@ export type Database = {
           user_id: string
           ville: string | null
           workflow_statut: string | null
+          zone_recherche: string | null
         }
         Insert: {
           adresse?: string | null
@@ -187,12 +190,14 @@ export type Database = {
           created_at?: string
           date_publication?: string | null
           description?: string | null
+          fiche_proprietaire?: Json
           id?: string
           notes_agent?: string | null
           photos?: Json | null
           pieces?: number | null
           prix?: number | null
           qualite_annonce?: Json | null
+          saved_to_vivier?: boolean
           score_breakdown?: Json | null
           score_pigeabilite?: number | null
           signaux_marche?: Json | null
@@ -207,6 +212,7 @@ export type Database = {
           user_id: string
           ville?: string | null
           workflow_statut?: string | null
+          zone_recherche?: string | null
         }
         Update: {
           adresse?: string | null
@@ -218,12 +224,14 @@ export type Database = {
           created_at?: string
           date_publication?: string | null
           description?: string | null
+          fiche_proprietaire?: Json
           id?: string
           notes_agent?: string | null
           photos?: Json | null
           pieces?: number | null
           prix?: number | null
           qualite_annonce?: Json | null
+          saved_to_vivier?: boolean
           score_breakdown?: Json | null
           score_pigeabilite?: number | null
           signaux_marche?: Json | null
@@ -238,6 +246,7 @@ export type Database = {
           user_id?: string
           ville?: string | null
           workflow_statut?: string | null
+          zone_recherche?: string | null
         }
         Relationships: []
       }
