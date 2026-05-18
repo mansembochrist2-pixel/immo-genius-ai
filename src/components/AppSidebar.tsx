@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { preloadRoute } from "@/App";
+import { preloadRoute } from "@/lib/routeLoader";
 
 export function AppSidebar() {
   const { logout, user } = useAuth();
