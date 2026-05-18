@@ -428,8 +428,9 @@ export const PigeIA = () => {
     const daysOnline = a.date_publication ? Math.round((Date.now() - new Date(a.date_publication).getTime()) / 86400000) : null;
     const contact = a.contact_vendeur || {};
     const sig = a.signaux_marche || {};
+    const ficheReady = a.fiche_proprietaire && Object.keys(a.fiche_proprietaire || {}).length > 0;
     return (
-      <Card key={a.id} className="rounded-2xl overflow-hidden hover:border-primary/40 transition-all cursor-pointer group" onClick={() => { setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
+      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
         {photo ? (
           <div className="h-40 bg-secondary/30 overflow-hidden relative">
             <img src={photo} alt={a.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
@@ -446,8 +447,12 @@ export const PigeIA = () => {
         )}
         <CardContent className="p-4 space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-sm font-semibold line-clamp-2 flex-1">{a.titre}</h3>
+            <h3 className="text-sm font-semibold leading-snug line-clamp-2 flex-1">{a.titre}</h3>
             <div onClick={(e) => e.stopPropagation()}><ScoreBreakdown annonce={a} /></div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {contact.type === "particulier" && <Badge variant="outline" className="bg-success/10 text-success border-success/25 text-[10px]">Particulier</Badge>}
+            {ficheReady && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] gap-1"><UserRound className="h-2.5 w-2.5" />Fiche prête</Badge>}
           </div>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
             {a.prix && <span className="font-semibold text-foreground">{Number(a.prix).toLocaleString("fr-FR")} €</span>}
@@ -470,6 +475,7 @@ export const PigeIA = () => {
             <WorkflowBadge annonce={a} onChange={(s) => updateAnnonce.mutate({ id: a.id, patch: { workflow_statut: s } })} />
             <div className="flex items-center gap-1">
               {a.analyse_ia?.generated && <CheckCircle2 className="h-3 w-3 text-success" />}
+              {ficheReady && <UserRound className="h-3 w-3 text-primary" />}
               <Button
                 size="icon"
                 variant="ghost"
