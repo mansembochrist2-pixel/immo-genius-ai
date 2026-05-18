@@ -1,127 +1,109 @@
-# Restructuration Estate IA → "Copilote IA de conquête de mandats"
+## Objectif
 
-## Nouvelle vision
-Estate IA n'est plus un CRM. C'est un **copilote IA Zero Friction** orienté conquête de mandats, prospection, estimation et création de contenu.
+Transformer le module "Chasseur de Mandats IA" d'un générateur de stratégie en un véritable outil opérationnel de pige + corriger la lenteur de navigation entre modules.
 
-## 1. Suppressions massives
+---
 
-### Modules supprimés (UI + routes + composants + données)
-- **Inbox Intelligence** (page Inbox, composants, tables `inbox_messages`)
-- **Mémoire Client / Clients CRM** (page Clients, ClientDetail)
-- **Agenda IA** (page Agenda, composants agenda/, table `events`)
-- **Synchronisation Gmail** (toutes edge functions `gmail-*`, `sync-emails`, `sync-all-gmail`, `oauth-init`, `oauth-callback`, `analyze-inbox`, `gmail-connect-from-session`)
-- **AuthComplete / GoogleSignInButton / gmailOAuth.ts** (flow OAuth Gmail)
-- Widgets dashboard CRM (HotProspects email-based, RappelsWidget agenda)
-- Cron job sync-all-gmail
-- Routes : `/inbox`, `/agenda`, `/clients`, `/auth/complete`
+## 1. Enrichissement des données annonces (backend `search-pige-zone`)
 
-### Auth simplifiée
-- Garder auth email/password Supabase basique uniquement
-- Supprimer toute logique Google OAuth avec scopes Gmail
-- Onboarding : juste demander **ville/zone principale** → entrée immédiate
+Ajouter l'extraction et le stockage de :
+- **Vendeur** : type (particulier/agence), nom/agence si dispo, téléphone, email (si présent légalement dans l'annonce)
+- **Localisation fine** : quartier, rue approximative, résidence, étage, proximité commerces
+- **Signaux marché** : ancienneté annonce (jours en ligne), baisse de prix détectée, republish, multi-diffusion (présence sur plusieurs plateformes)
+- **Qualité annonce** : nombre de photos, qualité description (longueur, structure), photos amateurs vs pro
+- **Données marché** : prix/m², comparaison vs moyenne quartier, tension secteur
 
-## 2. Nouvelle architecture de navigation
+Migration DB : ajouter colonnes `contact_vendeur` (jsonb), `signaux_marche` (jsonb), `qualite_annonce` (jsonb), `categorie_opportunite` (text: top/moyenne/faible/surveiller).
 
-Sidebar réduite à :
-1. **Dashboard**
-2. **Chasseur de Mandats IA** (parent) → onglets internes
-   - Radar Prospection (existant amélioré)
-   - Pige IA (nouveau)
-3. **Estimation IA** (conservé, polish premium)
-4. **Studio IA** (renommage de Documents IA)
-5. **Copilote** (recentré coach commercial)
-6. **Settings**
+## 2. Logique de scoring "mandatabilité" enrichie
 
-## 3. Module "Chasseur de Mandats IA"
+Refonte `score_pigeabilite` avec critères pondérés explicites :
+- Particulier (+30) / Agence exclusive (-20)
+- Annonce récente <7j (+15)
+- Baisse prix détectée (+20)
+- Multi-diffusion agence (+15 = signal mandat simple faible)
+- Photos amateurs (+10)
+- Description courte/faible (+10)
+- Prix sous marché (+15)
+- Zone tendue (+10)
 
-Route `/chasseur` avec deux onglets :
+Stocker `score_breakdown` (jsonb) avec détail de chaque critère pour l'affichage explicatif.
 
-### Radar Prospection
-- Garde la base existante (`/radar` → intégré)
-- Améliorations UI : badges premium, hiérarchie visuelle scores, sensation "radar stratégique"
+## 3. Categorisation et affichage de TOUTES les annonces
 
-### Pige IA (nouveau)
-Pour chaque annonce détectée → génération IA :
-- Phrase d'accroche personnalisée
-- Script d'appel
-- Contre-objections
-- Failles détectées
-- Score de **Pigeabilité** (ancienneté, qualité photos/texte, cohérence prix, urgence, baisse prix)
+- Supprimer le filtrage agressif qui vide l'UI
+- Afficher 4 catégories : **Top opportunités** (>75), **Moyennes** (50-75), **Faibles** (25-50), **À surveiller** (<25)
+- Tabs/sections dans `PigeIA.tsx` pour naviguer
 
-Affichage : cartes annonces avec score visuel fort + panneau latéral "Stratégie de pige IA".
+## 4. Workflow opérationnel (statuts pige)
 
-### Backend data
-- Table `annonces_pige` (source, url, titre, prix, surface, ville, date_publication, photos, description, score_pigeabilite, analyse_ia jsonb, statut)
-- Edge function `analyze-annonce-pige` (Lovable AI Gemini)
-- Architecture connecteurs extensible (Leboncoin, SeLoger, etc.) → **phase 1 : seeder + ingestion manuelle URL + analyse IA**. Scraping multi-source = phase 2 (poser l'archi, pas implémenter tous les connecteurs maintenant).
-- Cron quotidien `refresh-pige` pour rescorer
+Ajouter statuts : `a_appeler`, `contacte`, `relance`, `rdv_pris`, `mandat_signe`, `refus`, `a_surveiller`.
+- Kanban ou dropdown rapide sur chaque carte annonce
+- Filtrage par statut
 
-## 4. Studio IA (ex Documents IA)
-- Renommer route `/documents` → `/studio`
-- Renommer partout : sidebar, CTA, titres
-- Sections : Annonces, Posts réseaux sociaux, Scripts vidéos, Emails commerciaux, Scripts d'appel, Brochures
-- UI premium type "studio créatif"
+## 5. Score IA expliqué (UI)
 
-## 5. Copilote Stratégique
-- Garder `/copilote`
-- Retirer toute injection de contexte Inbox/Mémoire client/Emails
-- Nouveau system prompt : coach négociation immobilier, scripts pige, obtention mandats exclusifs
-- Suggestions prompts mises à jour
+Popover détaillé sur le score (réutiliser pattern `ScoreExplainer.tsx`) :
+- Liste des critères avec poids et statut (+/-)
+- Synthèse : "Probabilité de mandat estimée : élevée/moyenne/faible"
+- Justification narrative
 
-## 6. Dashboard refait
-Widgets nouveaux :
-- Opportunités détectées aujourd'hui (count `annonces_pige` créées <24h)
-- Score moyen de pigeabilité
-- Nouveaux biens à piger (top 5)
-- Estimations créées (count)
-- Scripts IA générés (count studio)
-- Actions recommandées (existant, mais filtré sans contexte email)
-- CTA principaux : "Lancer une pige", "Nouvelle estimation", "Studio IA"
+## 6. Sauvegarde des stratégies IA
 
-Supprimer : HotProspects email, RappelsWidget agenda, stats CRM.
+- Les stratégies sont déjà stockées dans `analyse_ia` — ajouter UI pour les **éditer**, **versionner**, **exporter** (PDF/copier)
+- Bouton "Régénérer" + "Restaurer version précédente"
 
-## 7. Onboarding ultra-court
-1 seule étape : ville + zone principale → redirect `/chasseur` avec radar pré-rempli.
+## 7. Copilot vraiment connecté
 
-## 8. Migration BDD
-- DROP tables : `inbox_messages`, `events`, `user_integrations` (si plus utilisée)
-- DROP cron `sync-all-gmail`
-- CREATE table `annonces_pige` avec RLS user-scoped
-- Garder : `profiles`, `prospects`, `opportunites`, `sales`, `tasks`, `actions_recommandees`, `analyses_zone`, `annonces`, `conversations`, `workflows`, `api_connections`
+Étendre le `sessionStorage.copilote_prefill` avec contexte complet :
+- Lien annonce, données bien, scores + breakdown, contact vendeur, stratégie générée, faiblesses, secteur, comparables, prix/m²
+- Pré-injecter un message système contextuel dans `chat-copilote`
+- Boutons d'actions rapides dans le Copilot : "Comment l'appeler ?", "Écris un SMS", "WhatsApp", "Contourner objection honoraires", "Stratégie 14 jours"
 
-## Détails techniques
+## 8. Insights marché (nouvelle section)
 
-**Fichiers supprimés** :
-- `src/pages/Inbox.tsx`, `Agenda.tsx`, `Clients.tsx`, `AuthComplete.tsx`
-- `src/components/agenda/*`, `src/components/clients/*`, `GoogleSignInButton.tsx`
-- `src/components/dashboard/HotProspects.tsx`, `RappelsWidget.tsx`
-- `src/lib/gmailOAuth.ts`
-- `supabase/functions/oauth-init`, `oauth-callback`, `sync-emails`, `sync-all-gmail`, `gmail-connect-from-session`, `analyze-inbox`
+Edge function `analyze-zone-insights` qui agrège les annonces d'une zone et génère :
+- "Forte tension vendeurs"
+- "Les T3 partent vite"
+- "Beaucoup de particuliers"
+- "Prix surévalués"
+- "Fort potentiel mandat exclusif"
 
-**Fichiers créés** :
-- `src/pages/Chasseur.tsx` (onglets Radar + Pige)
-- `src/pages/PigeIA.tsx` (ou sous-composant)
-- `src/pages/Studio.tsx` (renommé de Documents)
-- `src/components/dashboard/OpportunitiesToday.tsx`, `PigeabiliteScore.tsx`, `StudioActivity.tsx`
-- `supabase/functions/analyze-annonce-pige/index.ts`
-- `supabase/functions/refresh-pige/index.ts`
+Affiché en haut du module quand une zone est analysée.
 
-**Fichiers modifiés** :
-- `src/App.tsx` (routes)
-- `src/components/AppSidebar.tsx` (nav)
-- `src/pages/Dashboard.tsx` (widgets)
-- `src/pages/Onboarding.tsx` (1 étape)
-- `src/pages/Login.tsx`, `Signup.tsx` (retrait Google OAuth)
-- `src/pages/Copilote.tsx` (recentrage prompt)
-- `src/pages/Radar.tsx` (polish + intégration parent Chasseur)
-- `supabase/functions/copilote-agent` (system prompt)
+## 9. Fluidité de navigation entre modules
 
-## Hors-scope (à confirmer / phase 2)
-- Connecteurs scraping live Leboncoin/SeLoger (légalement sensibles, nécessitent infra dédiée) → phase 1 = ingestion par URL + seeds + architecture extensible prête.
-- Génération vidéo IA Studio.
-- Migration de données existantes Inbox/Agenda (perdues à la suppression — confirmer OK).
+Problème : écran noir/lag entre routes.
 
-## Confirmation requise
-1. **OK pour DROP des tables `inbox_messages`, `events`, `user_integrations`** ? (perte définitive des données)
-2. **OK pour scraping différé** (phase 1 = ingestion URL + IA, phase 2 = connecteurs sources) ?
-3. **Auth : on garde email/password Supabase uniquement** (suppression totale du bouton Google) ?
+Causes probables : pas de code-splitting maîtrisé, re-mount complet du layout, queries non préchargées.
+
+Actions :
+- Convertir les routes en `React.lazy()` + `Suspense` avec skeleton stable
+- Stabiliser `AppLayout` (ne pas remonter sidebar/header entre routes)
+- Activer `staleTime` raisonnable sur React Query pour éviter refetch systématique
+- Précharger les modules au hover des liens sidebar (`onMouseEnter` → `import()`)
+- Vérifier les transitions Framer Motion qui pourraient causer le flash noir
+
+## Technique
+
+**Fichiers backend modifiés :**
+- `supabase/functions/search-pige-zone/index.ts` — extraction enrichie (contact, signaux marché, qualité)
+- `supabase/functions/analyze-annonce-pige/index.ts` — scoring détaillé + breakdown
+- **Nouveau** `supabase/functions/analyze-zone-insights/index.ts` — insights marché agrégés
+
+**Migration DB :**
+- `annonces_pige` : `contact_vendeur jsonb`, `signaux_marche jsonb`, `qualite_annonce jsonb`, `score_breakdown jsonb`, `categorie_opportunite text`, statut élargi
+
+**Fichiers frontend modifiés :**
+- `src/components/chasseur/PigeIA.tsx` — tabs catégories, statuts workflow, score explainer, insights, contact vendeur
+- `src/pages/Copilote.tsx` + `supabase/functions/chat-copilote/index.ts` — contexte pige enrichi, actions rapides
+- `src/App.tsx` — `React.lazy` + Suspense pour toutes les routes
+- `src/components/AppLayout.tsx` / `AppSidebar.tsx` — préchargement au hover, layout stable
+
+## Ordre d'exécution
+
+1. Migration DB (nouvelles colonnes)
+2. Refonte backend scraping + scoring
+3. UI workflow + catégories + explainer
+4. Copilot connecté + insights marché
+5. Optimisation navigation (lazy + preload)
