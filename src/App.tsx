@@ -8,7 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Component, Suspense, type ErrorInfo, type ReactNode } from "react";
-import { isChunkLoadError, lazyWithRetry, resetChunkReloadGuard, routeLoaders } from "@/lib/routeLoader";
+import { isChunkLoadError, lazyWithRetry, routeLoaders } from "@/lib/routeLoader";
 
 // Eager pages (landing & auth - first impression must be instant)
 import Index from "./pages/Index";
@@ -53,10 +53,6 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 
   componentDidCatch(error: unknown, _info: ErrorInfo) {
     if (!isChunkLoadError(error)) throw error;
-  }
-
-  componentDidMount() {
-    resetChunkReloadGuard();
   }
 
   render() {
