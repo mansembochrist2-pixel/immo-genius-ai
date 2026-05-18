@@ -483,18 +483,23 @@ export const PigeIA = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map((k) => (
-          <Card key={k.label} className="bg-card border-border rounded-2xl">
+        {kpis.map((k, i) => (
+          <Card
+            key={k.label}
+            className="bg-card border-border rounded-2xl transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 duration-300"
+            style={{ animation: `fadeInUp 0.5s ease-out ${i * 80}ms both` }}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{k.label}</p>
-                <k.icon className="h-3.5 w-3.5 text-primary/60" />
+                <k.icon className="h-3.5 w-3.5 text-primary/60 transition-transform group-hover:scale-110" />
               </div>
-              <p className="text-2xl font-bold">{k.value}</p>
+              <p className="text-2xl font-bold tabular-nums">{k.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
+      <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* Results */}
       {searching && annonces.length === 0 ? (
