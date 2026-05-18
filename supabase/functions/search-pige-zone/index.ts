@@ -44,6 +44,12 @@ const sourceFromUrl = (url: string): string => {
   if (url.includes("logic-immo")) return "logic-immo";
   if (url.includes("orpi")) return "orpi";
   if (url.includes("century21")) return "century21";
+  if (url.includes("laforet")) return "laforet";
+  if (url.includes("guy-hoquet")) return "guy-hoquet";
+  if (url.includes("lefigaro")) return "figaro";
+  if (url.includes("avendrealouer")) return "avendrealouer";
+  if (url.includes("paruvendu")) return "paruvendu";
+  if (url.includes("ouestfrance-immo")) return "ouestfrance";
   return "web";
 };
 
