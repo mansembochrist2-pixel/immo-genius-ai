@@ -512,7 +512,25 @@ export const PigeIA = () => {
       <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* Results */}
-      {searching && annonces.length === 0 ? (
+      {/* Section "Enregistrés" — persistante, indépendante des recherches */}
+      {savedAnnonces.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BookmarkCheck className="h-4 w-4 text-accent-foreground" />
+              <h3 className="text-sm font-semibold">Mes annonces enregistrées</h3>
+              <Badge variant="outline" className="text-[10px]">{savedAnnonces.length}</Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Toujours visibles — survivent aux recherches et rafraîchissements.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {savedAnnonces.map(renderCard)}
+          </div>
+        </div>
+      )}
+
+      {/* Résultats de la recherche en cours */}
+      {searching && zoneAnnoncesCount === 0 ? (
         <Card className="rounded-2xl border-dashed">
           <CardContent className="py-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
@@ -522,16 +540,31 @@ export const PigeIA = () => {
         </Card>
       ) : isLoading ? (
         <p className="text-center text-sm text-muted-foreground py-8">Chargement…</p>
-      ) : annonces.length === 0 ? (
+      ) : !activeZone ? (
         <Card className="rounded-2xl border-dashed">
           <CardContent className="py-16 text-center">
             <Radar className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm font-medium">Lancez votre première recherche d'opportunités</p>
-            <p className="text-xs text-muted-foreground mt-1">Entrez une zone ci-dessus pour démarrer la pige.</p>
+            <p className="text-sm font-medium">Lancez une recherche pour détecter des opportunités</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Les résultats sont scopés à la zone recherchée. Seules vos annonces enregistrées (🔖) restent visibles entre les sessions.
+            </p>
+          </CardContent>
+        </Card>
+      ) : zoneAnnoncesCount === 0 ? (
+        <Card className="rounded-2xl border-dashed">
+          <CardContent className="py-16 text-center">
+            <Radar className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm font-medium">Aucune opportunité détectée sur "{activeZone}"</p>
+            <p className="text-xs text-muted-foreground mt-1">Essayez une autre zone ou un code postal plus précis.</p>
           </CardContent>
         </Card>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <p className="text-[11px] text-muted-foreground">
+              Résultats pour <span className="font-medium text-foreground">{activeZone}</span> — {zoneAnnoncesCount} annonce{zoneAnnoncesCount > 1 ? "s" : ""}
+            </p>
+          </div>
           <TabsList className="bg-card border border-border rounded-2xl p-1 h-auto flex flex-wrap">
             {CATEGORIES.map(c => (
               <TabsTrigger key={c.key} value={c.key} className="rounded-xl text-xs gap-2 group">
@@ -560,11 +593,7 @@ export const PigeIA = () => {
               {(byCategory[c.key] || []).length === 0 ? (
                 <Card className="rounded-2xl border-dashed">
                   <CardContent className="py-10 text-center text-xs text-muted-foreground">
-                    {c.key === "vivier"
-                      ? "Aucun bien enregistré pour l'instant. Cliquez sur l'icône 🔖 d'une annonce pour l'ajouter à votre Vivier de mandats."
-                      : activeZone
-                        ? `Aucune annonce dans cette catégorie pour "${activeZone}".`
-                        : "Aucune annonce dans cette catégorie."}
+                    Aucune annonce dans cette catégorie pour "{activeZone}".
                   </CardContent>
                 </Card>
               ) : (
