@@ -127,6 +127,78 @@ const basicExtract = (src: FcResult, zone: string) => {
   };
 };
 
+const normalizeZoneText = (value: unknown) => String(value || "")
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[’']/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasPhrase = (text: string, phrase: string) => new RegExp(`(^|[^a-z0-9])${escapeRegex(phrase).replace(/\s+/g, "\\s+")}([^a-z0-9]|$)`, "i").test(text);
+
+const parseSearchZone = (zone: string) => {
+  const norm = normalizeZoneText(zone);
+  const cp = norm.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/)?.[0] || null;
+  const cities: Record<string, { prefix: string; max: number }> = {
+    paris: { prefix: "750", max: 20 },
+    marseille: { prefix: "130", max: 16 },
+    lyon: { prefix: "690", max: 9 },
+  };
+  const city = Object.keys(cities).find((c) => hasPhrase(norm, c));
+  let arrondissement: { city: string; arr: number; cp: string } | null = null;
+  if (city) {
+    const cfg = cities[city];
+    const cpArr = cp?.startsWith(cfg.prefix) ? Number(cp.slice(3)) : null;
+    const typedArr = Number(norm.match(new RegExp(`\\b${city}\\s+(\\d{1,2})(?:e|eme|er)?\\b`))?.[1] || norm.match(/\b(\d{1,2})(?:e|eme|er)?\s*(?:arrondissement|arr\.?)/)?.[1] || 0);
+    const arr = cpArr || typedArr;
+    if (arr >= 1 && arr <= cfg.max) arrondissement = { city, arr, cp: `${cfg.prefix}${String(arr).padStart(2, "0")}` };
+  }
+  let cityName = arrondissement?.city || norm
+    .replace(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/g, " ")
+    .replace(/\b\d{1,2}(?:e|eme|er)?\b/g, " ")
+    .replace(/\b(a|au|aux|en|dans|sur|vente|immobilier|appartement|maison|centre|quartier|arrondissement|arr)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cityName === "cannet") cityName = "le cannet";
+  const aliases = cityName === "le cannet" ? ["le cannet", "cannet"] : cityName ? [cityName] : [];
+  return { norm, postalCode: arrondissement?.cp || cp, arrondissement, cityName, aliases };
+};
+
+const listingMatchesSearchZone = (candidate: any, src: FcResult, zone: string): boolean => {
+  const target = parseSearchZone(zone);
+  const adCp = String(candidate.code_postal || "").trim();
+  const adVille = normalizeZoneText(candidate.ville);
+  const haystack = normalizeZoneText([
+    candidate.titre,
+    candidate.description,
+    candidate.adresse,
+    candidate.quartier,
+    candidate.ville,
+    candidate.code_postal,
+    src.title,
+    src.description,
+    (src.markdown || "").slice(0, 3000),
+    src.url,
+  ].filter(Boolean).join("\n"));
+
+  if (target.arrondissement) {
+    const { city, arr, cp } = target.arrondissement;
+    if (adCp) return adCp === cp;
+    const arrHit = hasPhrase(haystack, cp)
+      || new RegExp(`(^|[^a-z0-9])${escapeRegex(city)}\\s*${arr}(?:e|eme|er)?([^a-z0-9]|$)`).test(haystack)
+      || new RegExp(`(^|[^a-z0-9])${arr}(?:e|eme|er)?\\s*(?:arrondissement|arr\\.?)([^a-z0-9]|$)`).test(haystack);
+    return (adVille === city || hasPhrase(haystack, city)) && arrHit;
+  }
+  if (target.postalCode) return adCp === target.postalCode || hasPhrase(haystack, target.postalCode);
+  if (target.aliases.length > 0) {
+    if (adVille) return target.aliases.some((alias) => adVille === alias);
+    return target.aliases.some((alias) => hasPhrase(haystack, alias));
+  }
+  return false;
+};
+
 const categorize = (score: number): string => {
   if (score >= 75) return "top";
   if (score >= 50) return "moyenne";
