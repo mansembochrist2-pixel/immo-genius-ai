@@ -10,17 +10,18 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { preloadRoute } from "@/App";
 
 export function AppSidebar() {
   const { logout, user } = useAuth();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
   const navItems = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, hint: "Vue d'ensemble : performance, pige, opportunités." },
-    { title: "Chasseur de Mandats", url: "/chasseur", icon: Crosshair, hint: "Radar de prospection + Pige IA pour conquérir des mandats." },
-    { title: "Estimation IA", url: "/estimation", icon: TrendingUp, hint: "Estimation premium basée sur DVF & analyse IA." },
-    { title: "Studio IA", url: "/studio", icon: Palette, hint: "Annonces, posts, scripts d'appel et contenus marketing." },
-    { title: "Copilote", url: "/copilote", icon: Bot, hint: "Coach commercial IA : pige, négociation, conquête de mandats." },
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, hint: "Vue d'ensemble : performance, pige, opportunités.", preload: preloadRoute.dashboard },
+    { title: "Chasseur de Mandats", url: "/chasseur", icon: Crosshair, hint: "Radar de prospection + Pige IA pour conquérir des mandats.", preload: preloadRoute.chasseur },
+    { title: "Estimation IA", url: "/estimation", icon: TrendingUp, hint: "Estimation premium basée sur DVF & analyse IA.", preload: preloadRoute.estimation },
+    { title: "Studio IA", url: "/studio", icon: Palette, hint: "Annonces, posts, scripts d'appel et contenus marketing.", preload: preloadRoute.studio },
+    { title: "Copilote", url: "/copilote", icon: Bot, hint: "Coach commercial IA : pige, négociation, conquête de mandats.", preload: preloadRoute.copilote },
   ];
 
   const legalItems = [
@@ -46,7 +47,14 @@ export function AppSidebar() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <SidebarMenuButton asChild>
-                        <NavLink to={item.url} end={item.url === "/"} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-all duration-200" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm">
+                        <NavLink
+                          to={item.url}
+                          end={item.url === "/"}
+                          onMouseEnter={() => item.preload?.()}
+                          onFocus={() => item.preload?.()}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-all duration-200"
+                          activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm"
+                        >
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
                         </NavLink>
