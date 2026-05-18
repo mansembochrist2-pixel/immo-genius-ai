@@ -739,6 +739,64 @@ export const PigeIA = () => {
                   </div>
                 )}
 
+                {/* Fiche propriétaire */}
+                <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1">
+                        <UserRound className="h-3.5 w-3.5" /> Fiche propriétaire
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Résumé vendeur, angles d’approche et questions de qualification.</p>
+                    </div>
+                    {selected.fiche_proprietaire && Object.keys(selected.fiche_proprietaire || {}).length > 0 && (
+                      <Badge className="bg-success/15 text-success border-success/25">Prête</Badge>
+                    )}
+                  </div>
+                  {selected.fiche_proprietaire && Object.keys(selected.fiche_proprietaire || {}).length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                      <div className="lg:col-span-2 rounded-xl bg-background/70 border border-border/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Synthèse</p>
+                        <p className="text-sm leading-relaxed">{selected.fiche_proprietaire.resume_vendeur || selected.fiche_proprietaire.angle_approche || "Fiche prête à qualifier."}</p>
+                        {selected.fiche_proprietaire.angle_approche && (
+                          <p className="text-sm text-primary font-medium mt-3">{selected.fiche_proprietaire.angle_approche}</p>
+                        )}
+                      </div>
+                      <div className="rounded-xl bg-background/70 border border-border/40 p-3 space-y-2">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Profil</p>
+                          <p className="text-sm capitalize">{selected.fiche_proprietaire.profil_probable || selected.contact_vendeur?.type || "À qualifier"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Priorité</p>
+                          <p className="text-sm capitalize">{selected.fiche_proprietaire.niveau_priorite || selected.analyse_ia?.potentiel_mandat || "Moyen"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Prochaine action</p>
+                          <p className="text-xs text-muted-foreground">{selected.fiche_proprietaire.prochaine_action || "Appeler et qualifier le projet."}</p>
+                        </div>
+                      </div>
+                      {selected.fiche_proprietaire.informations_a_valider?.length > 0 && (
+                        <div className="lg:col-span-3 rounded-xl bg-background/70 border border-border/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1"><ClipboardList className="h-3 w-3" /> Questions à valider</p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            {selected.fiche_proprietaire.informations_a_valider.slice(0, 3).map((q: string, i: number) => (
+                              <div key={i} className="text-xs rounded-lg bg-secondary/40 p-2">{q}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl bg-background/70 border border-dashed border-primary/25 p-3">
+                      <p className="text-sm text-muted-foreground">Générez la stratégie IA : la fiche propriétaire sera créée automatiquement au même endroit.</p>
+                      <Button size="sm" onClick={() => generateStrategy(selected)} disabled={generatingFor === selected.id} className="gap-2 shrink-0">
+                        {generatingFor === selected.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        Préparer la fiche
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-2">
                   {!selected.analyse_ia?.generated ? (
