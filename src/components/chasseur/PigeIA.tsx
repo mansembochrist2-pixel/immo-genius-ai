@@ -372,14 +372,20 @@ export const PigeIA = () => {
     finally { setGeneratingFor(null); }
   };
 
-  const matchesActiveZone = (a: any) => activeZone ? listingMatchesSearchZone(a, activeZone) : false;
+  const matchesActiveZone = useCallback(
+    (a: any) => activeZone ? listingMatchesSearchZone(a, activeZone) : false,
+    [activeZone]
+  );
+  const zoneAnnonces = useMemo(
+    () => activeZone ? annonces.filter(matchesActiveZone) : [],
+    [annonces, activeZone, matchesActiveZone]
+  );
 
   const byCategory = useMemo(() => {
     const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
     // Tant qu'aucune recherche n'a été lancée dans la session, on n'affiche AUCUNE catégorie.
     if (!activeZone) return buckets;
-    for (const a of annonces) {
-      if (!matchesActiveZone(a)) continue;
+    for (const a of zoneAnnonces) {
       const cat = (a as any).categorie_opportunite
         || ((a as any).score_pigeabilite >= 75 ? "top"
           : (a as any).score_pigeabilite >= 50 ? "moyenne"
@@ -387,7 +393,7 @@ export const PigeIA = () => {
       (buckets[cat] || buckets.surveiller).push(a);
     }
     return buckets;
-  }, [annonces, activeZone]);
+  }, [zoneAnnonces, activeZone]);
 
   const savedAnnonces = useMemo(
     () => annonces.filter((a: any) => a.saved_to_vivier),
@@ -395,13 +401,13 @@ export const PigeIA = () => {
   );
 
   const zoneAnnoncesCount = useMemo(
-    () => (activeZone ? annonces.filter(matchesActiveZone).length : 0),
-    [annonces, activeZone]
+    () => zoneAnnonces.length,
+    [zoneAnnonces]
   );
 
   // ---- Insights marché (dérivés des annonces de la zone visible) ----
   const insights = useMemo(() => {
-    const scoped = activeZone ? annonces.filter(matchesActiveZone) : [];
+    const scoped = zoneAnnonces;
     if (scoped.length < 3) return [];
     const list: string[] = [];
     const particuliers = scoped.filter((a: any) => (a.contact_vendeur?.type || "") === "particulier").length;
@@ -414,13 +420,13 @@ export const PigeIA = () => {
     const topCount = byCategory.top.length;
     if (topCount >= 3) list.push(`🔥 ${topCount} top opportunités — concentrez vos appels aujourd'hui`);
     return list;
-  }, [annonces, activeZone, byCategory.top.length]);
+  }, [zoneAnnonces, byCategory.top.length]);
 
   const kpis = [
     { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
     { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
     { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck },
-    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(annonces.filter(matchesActiveZone).reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
+    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(zoneAnnonces.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
   ];
 
   const renderCard = (a: any) => {
