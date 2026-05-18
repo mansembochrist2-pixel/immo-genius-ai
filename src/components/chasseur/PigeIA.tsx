@@ -12,7 +12,7 @@ import {
   Info, Flame, CheckCircle2, Eye, Camera, Clock, ArrowDown, Bookmark, BookmarkCheck,
   HelpCircle, Briefcase, UserRound, ClipboardList,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
