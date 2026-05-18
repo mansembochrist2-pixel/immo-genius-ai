@@ -51,15 +51,24 @@ export const resetChunkReloadGuard = () => {
   }
 };
 
+const loadOnce = async (factory: RouteLoader): Promise<RouteModule> => {
+  const mod = await factory();
+  if (!mod || typeof (mod as any).default !== "function") {
+    // Chunk likely served as SPA fallback (stale deploy) — treat as chunk error
+    throw new Error("Failed to fetch dynamically imported module: missing default export");
+  }
+  return mod;
+};
+
 export const lazyWithRetry = (factory: RouteLoader) =>
   lazy(async () => {
     try {
-      return await factory();
+      return await loadOnce(factory);
     } catch (error) {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       try {
-        return await factory();
+        return await loadOnce(factory);
       } catch (retryError) {
         recoverFromChunkLoadError(retryError);
         throw retryError;
