@@ -308,29 +308,26 @@ Deno.serve(async (req) => {
     );
 
     const zoneClean = zone.trim();
-    const zoneNorm = zoneClean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    // Extract postal code if present in the zone (e.g. "75016" or "13008 Marseille")
-    const zoneCpMatch = zoneClean.match(/\b(0[1-9]|[1-8]\d|9[0-8])\d{3}\b/);
-    const zoneCp = zoneCpMatch ? zoneCpMatch[0] : null;
-    const zoneCpPrefix = zoneCp ? zoneCp.slice(0, 2) : null;
-    // Extract city tokens (remove postal code & digits)
-    const cityTokens = zoneNorm.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
+    const parsedZone = parseSearchZone(zoneClean);
+    const strictZoneLabel = parsedZone.arrondissement
+      ? `${parsedZone.arrondissement.city} ${parsedZone.arrondissement.arr}e (${parsedZone.arrondissement.cp})`
+      : parsedZone.postalCode || parsedZone.cityName || zoneClean;
 
     const queries = [
-      `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
-      `vente appartement maison ${zoneClean} particulier site:leboncoin.fr`,
-      `maison appartement à vendre ${zoneClean} site:seloger.com`,
-      `bien immobilier à vendre ${zoneClean} site:bienici.com`,
-      `vente appartement maison ${zoneClean} site:pap.fr`,
-      `appartement maison à vendre ${zoneClean} site:logic-immo.com`,
-      `bien à vendre ${zoneClean} site:immobilier.lefigaro.fr`,
-      `vente immobilière ${zoneClean} site:avendrealouer.fr`,
-      `appartement maison ${zoneClean} site:paruvendu.fr`,
-      `immobilier vente ${zoneClean} site:ouestfrance-immo.com`,
-      `appartement maison à vendre ${zoneClean} site:orpi.com`,
-      `bien à vendre ${zoneClean} site:century21.fr`,
-      `vente appartement maison ${zoneClean} site:laforet.com`,
-      `bien immobilier à vendre ${zoneClean} site:guy-hoquet.com`,
+      `appartement maison à vendre ${strictZoneLabel} site:leboncoin.fr`,
+      `vente appartement maison ${strictZoneLabel} particulier site:leboncoin.fr`,
+      `maison appartement à vendre ${strictZoneLabel} site:seloger.com`,
+      `bien immobilier à vendre ${strictZoneLabel} site:bienici.com`,
+      `vente appartement maison ${strictZoneLabel} site:pap.fr`,
+      `appartement maison à vendre ${strictZoneLabel} site:logic-immo.com`,
+      `bien à vendre ${strictZoneLabel} site:immobilier.lefigaro.fr`,
+      `vente immobilière ${strictZoneLabel} site:avendrealouer.fr`,
+      `appartement maison ${strictZoneLabel} site:paruvendu.fr`,
+      `immobilier vente ${strictZoneLabel} site:ouestfrance-immo.com`,
+      `appartement maison à vendre ${strictZoneLabel} site:orpi.com`,
+      `bien à vendre ${strictZoneLabel} site:century21.fr`,
+      `vente appartement maison ${strictZoneLabel} site:laforet.com`,
+      `bien immobilier à vendre ${strictZoneLabel} site:guy-hoquet.com`,
     ];
 
     const allResults: FcResult[] = [];
