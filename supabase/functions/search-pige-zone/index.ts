@@ -457,6 +457,20 @@ ${corpus}`;
       if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
       if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — expirée`); continue; }
 
+      // STRICT zone filter — reject ads that don't match the searched zone
+      const adVilleNorm = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const adCp = String(a.code_postal || "");
+      const adText = `${titre}\n${a.description || ""}\n${src.title || ""}\n${(src.markdown || "").slice(0, 2000)}`
+        .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      let zoneMatch = false;
+      if (zoneCp && (adCp === zoneCp || adText.includes(zoneCp))) zoneMatch = true;
+      if (!zoneMatch && zoneCpPrefix && adCp.startsWith(zoneCpPrefix)) zoneMatch = true;
+      if (!zoneMatch && cityTokens.length > 0) {
+        const cityHit = cityTokens.some(t => adVilleNorm.includes(t) || adText.includes(t));
+        if (cityHit) zoneMatch = true;
+      }
+      if (!zoneMatch) { rejected.push(`${src.url} — hors zone (${a.ville || "?"} ${adCp})`); continue; }
+
       // Contact (fallback regex si IA n'a rien trouvé)
       const fullText = `${src.title || ""}\n${src.description || ""}\n${src.markdown || ""}`;
       const regexContact = extractContact(fullText);
