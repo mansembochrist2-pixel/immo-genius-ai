@@ -430,7 +430,7 @@ export const PigeIA = () => {
     const sig = a.signaux_marche || {};
     const ficheReady = a.fiche_proprietaire && Object.keys(a.fiche_proprietaire || {}).length > 0;
     return (
-      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
+      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSavedOpen(false); setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
         {photo ? (
           <div className="h-40 bg-secondary/30 overflow-hidden relative">
             <img src={photo} alt={a.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
@@ -505,9 +505,15 @@ export const PigeIA = () => {
       {/* Search hero */}
       <Card className="bg-gradient-to-br from-primary/5 via-card to-accent/5 border-primary/20 rounded-3xl overflow-hidden">
         <CardContent className="p-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Chasseur de mandats · Détection IA temps réel</p>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold truncate">Chasseur de mandats · Détection IA temps réel</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setSavedOpen(true)} className="rounded-xl gap-2 shrink-0 bg-background/80">
+              <BookmarkCheck className="h-3.5 w-3.5" /> Enregistrés
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{savedAnnonces.length}</Badge>
+            </Button>
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
             Quelle zone souhaitez-vous <span className="gradient-text">piger</span> ?
@@ -579,23 +585,6 @@ export const PigeIA = () => {
       <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* Results */}
-      {/* Section "Enregistrés" — persistante, indépendante des recherches */}
-      {savedAnnonces.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookmarkCheck className="h-4 w-4 text-accent-foreground" />
-              <h3 className="text-sm font-semibold">Mes annonces enregistrées</h3>
-              <Badge variant="outline" className="text-[10px]">{savedAnnonces.length}</Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground">Toujours visibles — survivent aux recherches et rafraîchissements.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {savedAnnonces.map(renderCard)}
-          </div>
-        </div>
-      )}
-
       {/* Résultats de la recherche en cours */}
       {searching && zoneAnnoncesCount === 0 ? (
         <Card className="rounded-2xl border-dashed">
