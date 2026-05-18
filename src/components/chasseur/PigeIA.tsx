@@ -602,7 +602,7 @@ export const PigeIA = () => {
             <Radar className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm font-medium">Lancez une recherche pour détecter des opportunités</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Les résultats sont scopés à la zone recherchée. Seules vos annonces enregistrées (🔖) restent visibles entre les sessions.
+              Les résultats sont strictement limités à la zone demandée. Vos annonces enregistrées restent disponibles via le bouton dédié.
             </p>
           </CardContent>
         </Card>
@@ -661,6 +661,28 @@ export const PigeIA = () => {
           ))}
         </Tabs>
       )}
+
+      <Dialog open={savedOpen} onOpenChange={setSavedOpen}>
+        <DialogContent className="max-w-6xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookmarkCheck className="h-5 w-5 text-primary" /> Mes annonces enregistrées
+              <Badge variant="outline" className="ml-1">{savedAnnonces.length}</Badge>
+            </DialogTitle>
+          </DialogHeader>
+          {savedAnnonces.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 py-14 text-center">
+              <Bookmark className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium">Aucune annonce enregistrée</p>
+              <p className="text-xs text-muted-foreground mt-1">Cliquez sur l’icône signet d’une annonce intéressante pour la retrouver ici.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {savedAnnonces.map(renderCard)}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
