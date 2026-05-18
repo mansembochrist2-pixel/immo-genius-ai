@@ -101,10 +101,10 @@ const numberFromText = (text: string, pattern: RegExp): number | null => {
 
 // Extraction contact (RGPD-safe : uniquement ce que le vendeur a lui-même publié dans le texte)
 const extractContact = (text: string) => {
-  const tel = text.match(/(?:0|\+33\s?)[1-9](?:[\s.\-]?\d{2}){4}/);
+  const tel = text.match(/(?:0|\+33\s?)[1-9](?:[\s.-]?\d{2}){4}/);
   const email = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
   return {
-    telephone: tel ? tel[0].replace(/[\s.\-]/g, "").replace(/^\+33/, "0") : null,
+    telephone: tel ? tel[0].replace(/[\s.-]/g, "").replace(/^\+33/, "0") : null,
     email: email ? email[0] : null,
   };
 };
