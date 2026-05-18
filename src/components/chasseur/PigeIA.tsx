@@ -248,6 +248,8 @@ export const PigeIA = () => {
   const runSearch = async () => {
     if (!zone.trim()) { toast.error("Entrez une ville, un quartier ou un code postal"); return; }
     setSearching(true);
+    setActiveZone(zone.trim());
+    setActiveTab("top");
     try {
       const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim(), user_id: user?.id } });
       if (error && !data) { toast.error("Erreur lors de la récupération des annonces."); return; }
@@ -261,7 +263,7 @@ export const PigeIA = () => {
         case "success": {
           const count = returnedAnnonces.length || res.count || 0;
           const rejected = res.rejected_count || 0;
-          toast.success(`${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""}${rejected ? ` · ${rejected} filtrée${rejected > 1 ? "s" : ""}` : ""}`);
+          toast.success(`${count} opportunité${count > 1 ? "s" : ""} détectée${count > 1 ? "s" : ""} sur ${zone.trim()}${rejected ? ` · ${rejected} hors zone/incomplètes` : ""}`);
           await qc.invalidateQueries({ queryKey: ["annonces-pige"] });
           break;
         }
@@ -276,6 +278,13 @@ export const PigeIA = () => {
     } catch (e) {
       handleApiError(e, "Recherche d'opportunités");
     } finally { setSearching(false); }
+  };
+
+  const toggleVivier = (a: any) => {
+    const newVal = !a.saved_to_vivier;
+    updateAnnonce.mutate({ id: a.id, patch: { saved_to_vivier: newVal } });
+    toast.success(newVal ? "✓ Ajouté à votre Vivier de mandats" : "Retiré du Vivier");
+    if (selected?.id === a.id) setSelected({ ...selected, saved_to_vivier: newVal });
   };
 
   const generateStrategy = async (annonce: any) => {
