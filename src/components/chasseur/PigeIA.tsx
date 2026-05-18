@@ -413,7 +413,7 @@ export const PigeIA = () => {
                 size="icon"
                 variant="ghost"
                 className={cn("h-7 w-7 transition-all hover:scale-110", a.saved_to_vivier && "text-accent-foreground")}
-                title={a.saved_to_vivier ? "Retirer du Vivier de mandats" : "Enregistrer dans le Vivier de mandats"}
+                title={a.saved_to_vivier ? "Retirer des enregistrés" : "Enregistrer cette annonce"}
                 onClick={(e) => { e.stopPropagation(); toggleVivier(a); }}
               >
                 {a.saved_to_vivier ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
