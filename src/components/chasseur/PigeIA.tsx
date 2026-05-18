@@ -524,9 +524,24 @@ export const PigeIA = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-card border border-border rounded-2xl p-1 h-auto flex flex-wrap">
             {CATEGORIES.map(c => (
-              <TabsTrigger key={c.key} value={c.key} className="rounded-xl text-xs gap-2">
+              <TabsTrigger key={c.key} value={c.key} className="rounded-xl text-xs gap-2 group">
                 <span className={c.color}>{c.label}</span>
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">{byCategory[c.key]?.length || 0}</Badge>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                      className="opacity-50 hover:opacity-100 cursor-help"
+                    >
+                      <HelpCircle className="h-3 w-3" />
+                    </span>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 text-xs" align="center" onClick={(e) => e.stopPropagation()}>
+                    {c.info}
+                  </PopoverContent>
+                </Popover>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -535,7 +550,11 @@ export const PigeIA = () => {
               {(byCategory[c.key] || []).length === 0 ? (
                 <Card className="rounded-2xl border-dashed">
                   <CardContent className="py-10 text-center text-xs text-muted-foreground">
-                    Aucune annonce dans cette catégorie.
+                    {c.key === "vivier"
+                      ? "Aucun bien enregistré pour l'instant. Cliquez sur l'icône 🔖 d'une annonce pour l'ajouter à votre Vivier de mandats."
+                      : activeZone
+                        ? `Aucune annonce dans cette catégorie pour "${activeZone}".`
+                        : "Aucune annonce dans cette catégorie."}
                   </CardContent>
                 </Card>
               ) : (
