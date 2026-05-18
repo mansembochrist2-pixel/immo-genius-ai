@@ -14,21 +14,46 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
+// Retry wrapper: stale chunks after a redeploy throw "Importing a module script failed".
+// We retry once, then force a hard reload so the user always lands on fresh assets.
+const lazyWithRetry = <T extends { default: React.ComponentType<any> }>(
+  factory: () => Promise<T>
+) =>
+  lazy(async () => {
+    try {
+      return await factory();
+    } catch (err) {
+      try {
+        await new Promise((r) => setTimeout(r, 300));
+        return await factory();
+      } catch (err2) {
+        if (typeof window !== "undefined") {
+          const key = "__chunk_reloaded__";
+          if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, "1");
+            window.location.reload();
+          }
+        }
+        throw err2;
+      }
+    }
+  });
+
 // Lazy-loaded app modules (split per route for instant inter-module switch)
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const Onboarding = lazy(() => import("./pages/Onboarding"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Chasseur = lazy(() => import("./pages/Chasseur"));
-const Copilote = lazy(() => import("./pages/Copilote"));
-const Documents = lazy(() => import("./pages/Documents"));
-const EstimationIA = lazy(() => import("./pages/EstimationIA"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Sauvegardes = lazy(() => import("./pages/Sauvegardes"));
-const MentionsLegales = lazy(() => import("./pages/MentionsLegales"));
-const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
-const CGU = lazy(() => import("./pages/CGU"));
-const FAQ = lazy(() => import("./pages/FAQ"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const Chasseur = lazyWithRetry(() => import("./pages/Chasseur"));
+const Copilote = lazyWithRetry(() => import("./pages/Copilote"));
+const Documents = lazyWithRetry(() => import("./pages/Documents"));
+const EstimationIA = lazyWithRetry(() => import("./pages/EstimationIA"));
+const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const Sauvegardes = lazyWithRetry(() => import("./pages/Sauvegardes"));
+const MentionsLegales = lazyWithRetry(() => import("./pages/MentionsLegales"));
+const PolitiqueConfidentialite = lazyWithRetry(() => import("./pages/PolitiqueConfidentialite"));
+const CGU = lazyWithRetry(() => import("./pages/CGU"));
+const FAQ = lazyWithRetry(() => import("./pages/FAQ"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
