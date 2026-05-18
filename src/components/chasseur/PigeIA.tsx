@@ -29,7 +29,6 @@ const scoreBadgeColor = (score: number) => {
 };
 
 const CATEGORIES = [
-  { key: "vivier",     label: "💼 Vivier de mandats", min: 0,  color: "text-accent-foreground", info: "Vos biens enregistrés — vous bossez dessus en priorité. Toujours visibles, même après nouvelle recherche." },
   { key: "top",        label: "🔥 Top opportunités",  min: 75, color: "text-destructive",       info: "Score ≥ 75/100 : vendeur particulier, signaux faibles côté vendeur, prix accessible. À appeler dans la journée." },
   { key: "moyenne",    label: "⚡ Moyennes",          min: 50, color: "text-warning",           info: "Score 50–74 : potentiel correct, qualification rapide recommandée pour confirmer la mandatabilité." },
   { key: "faible",     label: "💡 Faibles",           min: 25, color: "text-primary",           info: "Score 25–49 : angles limités. À traiter si vous avez de la bande passante." },
@@ -283,7 +282,7 @@ export const PigeIA = () => {
   const toggleVivier = (a: any) => {
     const newVal = !a.saved_to_vivier;
     updateAnnonce.mutate({ id: a.id, patch: { saved_to_vivier: newVal } });
-    toast.success(newVal ? "✓ Ajouté à votre Vivier de mandats" : "Retiré du Vivier");
+    toast.success(newVal ? "✓ Annonce enregistrée" : "Annonce retirée des enregistrés");
     if (selected?.id === a.id) setSelected({ ...selected, saved_to_vivier: newVal });
   };
 
@@ -316,9 +315,10 @@ export const PigeIA = () => {
   };
 
   const byCategory = useMemo(() => {
-    const buckets: Record<string, any[]> = { vivier: [], top: [], moyenne: [], faible: [], surveiller: [] };
+    const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
+    // Tant qu'aucune recherche n'a été lancée dans la session, on n'affiche AUCUNE catégorie.
+    if (!activeZone) return buckets;
     for (const a of annonces) {
-      if ((a as any).saved_to_vivier) buckets.vivier.push(a);
       if (!matchesActiveZone(a)) continue;
       const cat = (a as any).categorie_opportunite
         || ((a as any).score_pigeabilite >= 75 ? "top"
@@ -328,6 +328,16 @@ export const PigeIA = () => {
     }
     return buckets;
   }, [annonces, activeZone]);
+
+  const savedAnnonces = useMemo(
+    () => annonces.filter((a: any) => a.saved_to_vivier),
+    [annonces]
+  );
+
+  const zoneAnnoncesCount = useMemo(
+    () => (activeZone ? annonces.filter(matchesActiveZone).length : 0),
+    [annonces, activeZone]
+  );
 
   // ---- Insights marché (dérivés des annonces de la zone visible) ----
   const insights = useMemo(() => {
@@ -346,10 +356,10 @@ export const PigeIA = () => {
   }, [annonces, byCategory.top.length]);
 
   const kpis = [
-    { label: "Opportunités totales", value: annonces.length, icon: Radar },
+    { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
     { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
-    { label: "Particuliers", value: annonces.filter((a: any) => a.contact_vendeur?.type === "particulier").length, icon: Target },
-    { label: "Score moyen", value: annonces.length ? Math.round(annonces.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / annonces.length) + "/100" : "—", icon: TrendingUp },
+    { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck },
+    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(annonces.filter(matchesActiveZone).reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
   ];
 
   const renderCard = (a: any) => {
@@ -403,7 +413,7 @@ export const PigeIA = () => {
                 size="icon"
                 variant="ghost"
                 className={cn("h-7 w-7 transition-all hover:scale-110", a.saved_to_vivier && "text-accent-foreground")}
-                title={a.saved_to_vivier ? "Retirer du Vivier de mandats" : "Enregistrer dans le Vivier de mandats"}
+                title={a.saved_to_vivier ? "Retirer des enregistrés" : "Enregistrer cette annonce"}
                 onClick={(e) => { e.stopPropagation(); toggleVivier(a); }}
               >
                 {a.saved_to_vivier ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
@@ -502,7 +512,25 @@ export const PigeIA = () => {
       <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* Results */}
-      {searching && annonces.length === 0 ? (
+      {/* Section "Enregistrés" — persistante, indépendante des recherches */}
+      {savedAnnonces.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BookmarkCheck className="h-4 w-4 text-accent-foreground" />
+              <h3 className="text-sm font-semibold">Mes annonces enregistrées</h3>
+              <Badge variant="outline" className="text-[10px]">{savedAnnonces.length}</Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Toujours visibles — survivent aux recherches et rafraîchissements.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {savedAnnonces.map(renderCard)}
+          </div>
+        </div>
+      )}
+
+      {/* Résultats de la recherche en cours */}
+      {searching && zoneAnnoncesCount === 0 ? (
         <Card className="rounded-2xl border-dashed">
           <CardContent className="py-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
@@ -512,16 +540,31 @@ export const PigeIA = () => {
         </Card>
       ) : isLoading ? (
         <p className="text-center text-sm text-muted-foreground py-8">Chargement…</p>
-      ) : annonces.length === 0 ? (
+      ) : !activeZone ? (
         <Card className="rounded-2xl border-dashed">
           <CardContent className="py-16 text-center">
             <Radar className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm font-medium">Lancez votre première recherche d'opportunités</p>
-            <p className="text-xs text-muted-foreground mt-1">Entrez une zone ci-dessus pour démarrer la pige.</p>
+            <p className="text-sm font-medium">Lancez une recherche pour détecter des opportunités</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Les résultats sont scopés à la zone recherchée. Seules vos annonces enregistrées (🔖) restent visibles entre les sessions.
+            </p>
+          </CardContent>
+        </Card>
+      ) : zoneAnnoncesCount === 0 ? (
+        <Card className="rounded-2xl border-dashed">
+          <CardContent className="py-16 text-center">
+            <Radar className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm font-medium">Aucune opportunité détectée sur "{activeZone}"</p>
+            <p className="text-xs text-muted-foreground mt-1">Essayez une autre zone ou un code postal plus précis.</p>
           </CardContent>
         </Card>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <p className="text-[11px] text-muted-foreground">
+              Résultats pour <span className="font-medium text-foreground">{activeZone}</span> — {zoneAnnoncesCount} annonce{zoneAnnoncesCount > 1 ? "s" : ""}
+            </p>
+          </div>
           <TabsList className="bg-card border border-border rounded-2xl p-1 h-auto flex flex-wrap">
             {CATEGORIES.map(c => (
               <TabsTrigger key={c.key} value={c.key} className="rounded-xl text-xs gap-2 group">
@@ -550,11 +593,7 @@ export const PigeIA = () => {
               {(byCategory[c.key] || []).length === 0 ? (
                 <Card className="rounded-2xl border-dashed">
                   <CardContent className="py-10 text-center text-xs text-muted-foreground">
-                    {c.key === "vivier"
-                      ? "Aucun bien enregistré pour l'instant. Cliquez sur l'icône 🔖 d'une annonce pour l'ajouter à votre Vivier de mandats."
-                      : activeZone
-                        ? `Aucune annonce dans cette catégorie pour "${activeZone}".`
-                        : "Aucune annonce dans cette catégorie."}
+                    Aucune annonce dans cette catégorie pour "{activeZone}".
                   </CardContent>
                 </Card>
               ) : (
@@ -641,8 +680,8 @@ export const PigeIA = () => {
                     className={cn("gap-2", selected.saved_to_vivier && "bg-accent text-accent-foreground hover:bg-accent/90")}
                   >
                     {selected.saved_to_vivier
-                      ? <><BookmarkCheck className="h-4 w-4" /> Dans le Vivier</>
-                      : <><Bookmark className="h-4 w-4" /> Enregistrer dans Vivier</>}
+                      ? <><BookmarkCheck className="h-4 w-4" /> Enregistrée</>
+                      : <><Bookmark className="h-4 w-4" /> Enregistrer</>}
                   </Button>
                   <Button onClick={() => sendToCopilote(selected)} variant="secondary" className="flex-1 gap-2">
                     <Send className="h-4 w-4" /> Copilote IA
