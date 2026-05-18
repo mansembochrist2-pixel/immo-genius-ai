@@ -164,6 +164,7 @@ export const PigeIA = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [zone, setZone] = useState("");
+  const [activeZone, setActiveZone] = useState<string>(""); // zone effectivement recherchée
   const [searching, setSearching] = useState(false);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [selected, setSelected] = useState<any>(null);
