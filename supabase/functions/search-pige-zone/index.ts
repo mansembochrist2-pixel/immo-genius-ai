@@ -26,6 +26,12 @@ const isRealListingUrl = (url: string): boolean => {
     if (host.includes("logic-immo")) return /\/detail-/i.test(path);
     if (host.includes("orpi.com")) return /\/annonce/i.test(path);
     if (host.includes("century21.fr")) return /\/annonce/i.test(path);
+    if (host.includes("laforet.com")) return /\/annonce/i.test(path) || /-\d{4,}/i.test(path);
+    if (host.includes("guy-hoquet.com")) return /\/annonce/i.test(path) || /-\d{4,}/i.test(path);
+    if (host.includes("lefigaro.fr")) return /\/annonces\/.+\/\d+/i.test(path) || /-\d{5,}\.html?$/i.test(path);
+    if (host.includes("avendrealouer.fr")) return /\/vente\/.+\/.+\d+/i.test(path);
+    if (host.includes("paruvendu.fr")) return /\/immobilier\/.+\d+/i.test(path) || /\/annonce\//i.test(path);
+    if (host.includes("ouestfrance-immo.com")) return /\/(vente|immobilier-)/i.test(path) && /\d{4,}/.test(path);
     return false;
   } catch { return false; }
 };
