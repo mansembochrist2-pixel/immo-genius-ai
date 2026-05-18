@@ -301,10 +301,25 @@ export const PigeIA = () => {
     finally { setGeneratingFor(null); }
   };
 
-  // ---- Categorisation ----
+  // ---- Categorisation (scopée par zone active, sauf Vivier qui reste persistant) ----
+  const matchesActiveZone = (a: any) => {
+    if (!activeZone) return true;
+    const z = activeZone.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const zr = String(a.zone_recherche || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (zr && zr === z) return true;
+    const ville = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const cp = String(a.code_postal || "");
+    const cpMatch = z.match(/\b\d{5}\b/)?.[0];
+    if (cpMatch && cp === cpMatch) return true;
+    const cityTokens = z.replace(/\d+/g, "").split(/[^a-z]+/).filter(t => t.length >= 3);
+    return cityTokens.some(t => ville.includes(t));
+  };
+
   const byCategory = useMemo(() => {
-    const buckets: Record<string, any[]> = { top: [], moyenne: [], faible: [], surveiller: [] };
+    const buckets: Record<string, any[]> = { vivier: [], top: [], moyenne: [], faible: [], surveiller: [] };
     for (const a of annonces) {
+      if ((a as any).saved_to_vivier) buckets.vivier.push(a);
+      if (!matchesActiveZone(a)) continue;
       const cat = (a as any).categorie_opportunite
         || ((a as any).score_pigeabilite >= 75 ? "top"
           : (a as any).score_pigeabilite >= 50 ? "moyenne"
@@ -312,7 +327,7 @@ export const PigeIA = () => {
       (buckets[cat] || buckets.surveiller).push(a);
     }
     return buckets;
-  }, [annonces]);
+  }, [annonces, activeZone]);
 
   // ---- Insights marché (dérivés des annonces de la zone visible) ----
   const insights = useMemo(() => {
