@@ -7,53 +7,29 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 import { CookieConsent } from "@/components/CookieConsent";
-import { Suspense, lazy } from "react";
+import { Component, Suspense, type ErrorInfo, type ReactNode } from "react";
+import { isChunkLoadError, lazyWithRetry, resetChunkReloadGuard, routeLoaders } from "@/lib/routeLoader";
 
 // Eager pages (landing & auth - first impression must be instant)
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
-// Retry wrapper: stale chunks after a redeploy throw "Importing a module script failed".
-// We retry once, then force a hard reload so the user always lands on fresh assets.
-const lazyWithRetry = <T extends { default: React.ComponentType<any> }>(
-  factory: () => Promise<T>
-) =>
-  lazy(async () => {
-    try {
-      return await factory();
-    } catch (err) {
-      try {
-        await new Promise((r) => setTimeout(r, 300));
-        return await factory();
-      } catch (err2) {
-        if (typeof window !== "undefined") {
-          const key = "__chunk_reloaded__";
-          if (!sessionStorage.getItem(key)) {
-            sessionStorage.setItem(key, "1");
-            window.location.reload();
-          }
-        }
-        throw err2;
-      }
-    }
-  });
-
 // Lazy-loaded app modules (split per route for instant inter-module switch)
-const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
-const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
-const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
-const Chasseur = lazyWithRetry(() => import("./pages/Chasseur"));
-const Copilote = lazyWithRetry(() => import("./pages/Copilote"));
-const Documents = lazyWithRetry(() => import("./pages/Documents"));
-const EstimationIA = lazyWithRetry(() => import("./pages/EstimationIA"));
-const Settings = lazyWithRetry(() => import("./pages/Settings"));
-const Sauvegardes = lazyWithRetry(() => import("./pages/Sauvegardes"));
-const MentionsLegales = lazyWithRetry(() => import("./pages/MentionsLegales"));
-const PolitiqueConfidentialite = lazyWithRetry(() => import("./pages/PolitiqueConfidentialite"));
-const CGU = lazyWithRetry(() => import("./pages/CGU"));
-const FAQ = lazyWithRetry(() => import("./pages/FAQ"));
-const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const ForgotPassword = lazyWithRetry(routeLoaders.forgotPassword);
+const Onboarding = lazyWithRetry(routeLoaders.onboarding);
+const Dashboard = lazyWithRetry(routeLoaders.dashboard);
+const Chasseur = lazyWithRetry(routeLoaders.chasseur);
+const Copilote = lazyWithRetry(routeLoaders.copilote);
+const Documents = lazyWithRetry(routeLoaders.studio);
+const EstimationIA = lazyWithRetry(routeLoaders.estimation);
+const Settings = lazyWithRetry(routeLoaders.settings);
+const Sauvegardes = lazyWithRetry(routeLoaders.sauvegardes);
+const MentionsLegales = lazyWithRetry(routeLoaders.mentionsLegales);
+const PolitiqueConfidentialite = lazyWithRetry(routeLoaders.politiqueConfidentialite);
+const CGU = lazyWithRetry(routeLoaders.cgu);
+const FAQ = lazyWithRetry(routeLoaders.faq);
+const NotFound = lazyWithRetry(routeLoaders.notFound);
 
 const queryClient = new QueryClient({
   defaultOptions: {
