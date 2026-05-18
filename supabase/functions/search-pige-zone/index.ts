@@ -533,6 +533,7 @@ ${corpus}`;
         qualite_annonce,
         categorie_opportunite,
         workflow_statut: "a_appeler",
+        zone_recherche: zoneClean,
         analyse_ia: { failles, opportunites, zone_recherche: zoneClean, generated: false },
         tags,
       }).select().single();
