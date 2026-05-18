@@ -310,7 +310,7 @@ Deno.serve(async (req) => {
     const zoneClean = zone.trim();
     const parsedZone = parseSearchZone(zoneClean);
     const strictZoneLabel = parsedZone.arrondissement
-      ? `${parsedZone.arrondissement.city} ${parsedZone.arrondissement.arr}e (${parsedZone.arrondissement.cp})`
+      ? `${parsedZone.arrondissement.city} ${parsedZone.arrondissement.arr}e arrondissement ${parsedZone.arrondissement.cp}`
       : parsedZone.postalCode || parsedZone.cityName || zoneClean;
 
     const queries = [
@@ -421,12 +421,15 @@ Deno.serve(async (req) => {
         .from("annonces_pige").select("*").eq("user_id", user_id)
         .in("url", alreadyExisting.map(r => r.url))
         .order("updated_at", { ascending: false }).limit(30);
+      const strictlyMatchingExisting = (existingAnnonces || []).filter((row: any) => listingMatchesSearchZone(row, { url: row.url || "", title: row.titre, description: row.description, markdown: "" }, zoneClean));
       return j({
         status: "all_existing",
-        count: existingAnnonces?.length || 0,
-        annonces: existingAnnonces || [],
+        count: strictlyMatchingExisting.length,
+        annonces: strictlyMatchingExisting,
         existing_in_zone: existingZoneCount || 0,
-        message: `${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} déjà détectée${validUrlResults.length > 1 ? "s" : ""} — pige existante mise à jour.`,
+        message: strictlyMatchingExisting.length > 0
+          ? `${strictlyMatchingExisting.length} annonce${strictlyMatchingExisting.length > 1 ? "s" : ""} déjà détectée${strictlyMatchingExisting.length > 1 ? "s" : ""} sur ${zoneClean}.`
+          : `Aucune annonce strictement située sur "${zoneClean}".`,
       });
     }
 
@@ -526,19 +529,10 @@ ${corpus}`;
       if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
       if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — expirée`); continue; }
 
-      // STRICT zone filter — reject ads that don't match the searched zone
-      const adVilleNorm = String(a.ville || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const adCp = String(a.code_postal || "");
-      const adText = `${titre}\n${a.description || ""}\n${src.title || ""}\n${(src.markdown || "").slice(0, 2000)}`
-        .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      let zoneMatch = false;
-      if (zoneCp && (adCp === zoneCp || adText.includes(zoneCp))) zoneMatch = true;
-      if (!zoneMatch && zoneCpPrefix && adCp.startsWith(zoneCpPrefix)) zoneMatch = true;
-      if (!zoneMatch && cityTokens.length > 0) {
-        const cityHit = cityTokens.some(t => adVilleNorm.includes(t) || adText.includes(t));
-        if (cityHit) zoneMatch = true;
+      if (!listingMatchesSearchZone({ ...a, titre }, src, zoneClean)) {
+        rejected.push(`${src.url} — hors zone stricte (${a.ville || "?"} ${a.code_postal || "?"})`);
+        continue;
       }
-      if (!zoneMatch) { rejected.push(`${src.url} — hors zone (${a.ville || "?"} ${adCp})`); continue; }
 
       // Contact (fallback regex si IA n'a rien trouvé)
       const fullText = `${src.title || ""}\n${src.description || ""}\n${src.markdown || ""}`;
@@ -588,8 +582,8 @@ ${corpus}`;
         prix,
         surface,
         pieces: a.pieces ? Number(a.pieces) : null,
-        ville: a.ville || null,
-        code_postal: a.code_postal || null,
+        ville: parsedZone.arrondissement ? parsedZone.arrondissement.city : (a.ville || parsedZone.cityName || null),
+        code_postal: a.code_postal || parsedZone.postalCode || null,
         adresse: a.quartier || null,
         type_bien: a.type_bien || null,
         agence: a.agence || null,
