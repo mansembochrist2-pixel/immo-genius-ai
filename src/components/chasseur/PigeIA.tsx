@@ -399,6 +399,15 @@ export const PigeIA = () => {
             <WorkflowBadge annonce={a} onChange={(s) => updateAnnonce.mutate({ id: a.id, patch: { workflow_statut: s } })} />
             <div className="flex items-center gap-1">
               {a.analyse_ia?.generated && <CheckCircle2 className="h-3 w-3 text-success" />}
+              <Button
+                size="icon"
+                variant="ghost"
+                className={cn("h-7 w-7 transition-all hover:scale-110", a.saved_to_vivier && "text-accent-foreground")}
+                title={a.saved_to_vivier ? "Retirer du Vivier de mandats" : "Enregistrer dans le Vivier de mandats"}
+                onClick={(e) => { e.stopPropagation(); toggleVivier(a); }}
+              >
+                {a.saved_to_vivier ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
+              </Button>
               {a.url && (
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); window.open(a.url, "_blank"); }}>
                   <ExternalLink className="h-3 w-3" />
