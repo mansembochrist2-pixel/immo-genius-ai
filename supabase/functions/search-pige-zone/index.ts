@@ -1,5 +1,6 @@
 // Recherche RÉELLE d'annonces immobilières par zone (Firecrawl-first)
-// Pipeline : Firecrawl Search → validation URL/image → extraction IA structurée → dédup → insert
+// Pipeline : Firecrawl Search → validation → extraction IA enrichie (contact + signaux marché + qualité)
+//            → scoring détaillé pondéré → catégorisation → insert
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 const corsHeaders = {
@@ -10,20 +11,14 @@ const corsHeaders = {
 const j = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-// === Heuristiques URL : on ne garde QUE les pages d'annonces réelles ===
-// Évite pages de recherche / listing / catégorie / 404
 const isRealListingUrl = (url: string): boolean => {
   try {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\./, "");
     const path = u.pathname;
-
-    // Anti-patterns globaux (recherche, listing, catégorie)
     const bad = /\/(recherche|search|annonces?\/?$|achat\/?$|ventes_immobilieres\/?$|liste|resultat|categories?)/i;
     if (bad.test(path)) return false;
     if (path === "/" || path.length < 6) return false;
-
-    // Patterns spécifiques par plateforme
     if (host.includes("leboncoin.fr")) return /\/ad\/ventes_immobilieres\/\d+/i.test(path) || /\/vi\/\d+/i.test(path);
     if (host.includes("seloger.com")) return /\d{4,}\.htm/i.test(path) || /\/annonces\/(achat|location|achat-de-prestige)\/.+\d+/i.test(path);
     if (host.includes("bienici.com")) return /\/annonce\/.+\/[a-z0-9-]+/i.test(path);
@@ -31,12 +26,8 @@ const isRealListingUrl = (url: string): boolean => {
     if (host.includes("logic-immo")) return /\/detail-/i.test(path);
     if (host.includes("orpi.com")) return /\/annonce/i.test(path);
     if (host.includes("century21.fr")) return /\/annonce/i.test(path);
-
-    // Inconnu : on rejette pour rester strict
     return false;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 };
 
 const sourceFromUrl = (url: string): string => {
@@ -63,26 +54,30 @@ const normalizeListingUrl = (url: string): string => {
   try {
     const u = new URL(url);
     u.hash = "";
-    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "gclid"].forEach((p) => u.searchParams.delete(p));
+    ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","fbclid","gclid"].forEach(p => u.searchParams.delete(p));
     return u.toString();
-  } catch {
-    return url;
-  }
+  } catch { return url; }
 };
 
 const looksExpiredOrDead = (text: string): boolean =>
   /(annonce\s+(supprimée|désactivée|expirée|introuvable)|page\s+introuvable|404|not\s+found|n.?existe\s+plus|a été retirée)/i.test(text || "");
 
-// Extrait la première image valide depuis markdown, metadata Firecrawl ou champs search.
 const extractImage = (result: Partial<FcResult>, candidate?: string | null): string | null => {
   const direct = candidate || result.image || result.metadata?.ogImage || result.metadata?.image;
   if (typeof direct === "string" && /^https?:\/\//i.test(direct)) return direct;
   const md = result.markdown || "";
-  const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+\.(?:jpe?g|png|webp)(?:\?[^\s)]*)?)\)/i;
-  const m = md.match(re);
+  const m = md.match(/!\[[^\]]*\]\((https?:\/\/[^\s)]+\.(?:jpe?g|png|webp)(?:\?[^\s)]*)?)\)/i);
   if (m?.[1]) return m[1];
   const og = md.match(/og:image["']?\s*content=["'](https?:\/\/[^"']+)["']/i);
   return og?.[1] || null;
+};
+
+const extractAllImages = (md: string): string[] => {
+  const urls = new Set<string>();
+  const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+\.(?:jpe?g|png|webp)(?:\?[^\s)]*)?)\)/gi;
+  let m;
+  while ((m = re.exec(md || "")) !== null) urls.add(m[1]);
+  return [...urls].slice(0, 8);
 };
 
 const numberFromText = (text: string, pattern: RegExp): number | null => {
@@ -90,6 +85,16 @@ const numberFromText = (text: string, pattern: RegExp): number | null => {
   if (!m?.[1]) return null;
   const value = Number(String(m[1]).replace(/[\s.,]/g, ""));
   return Number.isFinite(value) ? value : null;
+};
+
+// Extraction contact (RGPD-safe : uniquement ce que le vendeur a lui-même publié dans le texte)
+const extractContact = (text: string) => {
+  const tel = text.match(/(?:0|\+33\s?)[1-9](?:[\s.\-]?\d{2}){4}/);
+  const email = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+  return {
+    telephone: tel ? tel[0].replace(/[\s.\-]/g, "").replace(/^\+33/, "0") : null,
+    email: email ? email[0] : null,
+  };
 };
 
 const basicExtract = (src: FcResult, zone: string) => {
@@ -105,7 +110,86 @@ const basicExtract = (src: FcResult, zone: string) => {
     agence: /particulier/i.test(text) ? "Particulier" : null,
     description: src.description || null,
     photo: extractImage(src),
+    quartier: null as string | null,
+    etage: null as string | null,
   };
+};
+
+const categorize = (score: number): string => {
+  if (score >= 75) return "top";
+  if (score >= 50) return "moyenne";
+  if (score >= 25) return "faible";
+  return "surveiller";
+};
+
+type Criterion = { label: string; weight: number; status: "positive" | "negative" | "neutral"; detail: string };
+
+const computeScore = (a: any, src: FcResult, signaux: any, qualite: any): { score: number; breakdown: Criterion[]; failles: string[]; opportunites: string[] } => {
+  const breakdown: Criterion[] = [];
+  const failles: string[] = [];
+  const opportunites: string[] = [];
+  let score = 40; // base
+
+  const isParticulier = String(a.agence || "").toLowerCase().includes("particulier");
+  if (isParticulier) {
+    score += 30;
+    breakdown.push({ label: "Vendeur particulier", weight: 30, status: "positive", detail: "Cible prioritaire pour conquérir un mandat." });
+    opportunites.push("Vendeur particulier — fort potentiel de conversion en mandat");
+  } else if (a.agence) {
+    score -= 10;
+    breakdown.push({ label: "Vendeur agence", weight: -10, status: "negative", detail: `Déjà confié à ${a.agence}.` });
+  } else {
+    breakdown.push({ label: "Statut vendeur", weight: 0, status: "neutral", detail: "Non identifié — à qualifier au téléphone." });
+  }
+
+  const descLen = (a.description || "").length;
+  if (descLen > 0 && descLen < 120) {
+    score += 12;
+    breakdown.push({ label: "Description faible", weight: 12, status: "positive", detail: `${descLen} caractères — pitch de mise en valeur évident.` });
+    failles.push("Description très courte — défaut de mise en valeur du bien");
+  } else if (descLen >= 120) {
+    breakdown.push({ label: "Description correcte", weight: 0, status: "neutral", detail: `${descLen} caractères.` });
+  }
+
+  const photoCount = qualite?.nb_photos || 0;
+  if (photoCount === 0) {
+    score += 8;
+    breakdown.push({ label: "Aucune photo", weight: 8, status: "positive", detail: "Annonce non visuelle — argument fort." });
+    failles.push("Aucune photo — annonce invisible sur le marché");
+  } else if (photoCount < 4) {
+    score += 6;
+    breakdown.push({ label: "Peu de photos", weight: 6, status: "positive", detail: `${photoCount} photo(s) — manque de mise en valeur.` });
+    failles.push(`Seulement ${photoCount} photo(s) — manque de mise en valeur professionnelle`);
+  }
+
+  if (a.prix && a.surface) {
+    const prixM2 = a.prix / a.surface;
+    if (prixM2 < 4500) {
+      score += 8;
+      breakdown.push({ label: "Prix sous marché", weight: 8, status: "positive", detail: `${Math.round(prixM2)} €/m² — bien valorisable.` });
+      opportunites.push(`Prix au m² (${Math.round(prixM2)} €) potentiellement sous-évalué`);
+    } else if (prixM2 > 12000) {
+      score += 6;
+      breakdown.push({ label: "Prix premium", weight: 6, status: "positive", detail: `${Math.round(prixM2)} €/m² — commission élevée.` });
+    } else {
+      breakdown.push({ label: "Prix dans le marché", weight: 0, status: "neutral", detail: `${Math.round(prixM2)} €/m².` });
+    }
+  }
+
+  if (signaux?.baisse_prix_detectee) {
+    score += 15;
+    breakdown.push({ label: "Baisse de prix détectée", weight: 15, status: "positive", detail: "Signal de difficulté à vendre — vendeur ouvert." });
+    opportunites.push("Baisse de prix récente — vendeur sous pression, terrain propice");
+  }
+
+  if (signaux?.ancienneté_jours && signaux.ancienneté_jours > 60) {
+    score += 12;
+    breakdown.push({ label: "Annonce ancienne", weight: 12, status: "positive", detail: `~${signaux.ancienneté_jours}j en ligne — vente qui traîne.` });
+    failles.push("Annonce en ligne depuis longtemps — stratégie de mise en marché à revoir");
+  }
+
+  score = Math.min(100, Math.max(0, score));
+  return { score, breakdown, failles, opportunites };
 };
 
 Deno.serve(async (req) => {
@@ -123,7 +207,6 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return j({ error: "LOVABLE_API_KEY manquant" }, 500);
     if (!FIRECRAWL_API_KEY) return j({ error: "FIRECRAWL_API_KEY manquant — connectez Firecrawl" }, 500);
 
-    // Resolve user_id
     let user_id: string | null = bodyUserId || null;
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
@@ -131,7 +214,7 @@ Deno.serve(async (req) => {
         const token = authHeader.replace("Bearer ", "");
         const payload = JSON.parse(atob(token.split(".")[1] || ""));
         if (payload?.sub) user_id = payload.sub;
-      } catch (_) { /* ignore */ }
+      } catch (_) {}
     }
     if (!user_id) return j({ error: "user_id requis" }, 400);
 
@@ -142,7 +225,6 @@ Deno.serve(async (req) => {
 
     const zoneClean = zone.trim();
 
-    // ============ 1) FIRECRAWL SEARCH multi-requêtes ciblées ============
     const queries = [
       `appartement maison à vendre ${zoneClean} site:leboncoin.fr`,
       `vente appartement maison ${zoneClean} particulier site:leboncoin.fr`,
@@ -153,7 +235,6 @@ Deno.serve(async (req) => {
 
     const allResults: FcResult[] = [];
     let firecrawlOkCount = 0;
-    let firecrawlErrCount = 0;
     let lastFirecrawlError: string | null = null;
 
     const firecrawlResponses = await Promise.all(queries.map(async (query) => {
@@ -162,56 +243,43 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            query,
-            limit: 10,
-            lang: "fr",
-            country: "fr",
-            tbs: "qdr:w",
+            query, limit: 12, lang: "fr", country: "fr", tbs: "qdr:m",
             scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
           }),
         });
-
         if (!fcRes.ok) {
           const txt = await fcRes.text();
-          console.error(`[Firecrawl] query="${query}" status=${fcRes.status} body=${txt.slice(0, 300)}`);
-          return { ok: false, query, status: fcRes.status, error: `${fcRes.status}: ${txt.slice(0, 200)}`, list: [] as any[] };
+          console.error(`[Firecrawl] query="${query}" status=${fcRes.status} body=${txt.slice(0,300)}`);
+          return { ok: false, status: fcRes.status, error: `${fcRes.status}: ${txt.slice(0,200)}`, list: [] as any[] };
         }
-
         const fcData = await fcRes.json();
         const list: any[] = fcData?.data?.web || fcData?.data || fcData?.web || [];
         console.log(`[Firecrawl] query="${query}" results=${list.length}`);
-        return { ok: true, query, status: 200, error: null, list };
+        return { ok: true, status: 200, error: null, list };
       } catch (e) {
-        console.error(`[Firecrawl] query="${query}" exception=`, e);
-        return { ok: false, query, status: 0, error: String((e as Error)?.message || e), list: [] as any[] };
+        return { ok: false, status: 0, error: String((e as Error)?.message || e), list: [] };
       }
     }));
 
-    for (const result of firecrawlResponses) {
-      if (!result.ok) {
-        firecrawlErrCount++;
-        lastFirecrawlError = result.error;
-        if (result.status === 402) return j({ status: "scraping_error", error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
-        if (result.status === 401 || result.status === 403) return j({ status: "scraping_error", error: "Clé Firecrawl invalide ou expirée." }, 502);
+    for (const r of firecrawlResponses) {
+      if (!r.ok) {
+        lastFirecrawlError = r.error;
+        if (r.status === 402) return j({ status: "scraping_error", error: "Crédits Firecrawl épuisés. Rechargez votre connexion Firecrawl." }, 402);
+        if (r.status === 401 || r.status === 403) return j({ status: "scraping_error", error: "Clé Firecrawl invalide ou expirée." }, 502);
         continue;
       }
       firecrawlOkCount++;
-      for (const r of result.list) {
-        const url = normalizeListingUrl(r?.url || r?.metadata?.sourceURL || "");
-        if (url) allResults.push({ url, title: r.title, description: r.description, markdown: r.markdown, image: r.image, metadata: r.metadata });
+      for (const it of r.list) {
+        const url = normalizeListingUrl(it?.url || it?.metadata?.sourceURL || "");
+        if (url) allResults.push({ url, title: it.title, description: it.description, markdown: it.markdown, image: it.image, metadata: it.metadata });
       }
     }
 
-    // Si TOUTES les requêtes Firecrawl ont échoué → erreur scraping
     if (firecrawlOkCount === 0) {
-      return j({
-        status: "scraping_error",
-        error: "Erreur lors de la récupération des annonces. Le service de scraping est indisponible.",
-        details: lastFirecrawlError,
-      }, 502);
+      return j({ status: "scraping_error", error: "Erreur lors de la récupération des annonces. Le service de scraping est indisponible.", details: lastFirecrawlError }, 502);
     }
 
-    // ============ 2) Filtre URLs (vraies pages d'annonces uniquement) ============
+    // Filtrage URLs
     const seen = new Set<string>();
     const validUrlResults = allResults.filter(r => {
       if (!r.url || seen.has(r.url)) return false;
@@ -222,9 +290,17 @@ Deno.serve(async (req) => {
       return true;
     });
 
+    // Détection multi-diffusion : URLs ayant le même titre simplifié sur >1 source
+    const titleBucket = new Map<string, Set<string>>();
+    for (const r of validUrlResults) {
+      const key = (r.title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 40);
+      if (!key) continue;
+      if (!titleBucket.has(key)) titleBucket.set(key, new Set());
+      titleBucket.get(key)!.add(sourceFromUrl(r.url));
+    }
+
     console.log(`[Pige] zone="${zoneClean}" firecrawl_raw=${allResults.length} valid_urls=${validUrlResults.length}`);
 
-    // Compte les annonces déjà en base pour CETTE zone (pour message contextuel)
     const { count: existingZoneCount } = await supabase
       .from("annonces_pige")
       .select("id", { count: "exact", head: true })
@@ -232,63 +308,72 @@ Deno.serve(async (req) => {
       .or(`ville.ilike.%${zoneClean}%,code_postal.ilike.%${zoneClean}%`);
 
     if (validUrlResults.length === 0) {
-      return j({
-        status: "no_results",
-        count: 0,
-        annonces: [],
-        existing_in_zone: existingZoneCount || 0,
-        message: `Aucune annonce trouvée pour "${zoneClean}". Essayez une zone plus précise (ex: "Paris 16", "Cannes Centre").`,
-      });
+      return j({ status: "no_results", count: 0, annonces: [], existing_in_zone: existingZoneCount || 0,
+        message: `Aucune annonce trouvée pour "${zoneClean}". Essayez une zone plus précise.` });
     }
 
-    // ============ 3) Filtre doublons en DB ============
     const urlsCandidates = validUrlResults.map(r => r.url);
     const { data: existingRows } = await supabase
-      .from("annonces_pige")
-      .select("url")
-      .eq("user_id", user_id)
-      .in("url", urlsCandidates);
+      .from("annonces_pige").select("url").eq("user_id", user_id).in("url", urlsCandidates);
     const existingUrls = new Set((existingRows || []).map((r: any) => r.url));
     const alreadyExisting = validUrlResults.filter(r => existingUrls.has(r.url));
-    const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 18);
+    const fresh = validUrlResults.filter(r => !existingUrls.has(r.url)).slice(0, 24);
 
     if (fresh.length === 0) {
       const { data: existingAnnonces } = await supabase
-        .from("annonces_pige")
-        .select("*")
-        .eq("user_id", user_id)
+        .from("annonces_pige").select("*").eq("user_id", user_id)
         .in("url", alreadyExisting.map(r => r.url))
-        .order("updated_at", { ascending: false })
-        .limit(24);
+        .order("updated_at", { ascending: false }).limit(30);
       return j({
         status: "all_existing",
         count: existingAnnonces?.length || 0,
         annonces: existingAnnonces || [],
         existing_in_zone: existingZoneCount || 0,
-        message: `${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} déjà détectée${validUrlResults.length > 1 ? "s" : ""} — affichage de la pige existante mis à jour.`,
+        message: `${validUrlResults.length} annonce${validUrlResults.length > 1 ? "s" : ""} déjà détectée${validUrlResults.length > 1 ? "s" : ""} — pige existante mise à jour.`,
       });
     }
 
-    // ============ 4) Extraction structurée via Lovable AI ============
+    // Extraction IA enrichie
     const corpus = fresh.map((r, i) => `--- ANNONCE #${i + 1} ---
 URL: ${r.url}
 TITRE: ${r.title || ""}
 DESCRIPTION: ${r.description || ""}
 CONTENU:
-${(r.markdown || "").slice(0, 2500)}`).join("\n\n");
+${(r.markdown || "").slice(0, 3000)}`).join("\n\n");
 
-    const extractPrompt = `Tu es un extracteur de données immobilières françaises strict. Pour CHAQUE annonce ci-dessous, extrais les champs en JSON.
+    const extractPrompt = `Tu es un extracteur de données immobilières françaises strict. Pour CHAQUE annonce, extrais les champs en JSON.
 
 Renvoie UNIQUEMENT du JSON valide :
-{"annonces":[{"index":1,"titre":"...","prix":350000,"surface":75,"pieces":3,"ville":"...","code_postal":"75016","type_bien":"appartement","agence":"Particulier","description":"résumé 1-2 phrases factuel","photo":"https://..."}]}
+{"annonces":[{
+  "index":1,
+  "titre":"...",
+  "prix":350000,
+  "surface":75,
+  "pieces":3,
+  "ville":"...",
+  "code_postal":"75016",
+  "quartier":"...ou null",
+  "etage":"...ou null",
+  "type_bien":"appartement|maison|terrain|local|autre",
+  "agence":"Particulier OU nom agence",
+  "nom_vendeur":"...ou null",
+  "telephone":"...ou null si pas dans le texte",
+  "email":"...ou null si pas dans le texte",
+  "description":"résumé factuel 1-2 phrases",
+  "photo":"https://...",
+  "nb_photos_detectees":3,
+  "indices_baisse_prix": false,
+  "ancienneté_estimée_jours": null,
+  "qualite_photos":"pro|amateur|absente"
+}]}
 
-Règles STRICTES :
-- "prix" et "surface" : nombres uniquement (sans € ni m²). null si introuvable.
-- "type_bien" : appartement | maison | terrain | local | autre
-- "agence" : "Particulier" si annonce particulier, sinon le nom de l'agence.
-- "photo" : URL image principale trouvée dans le markdown (![](url)). null sinon.
-- IGNORE complètement (ne mets PAS dans la liste) toute annonce qui n'a PAS de prix OU pas de titre clair OU qui semble être une page de recherche/listing.
-- Ne fabrique JAMAIS de données. Si une info manque, mets null.
+Règles :
+- "prix"/"surface" : nombres uniquement. null si introuvable.
+- "telephone"/"email" : extrait UNIQUEMENT s'ils figurent explicitement dans le texte de l'annonce.
+- "indices_baisse_prix" : true si tu vois "baisse de prix", "prix négociable", "à débattre", "prix revu", "nouveau prix" etc.
+- "qualite_photos" : juge la qualité d'après le rendu et nombre de photos.
+- IGNORE toute annonce sans prix OU sans titre clair OU qui semble être une page de recherche.
+- Ne fabrique JAMAIS de données.
 
 ANNONCES :
 ${corpus}`;
@@ -305,7 +390,7 @@ ${corpus}`;
 
     if (!aiRes.ok) {
       const txt = await aiRes.text();
-      if (aiRes.status === 429) return j({ error: "Limite IA atteinte, réessayez dans un instant." }, 429);
+      if (aiRes.status === 429) return j({ error: "Limite IA atteinte." }, 429);
       if (aiRes.status === 402) return j({ error: "Crédits IA épuisés." }, 402);
       throw new Error(`Gateway ${aiRes.status}: ${txt}`);
     }
@@ -315,9 +400,7 @@ ${corpus}`;
     try {
       const m = content.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(m ? m[0] : content);
-    } catch {
-      parsed = { annonces: [] };
-    }
+    } catch { parsed = { annonces: [] }; }
     const extracted: any[] = Array.isArray(parsed.annonces) ? parsed.annonces : [];
     const extractedByIndex = new Map<number, any>();
     extracted.forEach((item) => {
@@ -325,7 +408,6 @@ ${corpus}`;
       if (Number.isFinite(idx) && idx > 0) extractedByIndex.set(idx, item);
     });
 
-    // ============ 5) Validation finale + Score + Insert ============
     const inserted: any[] = [];
     const rejected: string[] = [];
 
@@ -339,25 +421,52 @@ ${corpus}`;
       const surface = a.surface ? Number(a.surface) : null;
       const titre = a.titre || src.title || "";
 
-      // Photo : IA → Firecrawl metadata → markdown
-      const photo: string | null = extractImage(src, a.photo);
+      const allPhotos = [extractImage(src, a.photo), ...extractAllImages(src.markdown || "")]
+        .filter((u): u is string => !!u);
+      const uniquePhotos = [...new Set(allPhotos)];
 
-      // QUALITÉ : on rejette les annonces sans prix/titre ou manifestement mortes.
       if (!titre || titre.length < 8) { rejected.push(`${src.url} — titre manquant`); continue; }
       if (!prix || prix < 10000) { rejected.push(`${src.url} — prix manquant/invalide`); continue; }
-      if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — annonce expirée`); continue; }
+      if (looksExpiredOrDead(`${titre}\n${a.description || ""}`)) { rejected.push(`${src.url} — expirée`); continue; }
 
-      const isParticulier = String(a.agence || "").toLowerCase().includes("particulier");
+      // Contact (fallback regex si IA n'a rien trouvé)
+      const fullText = `${src.title || ""}\n${src.description || ""}\n${src.markdown || ""}`;
+      const regexContact = extractContact(fullText);
+      const contact_vendeur = {
+        nom: a.nom_vendeur || null,
+        telephone: a.telephone || regexContact.telephone || null,
+        email: a.email || regexContact.email || null,
+        type: String(a.agence || "").toLowerCase().includes("particulier") ? "particulier" : (a.agence ? "agence" : "inconnu"),
+        agence_nom: a.agence && !String(a.agence).toLowerCase().includes("particulier") ? a.agence : null,
+      };
 
-      let score = 45;
-      if (isParticulier) score += 30;
-      if (a.description && String(a.description).length < 100) score += 10;
-      if (surface && prix / surface < 4500) score += 5;
-      score = Math.min(100, Math.max(0, score));
+      // Signaux marché
+      const titleKey = (titre || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 40);
+      const sourcesForTitle = titleKey ? titleBucket.get(titleKey) : null;
+      const signaux_marche = {
+        baisse_prix_detectee: !!a.indices_baisse_prix,
+        ancienneté_jours: a.ancienneté_estimée_jours ? Number(a.ancienneté_estimée_jours) : null,
+        multi_diffusion: sourcesForTitle ? sourcesForTitle.size > 1 : false,
+        sources_detectees: sourcesForTitle ? [...sourcesForTitle] : [sourceFromUrl(src.url)],
+        prix_m2: surface ? Math.round(prix / surface) : null,
+      };
 
-      const failles: string[] = [];
-      if (isParticulier) failles.push("Vendeur particulier — ouverture probable à un mandat");
-      if (a.description && String(a.description).length < 100) failles.push("Description très courte — défaut de mise en valeur");
+      // Qualité annonce
+      const descLen = (a.description || src.description || "").length;
+      const qualite_annonce = {
+        nb_photos: uniquePhotos.length,
+        qualite_photos: a.qualite_photos || (uniquePhotos.length === 0 ? "absente" : uniquePhotos.length < 4 ? "amateur" : "pro"),
+        longueur_description: descLen,
+        description_faible: descLen > 0 && descLen < 120,
+        titre_qualite: titre.length < 30 ? "faible" : titre.length < 60 ? "moyenne" : "bonne",
+      };
+
+      const { score, breakdown, failles, opportunites } = computeScore(a, src, signaux_marche, qualite_annonce);
+      const categorie_opportunite = categorize(score);
+      const tags = [contact_vendeur.type === "particulier" ? "particulier" : null,
+                    signaux_marche.baisse_prix_detectee ? "baisse_prix" : null,
+                    signaux_marche.multi_diffusion ? "multi_diffusion" : null]
+                    .filter((t): t is string => !!t);
 
       const { data: row, error } = await supabase.from("annonces_pige").insert({
         user_id,
@@ -370,39 +479,40 @@ ${corpus}`;
         pieces: a.pieces ? Number(a.pieces) : null,
         ville: a.ville || null,
         code_postal: a.code_postal || null,
+        adresse: a.quartier || null,
         type_bien: a.type_bien || null,
         agence: a.agence || null,
         date_publication: new Date().toISOString(),
-        photos: photo ? [photo] : [],
+        photos: uniquePhotos,
         score_pigeabilite: score,
-        analyse_ia: { failles, zone_recherche: zoneClean, generated: false },
-        tags: isParticulier ? ["particulier"] : [],
+        score_breakdown: breakdown,
+        contact_vendeur,
+        signaux_marche,
+        qualite_annonce,
+        categorie_opportunite,
+        workflow_statut: "a_appeler",
+        analyse_ia: { failles, opportunites, zone_recherche: zoneClean, generated: false },
+        tags,
       }).select().single();
       if (!error && row) inserted.push(row);
       else if (error) console.error("Insert error:", error);
     }
 
-    console.log(`[Pige] zone="${zoneClean}" inserted=${inserted.length} rejected=${rejected.length} fresh=${fresh.length}`);
+    console.log(`[Pige] zone="${zoneClean}" inserted=${inserted.length} rejected=${rejected.length}`);
 
     if (inserted.length === 0) {
       return j({
-        status: "no_results",
-        count: 0,
-        annonces: [],
-        rejected_count: rejected.length,
-        scanned: validUrlResults.length,
+        status: "no_results", count: 0, annonces: [],
+        rejected_count: rejected.length, scanned: validUrlResults.length,
         message: rejected.length > 0
-          ? `${rejected.length} annonce${rejected.length > 1 ? "s" : ""} détectée${rejected.length > 1 ? "s" : ""} mais incomplète${rejected.length > 1 ? "s" : ""} (image, prix ou titre manquant). Essayez une autre zone.`
-          : `Aucune annonce exploitable trouvée pour "${zoneClean}".`,
+          ? `${rejected.length} annonce${rejected.length > 1 ? "s" : ""} détectée${rejected.length > 1 ? "s" : ""} mais incomplète${rejected.length > 1 ? "s" : ""}.`
+          : `Aucune annonce exploitable pour "${zoneClean}".`,
       });
     }
 
     return j({
-      status: "success",
-      count: inserted.length,
-      annonces: inserted,
-      rejected_count: rejected.length,
-      scanned: validUrlResults.length,
+      status: "success", count: inserted.length, annonces: inserted,
+      rejected_count: rejected.length, scanned: validUrlResults.length,
     });
   } catch (e) {
     console.error("[search-pige-zone] fatal:", e);

@@ -21,7 +21,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               <span className="text-sm font-semibold gradient-text">Estate AI</span>
             </div>
           </header>
-          <div className="flex-1 p-6 lg:p-8 animate-fade-in">
+          <div className="flex-1 p-6 lg:p-8">
             {children}
           </div>
         </main>
