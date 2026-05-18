@@ -9,7 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Search, Loader2, ExternalLink, Sparkles, Trash2, Target, AlertTriangle,
   MessageSquare, Lightbulb, Radar, Zap, TrendingUp, MapPin, Send, Phone, Mail,
-  Info, Flame, CheckCircle2, Eye, Camera, Clock, ArrowDown,
+  Info, Flame, CheckCircle2, Eye, Camera, Clock, ArrowDown, Bookmark, BookmarkCheck,
+  HelpCircle, Briefcase,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
