@@ -491,8 +491,8 @@ export const RadarInner = () => {
                           variant="outline"
                           className="text-xs h-7 gap-1"
                           disabled={generatingPlan === opp.id}
-                          onClick={() => generatePlanAttaque(opp)}
-                          title="Génère un plan d'attaque détaillé. Vous pourrez ensuite l'envoyer au Copilote avec tout le contexte."
+                          onClick={() => openOrGeneratePlan(opp)}
+                          title={opp.donnees?.plan_attaque ? "Rouvrir le plan d'attaque déjà généré (sans nouvel appel IA)" : "Génère et sauvegarde un plan d'attaque détaillé."}
                         >
                           {generatingPlan === opp.id ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
