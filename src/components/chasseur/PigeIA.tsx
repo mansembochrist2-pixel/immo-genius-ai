@@ -20,6 +20,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { handleApiError } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 const scoreBadgeColor = (score: number) => {
   if (score >= 75) return "bg-destructive/15 text-destructive border-destructive/30";
