@@ -280,6 +280,48 @@ export type Database = {
         }
         Relationships: []
       }
+      audits_reseaux: {
+        Row: {
+          analyse_ia: Json
+          created_at: string
+          handle: string | null
+          id: string
+          metrics: Json
+          plateforme: string
+          profil_data: Json
+          score_global: number | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          analyse_ia?: Json
+          created_at?: string
+          handle?: string | null
+          id?: string
+          metrics?: Json
+          plateforme: string
+          profil_data?: Json
+          score_global?: number | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          analyse_ia?: Json
+          created_at?: string
+          handle?: string | null
+          id?: string
+          metrics?: Json
+          plateforme?: string
+          profil_data?: Json
+          score_global?: number | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           assistant_type: string

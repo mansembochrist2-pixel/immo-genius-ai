@@ -9,8 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Palette, FileText, Mail, Sparkles, Wand2, Copy, Save, MessageSquare,
-  Hash, Lightbulb, Loader2, Download, Send, FileSignature, Upload, Pencil,
+  Hash, Lightbulb, Loader2, Download, Send, FileSignature, Upload, Pencil, Instagram,
 } from "lucide-react";
+import { AuditReseaux } from "@/components/studio/AuditReseaux";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -375,6 +376,7 @@ const Studio = () => {
           <TabsTrigger value="mandats" className="flex items-center gap-2 text-xs"><FileSignature className="h-3.5 w-3.5" /> {t("docs.mandats")}</TabsTrigger>
           <TabsTrigger value="annonces" className="flex items-center gap-2 text-xs"><FileText className="h-3.5 w-3.5" /> {t("docs.annonces")}</TabsTrigger>
           <TabsTrigger value="marketing" className="flex items-center gap-2 text-xs"><Mail className="h-3.5 w-3.5" /> {t("docs.marketing")}</TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2 text-xs"><Instagram className="h-3.5 w-3.5" /> {t("docs.audit")}</TabsTrigger>
         </TabsList>
 
         {/* ===== MANDATS ===== */}
@@ -758,6 +760,11 @@ const Studio = () => {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        {/* ===== AUDIT RÉSEAUX SOCIAUX ===== */}
+        <TabsContent value="audit">
+          <AuditReseaux />
         </TabsContent>
       </Tabs>
     </AppLayout>
