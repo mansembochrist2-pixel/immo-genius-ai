@@ -197,9 +197,19 @@ export const AuditReseaux = () => {
               </Button>
             </div>
             {loading && (
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-primary animate-pulse">
-                L'IA analyse votre compte {plat.label} en profondeur — branding, contenu, stratégie, engagement. Cela peut prendre 15-30 secondes.
-              </div>
+              <AnalysisLoader
+                module={`Audit ${plat.label}`}
+                context={url.replace(/^https?:\/\//, "").slice(0, 40)}
+                eta="15 à 30 secondes"
+                messages={[
+                  `Connexion au profil ${plat.label}…`,
+                  "Extraction des publications récentes…",
+                  "Analyse du branding et de la bio…",
+                  "Mesure de l'engagement et de la régularité…",
+                  "Identification des axes de progrès…",
+                  "Construction du plan d'action 30 jours…",
+                ]}
+              />
             )}
           </CardContent>
         </Card>
