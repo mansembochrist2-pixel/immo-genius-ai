@@ -10,11 +10,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
   Bot, Zap, TrendingUp, ArrowRight, Target, AlertTriangle, Play, SkipForward, X, DollarSign,
-  Crosshair, Palette, Search, FileText, BarChart3, Phone, Pencil, Check, Sparkles,
+  Crosshair, Palette, Search, FileText, BarChart3, Phone, Pencil, Check, Sparkles, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useBusinessData } from "@/contexts/BusinessContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const InfoTip = ({ children }: { children: React.ReactNode }) => (
+  <TooltipProvider delayDuration={150}>
+    <Tooltip>
+      <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="h-4 w-4 rounded-full inline-flex items-center justify-center text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition">
+          <Info className="h-3 w-3" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">{children}</TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
 
 const Dashboard = () => {
   const { user } = useAuth();
