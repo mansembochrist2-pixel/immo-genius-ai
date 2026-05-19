@@ -597,13 +597,18 @@ export const PigeIA = () => {
       {/* Results */}
       {/* Résultats de la recherche en cours */}
       {searching && zoneAnnoncesCount === 0 ? (
-        <Card className="rounded-2xl border-dashed">
-          <CardContent className="py-16 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-            <p className="text-sm font-medium">L'IA scanne les annonces sur {zone}…</p>
-            <p className="text-xs text-muted-foreground mt-1">10-30 secondes.</p>
-          </CardContent>
-        </Card>
+        <AnalysisLoader
+          module="Pige IA"
+          context={zone}
+          messages={[
+            `Scan multi-sources sur ${zone}…`,
+            "Filtrage des annonces hors zone…",
+            "Détection des particuliers et des baisses de prix…",
+            "Évaluation de la qualité des annonces…",
+            "Scoring de mandatabilité par l'IA…",
+            "Hiérarchisation des opportunités…",
+          ]}
+        />
       ) : isLoading ? (
         <p className="text-center text-sm text-muted-foreground py-8">Chargement…</p>
       ) : !activeZone ? (
