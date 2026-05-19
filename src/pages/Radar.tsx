@@ -108,7 +108,14 @@ export const RadarInner = () => {
     }
   };
 
-  const generatePlanAttaque = async (opp: any) => {
+  const openOrGeneratePlan = async (opp: any) => {
+    // Si un plan a déjà été généré pour cette opportunité, le rouvrir sans appel IA.
+    const saved = opp.donnees?.plan_attaque;
+    if (saved && (saved.profil_cible || saved.angle_commercial || saved.priorites?.length)) {
+      setPlanAttaque({ ...saved, oppId: opp.id, oppTitre: opp.titre });
+      toast.success("Plan rouvert (sauvegardé)");
+      return;
+    }
     setGeneratingPlan(opp.id);
     setPlanAttaque(null);
     try {
@@ -118,7 +125,11 @@ export const RadarInner = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setPlanAttaque({ ...data, oppId: opp.id, oppTitre: opp.titre });
-      toast.success("Plan d'attaque généré !");
+      // Persister le plan dans donnees pour rouverture instantanée
+      const newDonnees = { ...(opp.donnees || {}), plan_attaque: data };
+      await supabase.from("opportunites").update({ donnees: newDonnees }).eq("id", opp.id);
+      queryClient.invalidateQueries({ queryKey: ["opportunites"] });
+      toast.success("Plan d'attaque généré et sauvegardé");
     } catch (e: any) {
       if (isCreditsError(e)) handleApiError(e);
       else toast.error(e?.message || "Erreur de génération");
@@ -126,6 +137,7 @@ export const RadarInner = () => {
       setGeneratingPlan(null);
     }
   };
+
 
   const [search, setSearch] = useState("");
 
