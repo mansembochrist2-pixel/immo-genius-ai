@@ -2,10 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
 import {
   Radar as RadarIcon, TrendingUp, TrendingDown, MapPin, AlertTriangle, Target, Search,
-  Zap, ExternalLink, Plus, Loader2, Trash2, BarChart3, Clock, Home, Crosshair, Bot,
+  Zap, ExternalLink, Plus, Loader2, Trash2, BarChart3, Clock, Home, Crosshair, Bot, Info,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
