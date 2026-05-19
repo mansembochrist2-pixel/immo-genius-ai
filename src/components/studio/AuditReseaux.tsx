@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Instagram, Facebook, Linkedin, Music2, Info, Sparkles, Loader2, History, Trash2, TrendingUp, ExternalLink } from "lucide-react";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -197,9 +198,19 @@ export const AuditReseaux = () => {
               </Button>
             </div>
             {loading && (
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-primary animate-pulse">
-                L'IA analyse votre compte {plat.label} en profondeur — branding, contenu, stratégie, engagement. Cela peut prendre 15-30 secondes.
-              </div>
+              <AnalysisLoader
+                module={`Audit ${plat.label}`}
+                context={url.replace(/^https?:\/\//, "").slice(0, 40)}
+                eta="15 à 30 secondes"
+                messages={[
+                  `Connexion au profil ${plat.label}…`,
+                  "Extraction des publications récentes…",
+                  "Analyse du branding et de la bio…",
+                  "Mesure de l'engagement et de la régularité…",
+                  "Identification des axes de progrès…",
+                  "Construction du plan d'action 30 jours…",
+                ]}
+              />
             )}
           </CardContent>
         </Card>
