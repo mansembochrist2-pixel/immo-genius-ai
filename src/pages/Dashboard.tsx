@@ -174,7 +174,10 @@ const Dashboard = () => {
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-primary" /> Annonces piégées</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 text-primary" /> Annonces pigées
+              <InfoTip>Nombre total d'annonces détectées par votre Pige IA et conservées dans votre vivier. +24h indique les nouvelles entrées depuis hier.</InfoTip>
+            </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.total}</p>
             <p className="text-[10px] text-primary mt-2 font-medium">+{stats.pige.nouvelles} en 24h →</p>
           </CardContent>
@@ -182,7 +185,10 @@ const Dashboard = () => {
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-primary" /> Score pigeabilité moyen</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Target className="h-3.5 w-3.5 text-primary" /> Score pigeabilité moyen
+              <InfoTip>Moyenne des scores IA sur l'ensemble de vos annonces pigées. Le score combine type de vendeur, ancienneté, signaux de baisse, qualité de l'annonce et tension du secteur.</InfoTip>
+            </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.scoreMoyen}<span className="text-sm text-muted-foreground">/100</span></p>
             <p className="text-[10px] text-primary mt-2 font-medium">Top {stats.pige.topScore} →</p>
           </CardContent>
@@ -190,7 +196,10 @@ const Dashboard = () => {
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=radar")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Crosshair className="h-3.5 w-3.5 text-primary" /> Opportunités Radar</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Crosshair className="h-3.5 w-3.5 text-primary" /> Opportunités Radar
+              <InfoTip>Opportunités de prospection détectées sur votre secteur (zones tendues, biens à fort potentiel de mandat, signaux de marché).</InfoTip>
+            </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.opportunites.total}</p>
             <p className="text-[10px] text-primary mt-2 font-medium">Analyser →</p>
           </CardContent>
@@ -198,7 +207,10 @@ const Dashboard = () => {
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/studio")}>
           <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Palette className="h-3.5 w-3.5 text-primary" /> Studio IA</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Palette className="h-3.5 w-3.5 text-primary" /> Studio IA
+              <InfoTip>Génération d'annonces, posts réseaux, mandats et audits de comptes sociaux propulsés par l'IA.</InfoTip>
+            </p>
             <p className="text-2xl font-bold mt-2 text-foreground"><Sparkles className="h-5 w-5 inline text-primary" /></p>
             <p className="text-[10px] text-primary mt-2 font-medium">Créer →</p>
           </CardContent>
