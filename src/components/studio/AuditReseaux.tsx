@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Instagram, Facebook, Linkedin, Music2, Info, Sparkles, Loader2, History, Trash2, TrendingUp, ExternalLink } from "lucide-react";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
