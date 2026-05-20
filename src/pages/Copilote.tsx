@@ -20,6 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useBusinessData } from "@/contexts/BusinessContext";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
+import { useNavigate } from "react-router-dom";
 
 interface Message { role: "user" | "assistant"; content: string; actions?: string[]; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
