@@ -246,6 +246,8 @@ export const PigeIA = () => {
   const [activeTab, setActiveTab] = useState<string>("top");
   const [notesDraft, setNotesDraft] = useState<string>("");
   const [savedOpen, setSavedOpen] = useState(false);
+  const [savedSearch, setSavedSearch] = useState("");
+
 
   const sendToCopilote = (a: any) => {
     const ai = a.analyse_ia || {};
