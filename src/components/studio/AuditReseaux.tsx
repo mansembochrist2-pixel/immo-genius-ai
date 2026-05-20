@@ -296,7 +296,14 @@ export const AuditReseaux = () => {
 
         {/* Audit sélectionné */}
         {selectedAudit && (
-          <AuditDetails audit={selectedAudit} />
+          <div className="space-y-2">
+            <div className="flex justify-end">
+              <Button size="sm" variant="ghost" className="text-xs h-7 gap-1" onClick={() => setSelectedAudit(null)}>
+                Fermer l'audit ✕
+              </Button>
+            </div>
+            <AuditDetails audit={selectedAudit} />
+          </div>
         )}
 
         {/* Tutoriel Dialog */}
