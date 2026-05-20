@@ -94,9 +94,6 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
     if (!isAuthenticated) return;
     const channel = supabase
       .channel("business-sync")
-      .on("postgres_changes", { event: "*", schema: "public", table: "prospects" }, () => { fetchStats(); queryClient.invalidateQueries(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => fetchStats())
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => fetchStats())
       .on("postgres_changes", { event: "*", schema: "public", table: "opportunites" }, () => fetchStats())
       .on("postgres_changes", { event: "*", schema: "public", table: "annonces_pige" }, () => { fetchStats(); queryClient.invalidateQueries({ queryKey: ["annonces-pige"] }); })
       .on("postgres_changes", { event: "*", schema: "public", table: "actions_recommandees" }, () => queryClient.invalidateQueries({ queryKey: ["dashboard-actions"] }))
