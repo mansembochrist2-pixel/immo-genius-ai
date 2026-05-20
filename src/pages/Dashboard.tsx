@@ -1,22 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { NumberInput } from "@/components/ui/number-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
-  Bot, Zap, TrendingUp, ArrowRight, Target, AlertTriangle, Play, SkipForward, X, DollarSign,
-  Crosshair, Palette, Search, FileText, BarChart3, Phone, Pencil, Check, Sparkles, Info,
+  Bot, Zap, TrendingUp, ArrowRight, Target, Play, SkipForward, X,
+  Crosshair, Palette, Search, FileText, BarChart3, Phone, Sparkles, Info, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useBusinessData } from "@/contexts/BusinessContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PerformanceWidget } from "@/components/dashboard/PerformanceWidget";
 
 const InfoTip = ({ children }: { children: React.ReactNode }) => (
   <TooltipProvider delayDuration={150}>
