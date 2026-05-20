@@ -400,18 +400,34 @@ export async function exportExpertiseDocx(
     docH("Conclusion", HeadingLevel.HEADING_1),
     docPara(narrative.conclusion || ""),
     new Paragraph({
-      spacing: { before: 400 },
-      alignment: AlignmentType.CENTER,
-      border: { top: { color: "CCCCCC", space: 1, style: BorderStyle.SINGLE, size: 6 } },
+      spacing: { before: 360, after: 80 },
+      border: { top: { color: "CCCCCC", space: 4, style: BorderStyle.SINGLE, size: 6 } },
+      children: [new TextRun({ text: "Mentions légales", bold: true, size: 18, color: "555555" })],
+    }),
+    new Paragraph({
+      spacing: { after: 200 },
       children: [
         new TextRun({
-          text: `Document généré par Valorisation IA — ${new Date().toLocaleDateString("fr-FR")}`,
+          text: "Les chiffres présentés constituent une simulation à titre indicatif, basée sur les données fournies et des sources publiques (DVF, INSEE, ADEME, observatoires des loyers, BOFIP). Ils ne valent ni conseil financier, ni conseil juridique, ni conseil fiscal certifié. Toute décision d'investissement doit être validée par un professionnel agréé (notaire, expert-comptable, conseiller en gestion de patrimoine).",
+          italics: true,
+          size: 16,
+          color: "888888",
+        }),
+      ],
+    }),
+    new Paragraph({
+      spacing: { before: 200 },
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: `Document généré par Valorisation — ${new Date().toLocaleDateString("fr-FR")}`,
           italics: true,
           size: 18,
           color: "999999",
         }),
       ],
     })
+
   );
 
   const doc = new Document({
