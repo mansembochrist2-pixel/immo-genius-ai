@@ -140,44 +140,12 @@ const Dashboard = () => {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <Card className="bg-card border-border col-span-2 lg:col-span-1 rounded-2xl shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-primary" /> Objectif CA</p>
-              <button className="h-6 w-6 rounded-md hover:bg-muted/20 flex items-center justify-center" onClick={() => { setEditingCA(!editingCA); setCaInput(objectifCa.toString()); }}>
-                <Pencil className="h-3 w-3 text-muted-foreground" />
-              </button>
-            </div>
-            {editingCA ? (
-              <div className="mt-2 space-y-2">
-                <NumberInput value={caInput} onChange={v => setCaInput(v)} placeholder="50 000" className="h-8 text-sm" autoFocus
-                  onKeyDown={e => { if (e.key === "Enter") updateCaMutation.mutate(Number(caInput)); if (e.key === "Escape") setEditingCA(false); }} />
-                <div className="flex gap-1">
-                  <Button size="sm" className="h-6 text-[10px] flex-1" onClick={() => updateCaMutation.mutate(Number(caInput))}><Check className="h-3 w-3 mr-1" /> OK</Button>
-                  <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setEditingCA(false)}><X className="h-3 w-3" /></Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">ce mois · Total : {caTotal.toLocaleString("fr-FR")}€</p>
-                {objectifCa > 0 ? (
-                  <><Progress value={caProgress} className="mt-2 h-1.5" />
-                  <p className="text-[10px] text-muted-foreground mt-1.5">{caProgress}% de {objectifCa.toLocaleString("fr-FR")}€</p></>
-                ) : (
-                  <p className="text-[10px] mt-2"><button className="text-primary hover:underline" onClick={() => { setEditingCA(true); setCaInput(""); }}>Définir objectif →</button></p>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-primary" /> Annonces pigées
-              <InfoTip>Nombre total d'annonces détectées par votre Pige IA et conservées dans votre vivier. +24h indique les nouvelles entrées depuis hier.</InfoTip>
+              <Phone className="h-3.5 w-3.5 text-primary" /> Pige enregistrée
+              <InfoTip>Annonces sauvegardées dans votre vivier de pige IA.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.total}</p>
             <p className="text-[10px] text-primary mt-2 font-medium">+{stats.pige.nouvelles} en 24h →</p>
@@ -188,7 +156,7 @@ const Dashboard = () => {
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Target className="h-3.5 w-3.5 text-primary" /> Score pigeabilité moyen
-              <InfoTip>Moyenne des scores IA sur l'ensemble de vos annonces pigées. Le score combine type de vendeur, ancienneté, signaux de baisse, qualité de l'annonce et tension du secteur.</InfoTip>
+              <InfoTip>Moyenne des scores IA sur vos annonces pigées.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.scoreMoyen}<span className="text-sm text-muted-foreground">/100</span></p>
             <p className="text-[10px] text-primary mt-2 font-medium">Top {stats.pige.topScore} →</p>
@@ -199,7 +167,7 @@ const Dashboard = () => {
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Crosshair className="h-3.5 w-3.5 text-primary" /> Opportunités Radar
-              <InfoTip>Opportunités de prospection détectées sur votre secteur (zones tendues, biens à fort potentiel de mandat, signaux de marché).</InfoTip>
+              <InfoTip>Opportunités détectées sur votre secteur.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.opportunites.total}</p>
             <p className="text-[10px] text-primary mt-2 font-medium">Analyser →</p>
@@ -210,7 +178,7 @@ const Dashboard = () => {
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Palette className="h-3.5 w-3.5 text-primary" /> Studio IA
-              <InfoTip>Génération d'annonces, posts réseaux, mandats et audits de comptes sociaux propulsés par l'IA.</InfoTip>
+              <InfoTip>Annonces, posts réseaux, mandats et audits sociaux par IA.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground"><Sparkles className="h-5 w-5 inline text-primary" /></p>
             <p className="text-[10px] text-primary mt-2 font-medium">Créer →</p>
