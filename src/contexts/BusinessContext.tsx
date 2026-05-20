@@ -43,41 +43,19 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   const fetchStats = useCallback(async () => {
     if (!user) return;
     try {
-      const [prospectsRes, salesRes, tasksRes, oppsRes, pigeRes] = await Promise.all([
-        supabase.from("prospects").select("statut"),
-        supabase.from("sales").select("montant, date_vente"),
-        supabase.from("tasks").select("done, priorite, due_date"),
+      const [oppsRes, pigeRes] = await Promise.all([
         supabase.from("opportunites").select("score"),
-        supabase.from("annonces_pige").select("score_pigeabilite, created_at, statut"),
+        supabase.from("annonces_pige").select("score_pigeabilite, created_at, saved_to_vivier"),
       ]);
 
-      const prospects = prospectsRes.data || [];
-      const sales = salesRes.data || [];
-      const tasks = tasksRes.data || [];
       const opps = oppsRes.data || [];
-      const pige = pigeRes.data || [];
-      const now = new Date();
-      const debutMois = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      const pige = (pigeRes.data || []).filter((p: any) => p.saved_to_vivier);
       const last24h = new Date(Date.now() - 86400000).toISOString();
 
       setStats({
-        prospects: {
-          total: prospects.length,
-          nouveaux: prospects.filter((p: any) => p.statut === "nouveau").length,
-          chauds: prospects.filter((p: any) => ["offre", "visite"].includes(p.statut)).length,
-          signes: prospects.filter((p: any) => p.statut === "signe").length,
-          actifs: prospects.filter((p: any) => ["contacte", "visite", "offre"].includes(p.statut)).length,
-        },
-        sales: {
-          total: sales.length,
-          montantTotal: sales.reduce((s: number, x: any) => s + Number(x.montant), 0),
-          ceMois: sales.filter((x: any) => x.date_vente >= debutMois).reduce((s: number, x: any) => s + Number(x.montant), 0),
-        },
-        tasks: {
-          enCours: tasks.filter((t: any) => !t.done).length,
-          urgentes: tasks.filter((t: any) => !t.done && t.priorite === "urgente").length,
-          enRetard: tasks.filter((t: any) => !t.done && t.due_date && new Date(t.due_date) < new Date(now.toDateString())).length,
-        },
+        prospects: defaultStats.prospects,
+        sales: defaultStats.sales,
+        tasks: defaultStats.tasks,
         opportunites: {
           total: opps.length,
           topScore: opps.length ? Math.max(...opps.map((o: any) => Number(o.score) || 0)) : 0,
@@ -100,10 +78,10 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
     const s = stats;
     return [
       `📊 CONTEXTE BUSINESS DE L'AGENT :`,
-      `- Pige IA : ${s.pige.total} annonces (${s.pige.nouvelles} nouvelles 24h) — score moyen ${s.pige.scoreMoyen}/100, top ${s.pige.topScore}/100`,
-      `- Opportunités Radar : ${s.opportunites.total} (meilleur score ${s.opportunites.topScore}/100)`,
-      `- Prospects : ${s.prospects.total} (${s.prospects.actifs} actifs, ${s.prospects.chauds} chauds, ${s.prospects.signes} signés)`,
-      `- Ventes : ${s.sales.total} | CA total ${s.sales.montantTotal.toLocaleString("fr-FR")} € | ce mois ${s.sales.ceMois.toLocaleString("fr-FR")} €`,
+      `- Pige IA : ${s.pige.total} annonces enregistrées dans le vivier — score moyen ${s.pige.scoreMoyen}/100, top ${s.pige.topScore}/100`,
+      `- Opportunités Radar : ${s.opportunites.total} analyses sauvegardées (meilleur score ${s.opportunites.topScore}/100)`,
+      `- Modules actifs : Pige IA, Radar Prospection, Estimation IA, Studio IA et Copilote.`,
+      `- Modules retirés du contexte : anciens prospects/clients, agenda IA, inbox IA, mémoire client, CA/ventes.`,
     ].join("\n");
   }, [stats]);
 
