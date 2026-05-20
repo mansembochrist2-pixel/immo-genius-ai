@@ -554,9 +554,20 @@ export default function Expertise() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Disclaimer légal */}
+            <Card className="bg-muted/20 border-border/30">
+              <CardContent className="py-3">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground/80">Mentions légales — </span>
+                  {DISCLAIMER_TEXT}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </TooltipProvider>
+
     </AppLayout>
   );
 }
