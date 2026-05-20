@@ -83,6 +83,36 @@ const Dashboard = () => {
     },
   });
 
+  const generateActions = async () => {
+    if (generatingActions) return;
+    setGeneratingActions(true);
+    try {
+      const businessContext = [
+        `Pige IA : ${stats.pige.total} annonces (top ${stats.pige.topScore}/100, ${stats.pige.nouvelles} nouvelles en 24h, score moyen ${stats.pige.scoreMoyen}/100)`,
+        `Opportunités Radar : ${stats.opportunites.total} (top ${stats.opportunites.topScore}/100)`,
+        `Prospects actifs : ${stats.prospects.actifs} (chauds ${stats.prospects.chauds})`,
+        `Ventes : ${stats.sales.total} | CA total ${stats.sales.montantTotal.toLocaleString("fr-FR")} €`,
+      ].join("\n");
+      const { data, error } = await supabase.functions.invoke("generate-actions", { body: { businessContext } });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.actions?.length && user) {
+        const rows = data.actions.map((a: any) => ({
+          user_id: user.id, titre: a.titre, type: a.type || "relance", priorite: a.priorite || "moyenne",
+          score_pertinence: a.score_pertinence ?? 50, objectif: a.objectif, action_attendue: a.action_attendue,
+          risque_si_ignore: a.risque_si_ignore, source_module: a.source_module, donnees_contexte: a,
+        }));
+        await supabase.from("actions_recommandees").insert(rows);
+        queryClient.invalidateQueries({ queryKey: ["dashboard-actions"] });
+        toast.success(`${rows.length} actions générées`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur génération");
+    } finally {
+      setGeneratingActions(false);
+    }
+  };
+
+
   const QUICK_ACTIONS = [
     { label: "Nouvelle pige IA", icon: Phone, action: () => navigate("/chasseur?tab=pige") },
     { label: "Analyser une zone", icon: Search, action: () => navigate("/chasseur?tab=radar") },
