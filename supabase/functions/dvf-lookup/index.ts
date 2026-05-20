@@ -45,8 +45,8 @@ serve(async (req) => {
       });
     }
 
-    // 1. Géocodage BAN
-    const geoRes = await fetch(`${BAN_URL}?q=${encodeURIComponent(adresse)}&limit=1`);
+    // 1. Géocodage BAN (avec fallback géoplateforme IGN)
+    const geoRes = await geocode(adresse);
     const geoJson = await geoRes.json();
     const feature = geoJson.features?.[0];
     if (!feature) {
