@@ -130,9 +130,9 @@ const EstimationIA = () => {
       <div className="page-header">
         <h1 className="page-title flex items-center gap-3">
           <TrendingUp className="h-7 w-7 text-primary" />
-          Estimation <span className="gradient-text">IA</span>
+          Valorisation <span className="gradient-text">IA</span>
         </h1>
-        <p className="page-subtitle">{lang === "fr" ? "Estimez vos biens avec une précision basée sur les données réelles du marché immobilier local" : "Estimate properties accurately with real local market data"}</p>
+        <p className="page-subtitle">{lang === "fr" ? "Estimez la valeur de marché d'un bien, puis basculez en un clic vers l'analyse rentabilité & expertise patrimoniale." : "Estimate market value, then switch to full rentability & expertise analysis."}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -369,8 +369,26 @@ const EstimationIA = () => {
             ))}
 
             <div className="flex flex-wrap gap-2">
-              <Button className="flex-1 min-w-[180px]" onClick={downloadWord}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger en Word" : "Download as Word"}</Button>
-              <Button variant="default" className="flex-1 min-w-[180px] bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => {
+              <Button
+                className="flex-1 min-w-[200px] bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => {
+                  sessionStorage.setItem("expertise_prefill", JSON.stringify({
+                    adresse: form.adresse,
+                    type_bien: form.type_bien,
+                    surface: form.surface,
+                    pieces: form.pieces,
+                    annee_construction: form.annee_construction,
+                    etat: form.etat,
+                    dpe: form.dpe,
+                    prix_acquisition: editableResult.recommandation_prix || editableResult.prix_moyen,
+                  }));
+                  navigate("/expertise");
+                }}
+              >
+                <BarChart3 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Analyser la Rentabilité & Valorisation" : "Analyze Rentability & Valuation"}
+              </Button>
+              <Button variant="outline" className="flex-1 min-w-[160px]" onClick={downloadWord}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger en Word" : "Download as Word"}</Button>
+              <Button variant="default" className="flex-1 min-w-[160px] bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => {
                 sessionStorage.setItem("annonce_prefill", JSON.stringify({
                   adresse: form.adresse,
                   prix: editableResult.recommandation_prix?.toString() || editableResult.prix_moyen?.toString() || "",
