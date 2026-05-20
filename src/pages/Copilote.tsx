@@ -286,17 +286,20 @@ const Copilote = () => {
           {/* Context */}
           <Card className="bg-card border-border rounded-2xl shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {lang === "fr" ? "Contexte actif" : "Active Context"}</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2.5">
               {[
-                { label: "Clients actifs", value: stats.prospects.actifs },
-                { label: lang === "fr" ? "CA ce mois / Total" : "Revenue mo / Total", value: `${stats.sales.ceMois.toLocaleString("fr-FR")} € / ${stats.sales.montantTotal.toLocaleString("fr-FR")} €` },
-                { label: lang === "fr" ? "Opportunités" : "Opportunities", value: stats.opportunites.total },
+                { label: "Piges enregistrées", value: stats.pige.total },
+                { label: "Score moyen vivier", value: `${stats.pige.scoreMoyen}/100` },
+                { label: lang === "fr" ? "Analyses Radar" : "Radar analyses", value: stats.opportunites.total },
               ].map(i => (
                 <div key={i.label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{i.label}</span>
                   <span className="font-medium">{i.value}</span>
                 </div>
               ))}
+              <p className="text-[10px] leading-relaxed text-muted-foreground pt-2 border-t border-border/50">
+                Connecté aux modules actuels : Pige IA, Radar, Estimation et Studio. Les anciens modules clients, CA, agenda et inbox sont exclus du raisonnement.
+              </p>
             </CardContent>
           </Card>
 
@@ -327,7 +330,7 @@ const Copilote = () => {
         </div>
 
         {/* Chat */}
-        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-140px)] min-h-[700px]">
+        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-170px)] min-h-[560px] lg:min-h-[620px]">
           <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
@@ -342,8 +345,8 @@ const Copilote = () => {
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
                 <Bot className="h-16 w-16 text-primary/20" />
                 <div>
-                  <p className="text-lg font-medium">{lang === "fr" ? "Bonjour, je suis votre Copilote Stratégique" : "Hello, I'm your Strategic Copilot"}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{lang === "fr" ? "Posez-moi n'importe quelle question sur votre activité." : "Ask me anything about your business."}</p>
+                  <p className="text-lg font-medium">{lang === "fr" ? "Prêt à prioriser vos prochains mandats" : "Ready to prioritize your next mandates"}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{lang === "fr" ? "Je travaille avec vos piges enregistrées, vos analyses Radar, vos estimations et votre Studio IA." : "I work with your saved listings, Radar analyses, valuations and AI Studio."}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center max-w-md">
                   {QUICK_ACTIONS.map(a => (
@@ -383,12 +386,12 @@ const Copilote = () => {
                 context={lang === "fr" ? "Analyse de votre contexte business" : "Analyzing your business context"}
                 messages={lang === "fr" ? [
                   "Connexion aux données live…",
-                  "Lecture de votre agenda et prospects chauds…",
+                  "Lecture de vos piges enregistrées…",
                   "Croisement avec vos opportunités Radar…",
                   "Construction de la réponse stratégique…",
                 ] : [
                   "Connecting to live data…",
-                  "Reading agenda and hot prospects…",
+                  "Reading saved listings…",
                   "Cross-referencing radar opportunities…",
                   "Building strategic answer…",
                 ]}
