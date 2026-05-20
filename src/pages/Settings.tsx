@@ -21,7 +21,7 @@ const Settings = () => {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const queryClient = useQueryClient();
-  const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "", objectif_ca: "", zone_principale: "" });
+  const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "", objectif_ca: "" });
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
 
