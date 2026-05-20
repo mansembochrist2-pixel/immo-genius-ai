@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
   Bot, Send, Zap, Target, TrendingUp, CalendarDays, BarChart3, Loader2,
-  Plus, MessageSquare, Pencil, Trash2, Clock, Users, Search, Check, X,
+  Plus, MessageSquare, Pencil, Trash2, Clock, Users, Search, Check, X, HelpCircle,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
