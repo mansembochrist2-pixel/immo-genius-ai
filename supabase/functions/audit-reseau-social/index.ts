@@ -163,6 +163,7 @@ Deno.serve(async (req) => {
     if (!url || !plateforme) {
       return new Response(JSON.stringify({ error: "url et plateforme requis" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const normalizedUrl = normalizeUrl(String(url).trim());
     const platKey = String(plateforme).toLowerCase();
     const platMeta = PLATFORM_HINTS[platKey];
     if (!platMeta) {
@@ -175,18 +176,35 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY manquant" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 1. Scrape la page de profil + recherche web complémentaire (Firecrawl)
+    // 1. Collecte multi-sources : API publique Instagram quand possible, HTML direct, Firecrawl scrape puis recherche web.
     let scrapedMarkdown = "";
     let scrapedMeta: any = {};
     let scrapedLinks: string[] = [];
     let searchEvidence: any[] = [];
+    let directProfileData: any = null;
+    let htmlEvidence = "";
     let scrapeStatus: "ok" | "timeout" | "skipped" | "error" = "skipped";
-    const handleMatch = url.match(/(?:@|\/)([\w.\-]{2,40})(?:\/|\?|$)/);
-    const handle = handleMatch ? handleMatch[1].replace(/^@/, "") : "";
+    const handle = extractHandleFromUrl(normalizedUrl, platKey);
+
+    if (platKey === "instagram" && handle) {
+      directProfileData = await fetchInstagramProfile(handle);
+      if (directProfileData?.status === "ok") scrapeStatus = "ok";
+    }
+
+    const htmlFetch = await fetchText(normalizedUrl);
+    if (htmlFetch.text) {
+      scrapedMeta = { ...metaFromHtml(htmlFetch.text), ...scrapedMeta };
+      htmlEvidence = compact(htmlFetch.text
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " "), 5000);
+      if (!isWeakScrape(htmlEvidence)) scrapeStatus = "ok";
+    }
+
     if (FIRECRAWL_API_KEY) {
       try {
         const profile = await firecrawlPost(FIRECRAWL_API_KEY, "scrape", {
-          url,
+          url: normalizedUrl,
           formats: ["markdown", "summary", "links", "html"],
           onlyMainContent: false,
           waitFor: 6000,
@@ -197,18 +215,19 @@ Deno.serve(async (req) => {
           const md = fcJson.markdown || fcJson.data?.markdown || fcJson.summary || fcJson.data?.summary || "";
           const htmlFallback = compact((fcJson.html || fcJson.data?.html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " "), 6000);
           scrapedMarkdown = (isWeakScrape(md) && htmlFallback ? `${md}\n\nHTML visible extrait :\n${htmlFallback}` : md).slice(0, 12000);
-          scrapedMeta = fcJson.metadata || fcJson.data?.metadata || {};
+          scrapedMeta = { ...scrapedMeta, ...(fcJson.metadata || fcJson.data?.metadata || {}) };
           scrapedLinks = (fcJson.links || fcJson.data?.links || []).slice(0, 25);
-          scrapeStatus = isWeakScrape(scrapedMarkdown) ? "error" : "ok";
+          if (!isWeakScrape(scrapedMarkdown)) scrapeStatus = "ok";
         } else {
-          scrapeStatus = "error";
+          if (scrapeStatus !== "ok") scrapeStatus = "error";
         }
 
-        if (handle && isWeakScrape(scrapedMarkdown)) {
+        if (handle && (scrapeStatus !== "ok" || isWeakScrape(scrapedMarkdown))) {
           const queries = [
-            `site:instagram.com/${handle} ${handle}`,
-            `"${handle}" Instagram agent immobilier`,
-            `"${handle}" immobilier`,
+            `site:${platKey === "instagram" ? "instagram.com" : platKey + ".com"} ${handle}`,
+            `"${handle}" "${platMeta.name}" immobilier`,
+            `"${handle}" agent immobilier`,
+            `"${handle}" real estate`,
           ];
           for (const query of queries) {
             const s = await firecrawlPost(FIRECRAWL_API_KEY, "search", {
