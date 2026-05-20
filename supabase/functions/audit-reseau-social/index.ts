@@ -302,8 +302,9 @@ Deno.serve(async (req) => {
         }
 
         if (handle && (scrapeStatus !== "ok" || isWeakScrape(scrapedMarkdown))) {
+          const domainMap: Record<string, string> = { instagram: "instagram.com", facebook: "facebook.com", tiktok: "tiktok.com", linkedin: "linkedin.com" };
           const queries = [
-            `site:${platKey === "instagram" ? "instagram.com" : platKey + ".com"} ${handle}`,
+            `site:${domainMap[platKey] || platKey + ".com"} ${handle}`,
             `"${handle}" "${platMeta.name}" immobilier`,
             `"${handle}" agent immobilier`,
             `"${handle}" real estate`,
