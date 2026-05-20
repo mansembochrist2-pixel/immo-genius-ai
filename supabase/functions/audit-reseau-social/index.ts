@@ -32,27 +32,39 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY manquant" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 1. Scrape la page de profil (Firecrawl si dispo, sinon best-effort)
+    // 1. Scrape la page de profil (Firecrawl si dispo, timeout 25s, sinon best-effort)
     let scrapedMarkdown = "";
     let scrapedMeta: any = {};
+    let scrapeStatus: "ok" | "timeout" | "skipped" | "error" = "skipped";
     if (FIRECRAWL_API_KEY) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 25000);
       try {
         const fc = await fetch("https://api.firecrawl.dev/v2/scrape", {
           method: "POST",
+          signal: ctrl.signal,
           headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             url,
             formats: ["markdown", "summary"],
             onlyMainContent: true,
-            waitFor: 2500,
+            waitFor: 2000,
           }),
         });
         const fcJson = await fc.json().catch(() => ({}));
         if (fc.ok) {
           scrapedMarkdown = (fcJson.markdown || fcJson.data?.markdown || fcJson.summary || fcJson.data?.summary || "").slice(0, 12000);
           scrapedMeta = fcJson.metadata || fcJson.data?.metadata || {};
+          scrapeStatus = scrapedMarkdown ? "ok" : "error";
+        } else {
+          scrapeStatus = "error";
         }
-      } catch (_e) { /* fallback to URL-only analysis */ }
+      } catch (e: any) {
+        scrapeStatus = e?.name === "AbortError" ? "timeout" : "error";
+        console.warn("Firecrawl failed:", scrapeStatus, e?.message);
+      } finally {
+        clearTimeout(t);
+      }
     }
 
     // 2. Extraire le handle depuis l'URL
