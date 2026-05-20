@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { exportTextToDocx } from "@/lib/docx-export";
+import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 
 const EstimationIA = () => {
   const { user } = useAuth();
