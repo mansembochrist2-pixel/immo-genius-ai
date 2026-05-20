@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Bot, LogOut, Settings, FileText, Shield, ScrollText,
-  TrendingUp, HelpCircle, Crosshair, Palette, BadgeEuro,
+  TrendingUp, HelpCircle, Crosshair, Palette,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,8 +19,7 @@ export function AppSidebar() {
   const navItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, hint: "Vue d'ensemble : performance, pige, opportunités.", preload: preloadRoute.dashboard },
     { title: "Chasseur de Mandats", url: "/chasseur", icon: Crosshair, hint: "Radar de prospection + Pige IA pour conquérir des mandats.", preload: preloadRoute.chasseur },
-    { title: "Valorisation IA", url: "/valorisation", icon: TrendingUp, hint: "Estimation premium DVF + Expertise rentabilité & valorisation patrimoniale.", preload: preloadRoute.estimation },
-    { title: "Expertise & Rendement", url: "/expertise", icon: BadgeEuro, hint: "Analyse financière, simulation post-travaux, cash-flow et plus-value.", preload: preloadRoute.expertise },
+    { title: "Valorisation", url: "/valorisation/estimation", icon: TrendingUp, hint: "Estimation DVF + Expertise rentabilité & valorisation patrimoniale.", preload: preloadRoute.estimation },
     { title: "Studio IA", url: "/studio", icon: Palette, hint: "Annonces, posts, scripts d'appel et contenus marketing.", preload: preloadRoute.studio },
     { title: "Copilote", url: "/copilote", icon: Bot, hint: "Coach commercial IA : pige, négociation, conquête de mandats.", preload: preloadRoute.copilote },
   ];

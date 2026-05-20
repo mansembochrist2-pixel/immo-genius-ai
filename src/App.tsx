@@ -92,9 +92,11 @@ const App = () => (
                   <Route path="/copilote" element={<Copilote />} />
                   <Route path="/studio" element={<Documents />} />
                   <Route path="/documents" element={<Navigate to="/studio" replace />} />
-                  <Route path="/estimation" element={<EstimationIA />} />
-                  <Route path="/valorisation" element={<EstimationIA />} />
-                  <Route path="/expertise" element={<Expertise />} />
+                  <Route path="/estimation" element={<Navigate to="/valorisation/estimation" replace />} />
+                  <Route path="/valorisation" element={<Navigate to="/valorisation/estimation" replace />} />
+                  <Route path="/valorisation/estimation" element={<EstimationIA />} />
+                  <Route path="/valorisation/expertise" element={<Expertise />} />
+                  <Route path="/expertise" element={<Navigate to="/valorisation/expertise" replace />} />
                   <Route path="/sauvegardes" element={<Sauvegardes />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/faq" element={<FAQ />} />

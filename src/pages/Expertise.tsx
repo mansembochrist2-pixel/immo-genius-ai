@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sparkles, Loader2, Download, Save, FileText, Wand2, Info,
-  TrendingUp, Calculator, ArrowLeft, BadgeEuro, FileDown,
+  TrendingUp, Calculator, FileDown,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +26,10 @@ import {
   ExpertiseResults,
 } from "@/lib/expertise-calc";
 import { exportExpertisePDF, exportExpertiseDocx, NarrativeReport } from "@/lib/expertise-export";
+import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
+import { SourceHint, DISCLAIMER_TEXT } from "@/components/valorisation/SourceHint";
+import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 const fmtEur = (n?: number) =>
   n == null || isNaN(n) ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`;
@@ -190,25 +194,23 @@ export default function Expertise() {
 
   return (
     <AppLayout>
-      <div className="page-header flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="page-title flex items-center gap-3">
-            <BadgeEuro className="h-7 w-7 text-primary" />
-            Expertise <span className="gradient-text">Valeur & Rendement</span>
-          </h1>
-          <p className="page-subtitle">
-            Analyse financière complète : rentabilité, simulation post-rénovation, plus-value, cash-flow.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => navigate("/valorisation")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Retour à Valorisation IA
-        </Button>
+      <div className="page-header">
+        <h1 className="page-title flex items-center gap-3">
+          <TrendingUp className="h-7 w-7 text-primary" />
+          <span className="gradient-text">Valorisation</span>
+        </h1>
+        <p className="page-subtitle">
+          Analyse financière complète : rentabilité, simulation post-rénovation, plus-value, cash-flow.
+        </p>
       </div>
+
+      <ValorisationTabs current="expertise" />
 
       <TooltipProvider delayDuration={200}>
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           {/* === INPUTS === */}
-          <Card className="xl:col-span-2 bg-card/60 border-border/30 h-fit sticky top-20">
+          <Card className="xl:col-span-2 bg-card/60 border-border/30 xl:sticky xl:top-20 xl:self-start">
+
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-primary" />
@@ -224,7 +226,7 @@ export default function Expertise() {
                 </p>
               )}
             </CardHeader>
-            <CardContent className="space-y-5 max-h-[calc(100vh-220px)] overflow-y-auto pr-2">
+            <CardContent className="space-y-5 xl:max-h-[calc(100vh-260px)] xl:overflow-y-auto xl:pr-2">
               {/* Bien */}
               <section className="space-y-3">
                 <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Le bien</p>
@@ -299,7 +301,12 @@ export default function Expertise() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Loyer mensuel (€)</Label><NumberInput value={String(inputs.loyer_mensuel)} onChange={v => set("loyer_mensuel", Number(v) || 0)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Loyer mensuel (€) {prefillNote && <SourceHint source="Observatoires locaux des loyers, DVF, estimation IA" />}
+                    </Label>
+                    <NumberInput value={String(inputs.loyer_mensuel)} onChange={v => set("loyer_mensuel", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
                   <div><Label className="text-xs">Vacance (%)</Label><NumberInput value={String(inputs.vacance_locative_pct)} onChange={v => set("vacance_locative_pct", Number(v) || 0)} className="mt-1 h-9" /></div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -307,12 +314,28 @@ export default function Expertise() {
                   <Label className="text-xs">Zone d'encadrement des loyers</Label>
                 </div>
                 {inputs.encadrement_loyer && (
-                  <div><Label className="text-xs">Loyer plafond (€)</Label><NumberInput value={String(inputs.loyer_plafond ?? "")} onChange={v => set("loyer_plafond", Number(v) || undefined)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Loyer plafond (€) {prefillNote && <SourceHint source="Décrets préfectoraux d'encadrement (Paris, Lille, Lyon, Bordeaux, Montpellier...)" />}
+                    </Label>
+                    <NumberInput value={String(inputs.loyer_plafond ?? "")} onChange={v => set("loyer_plafond", Number(v) || undefined)} className="mt-1 h-9" />
+                  </div>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Charges copro/an</Label><NumberInput value={String(inputs.charges_copro_annuelles)} onChange={v => set("charges_copro_annuelles", Number(v) || 0)} className="mt-1 h-9" /></div>
-                  <div><Label className="text-xs">Taxe foncière/an</Label><NumberInput value={String(inputs.taxe_fonciere_annuelle)} onChange={v => set("taxe_fonciere_annuelle", Number(v) || 0)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Charges copro/an {prefillNote && <SourceHint source="Moyennes ANIL/INSEE pour le type de bien et la zone" />}
+                    </Label>
+                    <NumberInput value={String(inputs.charges_copro_annuelles)} onChange={v => set("charges_copro_annuelles", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Taxe foncière/an {prefillNote && <SourceHint source="Données DGFiP / collectivités locales pour la commune" />}
+                    </Label>
+                    <NumberInput value={String(inputs.taxe_fonciere_annuelle)} onChange={v => set("taxe_fonciere_annuelle", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label className="text-xs">GLI annuelle (€)</Label><NumberInput value={String(inputs.assurance_gli)} onChange={v => set("assurance_gli", Number(v) || 0)} className="mt-1 h-9" /></div>
                   <div><Label className="text-xs">PNO annuelle (€)</Label><NumberInput value={String(inputs.assurance_pno)} onChange={v => set("assurance_pno", Number(v) || 0)} className="mt-1 h-9" /></div>
@@ -327,9 +350,20 @@ export default function Expertise() {
               <section className="space-y-3 pt-2 border-t border-border/20">
                 <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Rénovation énergétique</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Coût travaux (€)</Label><NumberInput value={String(inputs.cout_travaux)} onChange={v => set("cout_travaux", Number(v) || 0)} className="mt-1 h-9" /></div>
-                  <div><Label className="text-xs">Aides (€)</Label><NumberInput value={String(inputs.aides_renovation)} onChange={v => set("aides_renovation", Number(v) || 0)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Coût travaux (€) {prefillNote && <SourceHint source="Barèmes ADEME / Effy pour passage du DPE actuel au DPE cible" />}
+                    </Label>
+                    <NumberInput value={String(inputs.cout_travaux)} onChange={v => set("cout_travaux", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Aides (€) {prefillNote && <SourceHint source="MaPrimeRénov' + CEE, barème 2025 (ANAH / France Rénov')" />}
+                    </Label>
+                    <NumberInput value={String(inputs.aides_renovation)} onChange={v => set("aides_renovation", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label className="text-xs">Gain loyer/mois</Label><NumberInput value={String(inputs.gain_loyer_post_travaux)} onChange={v => set("gain_loyer_post_travaux", Number(v) || 0)} className="mt-1 h-9" /></div>
                   <div><Label className="text-xs">Économie charges/an</Label><NumberInput value={String(inputs.economie_charges_post_travaux)} onChange={v => set("economie_charges_post_travaux", Number(v) || 0)} className="mt-1 h-9" /></div>
@@ -372,6 +406,20 @@ export default function Expertise() {
 
           {/* === RESULTS === */}
           <div className="xl:col-span-3 space-y-4">
+            {loadingPrefill && (
+              <AnalysisLoader
+                module="Pré-remplissage IA"
+                context={inputs.adresse || undefined}
+                messages={[
+                  "Connexion aux bases DVF, ADEME et observatoires locaux…",
+                  "Estimation du loyer et du plafond légal éventuel…",
+                  "Estimation des charges, taxe foncière et coût des travaux…",
+                  "Calcul des aides MaPrimeRénov' & CEE…",
+                  "Préparation des champs pré-remplis…",
+                ]}
+                eta="15 à 40 secondes"
+              />
+            )}
             {/* KPIs principaux */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Kpi label="Rentabilité brute" value={fmtPct(results.rentabilite_brute)} />
@@ -379,6 +427,10 @@ export default function Expertise() {
               <Kpi label="Nette-nette" value={fmtPct(results.rentabilite_nette_nette)} highlight />
               <Kpi label="Cash-flow / mois" value={fmtEur(results.cash_flow_mensuel)} highlight={results.cash_flow_mensuel >= 0} negative={results.cash_flow_mensuel < 0} />
             </div>
+
+            {/* Graphiques "Effet Wow" */}
+            <ExpertiseCharts inputs={inputs} results={results} />
+
 
             {results.warnings.length > 0 && (
               <Card className="bg-amber-50 border-amber-200">
@@ -457,12 +509,29 @@ export default function Expertise() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {loadingNarrative && (
+                  <AnalysisLoader
+                    module="Rédaction du dossier d'expertise"
+                    context={inputs.adresse || undefined}
+                    messages={[
+                      "Analyse des indicateurs de rentabilité…",
+                      "Mise en perspective marché local & comparables DVF…",
+                      "Rédaction de la synthèse exécutive…",
+                      "Construction de la stratégie de valorisation…",
+                      "Mise en forme du rapport client…",
+                    ]}
+                    eta="30 à 60 secondes"
+                  />
+                )}
                 {!narrative ? (
-                  <Button className="w-full" onClick={genererRapport} disabled={loadingNarrative}>
-                    {loadingNarrative ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> L'IA rédige le dossier...</> : <><Sparkles className="h-4 w-4 mr-2" /> Générer le dossier d'expertise</>}
-                  </Button>
+                  !loadingNarrative && (
+                    <Button className="w-full" onClick={genererRapport} disabled={loadingNarrative}>
+                      <Sparkles className="h-4 w-4 mr-2" /> Générer le dossier d'expertise
+                    </Button>
+                  )
                 ) : (
                   <>
+
                     <NarrativeBlock label="Synthèse exécutive" value={narrative.synthese_executive || ""} onChange={(v) => setNarrative({ ...narrative, synthese_executive: v })} />
                     <NarrativeBlock label="Analyse du bien & marché" value={narrative.analyse_actuelle || ""} onChange={(v) => setNarrative({ ...narrative, analyse_actuelle: v })} />
                     <NarrativeBlock label="Stratégie de valorisation" value={narrative.analyse_valorisation || ""} onChange={(v) => setNarrative({ ...narrative, analyse_valorisation: v })} />
@@ -485,9 +554,20 @@ export default function Expertise() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Disclaimer légal */}
+            <Card className="bg-muted/20 border-border/30">
+              <CardContent className="py-3">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground/80">Mentions légales — </span>
+                  {DISCLAIMER_TEXT}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </TooltipProvider>
+
     </AppLayout>
   );
 }
