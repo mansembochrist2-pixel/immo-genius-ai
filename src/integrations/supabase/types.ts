@@ -349,6 +349,45 @@ export type Database = {
         }
         Relationships: []
       }
+      expertise_reports: {
+        Row: {
+          adresse: string
+          created_at: string
+          id: string
+          inputs: Json
+          narrative: Json
+          objectif_client: string | null
+          results: Json
+          type_bien: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          adresse: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          narrative?: Json
+          objectif_client?: string | null
+          results?: Json
+          type_bien?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          adresse?: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          narrative?: Json
+          objectif_client?: string | null
+          results?: Json
+          type_bien?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       opportunites: {
         Row: {
           created_at: string
