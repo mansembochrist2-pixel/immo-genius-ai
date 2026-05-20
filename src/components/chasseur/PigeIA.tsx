@@ -738,15 +738,53 @@ export const PigeIA = () => {
             <div className="rounded-2xl border border-dashed border-border bg-muted/20 py-14 text-center">
               <Bookmark className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium">Aucune annonce enregistrée</p>
-              <p className="text-xs text-muted-foreground mt-1">Cliquez sur l’icône signet d’une annonce intéressante pour la retrouver ici.</p>
+              <p className="text-xs text-muted-foreground mt-1">Cliquez sur l'icône signet d'une annonce intéressante pour la retrouver ici.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {savedAnnonces.map(renderCard)}
-            </div>
+            <>
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={savedSearch}
+                  onChange={(e) => setSavedSearch(e.target.value)}
+                  placeholder="Rechercher par titre, ville, prix, vendeur, notes…"
+                  className="pl-9 h-10 rounded-xl bg-background"
+                />
+              </div>
+              {(() => {
+                const q = savedSearch.trim().toLowerCase();
+                const filtered = q
+                  ? savedAnnonces.filter((a: any) => {
+                      const hay = [
+                        a.titre, a.ville, a.code_postal, a.adresse, a.description,
+                        a.contact_vendeur?.nom, a.contact_vendeur?.agence_nom, a.contact_vendeur?.telephone,
+                        a.notes_agent, a.type_bien, a.prix ? String(a.prix) : "",
+                        a.workflow_statut,
+                      ].filter(Boolean).join(" ").toLowerCase();
+                      return hay.includes(q);
+                    })
+                  : savedAnnonces;
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-10 text-sm text-muted-foreground">
+                      Aucune annonce ne correspond à "{savedSearch}".
+                    </div>
+                  );
+                }
+                return (
+                  <>
+                    {q && <p className="text-[11px] text-muted-foreground mb-2">{filtered.length} résultat{filtered.length > 1 ? "s" : ""} sur {savedAnnonces.length}</p>}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {filtered.map(renderCard)}
+                    </div>
+                  </>
+                );
+              })()}
+            </>
           )}
         </DialogContent>
       </Dialog>
+
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
