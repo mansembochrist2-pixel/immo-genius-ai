@@ -355,9 +355,22 @@ const Copilote = () => {
             ))}
 
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex justify-start">
-                <div className="bg-secondary rounded-2xl px-4 py-3"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div>
-              </div>
+              <AnalysisLoader
+                module="Copilote"
+                context={lang === "fr" ? "Analyse de votre contexte business" : "Analyzing your business context"}
+                messages={lang === "fr" ? [
+                  "Connexion aux données live…",
+                  "Lecture de votre agenda et prospects chauds…",
+                  "Croisement avec vos opportunités Radar…",
+                  "Construction de la réponse stratégique…",
+                ] : [
+                  "Connecting to live data…",
+                  "Reading agenda and hot prospects…",
+                  "Cross-referencing radar opportunities…",
+                  "Building strategic answer…",
+                ]}
+                compact
+              />
             )}
           </div>
 
