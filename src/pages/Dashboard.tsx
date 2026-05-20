@@ -201,12 +201,21 @@ const Dashboard = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Actions recommandées</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/copilote")}>Copilote <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={generateActions} disabled={generatingActions}>
+                {generatingActions ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                Générer
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
             {actions.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-4 text-center">Aucune action en attente.</p>
+              <div className="text-center py-6">
+                <Bot className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground italic mb-3">Aucune action en attente.</p>
+                <Button size="sm" variant="outline" className="text-xs" onClick={generateActions} disabled={generatingActions}>
+                  {generatingActions ? <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Génération…</> : <><Sparkles className="h-3 w-3 mr-1" /> Générer mes actions IA</>}
+                </Button>
+              </div>
             ) : (
               <div className="space-y-2">
                 {actions.map((a: any) => (
