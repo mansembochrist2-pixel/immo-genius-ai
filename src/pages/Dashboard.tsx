@@ -35,35 +35,17 @@ const Dashboard = () => {
   const { stats } = useBusinessData();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
-  const [editingCA, setEditingCA] = useState(false);
-  const [caInput, setCaInput] = useState("");
+  const [generatingActions, setGeneratingActions] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("objectif_ca, zone_principale").eq("id", user!.id).single();
+      const { data } = await supabase.from("profiles").select("zone_principale").eq("id", user!.id).single();
       return data;
     },
     enabled: !!user,
   });
 
-  const objectifCa = Number((profile as any)?.objectif_ca) || 0;
-
-  const updateCaMutation = useMutation({
-    mutationFn: async (value: number) => {
-      const { error } = await supabase.from("profiles").update({ objectif_ca: value } as any).eq("id", user!.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      setEditingCA(false);
-      toast.success("Objectif mis à jour");
-    },
-  });
-
-  const caMois = stats.sales.ceMois;
-  const caTotal = stats.sales.montantTotal;
-  const caProgress = objectifCa > 0 ? Math.min(100, Math.round((caMois / objectifCa) * 100)) : 0;
 
   const { data: actions = [] } = useQuery({
     queryKey: ["dashboard-actions"],
