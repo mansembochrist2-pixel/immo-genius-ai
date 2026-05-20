@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const demoOptOutKey = "estate-ai-demo-opt-out";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -53,23 +52,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const authPage = ["/login", "/signup", "/forgot-password"].includes(window.location.pathname);
-      if (!session && !authPage && localStorage.getItem(demoOptOutKey) !== "true") {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: "demo@estate-ai.app",
-          password: "DemoEstate2026!",
-        });
-        if (!error && data.session) {
-          setSession(data.session);
-          setUser(data.user);
-          ensureProfileForSession(data.session).catch(() => {});
-        }
-      } else {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session) ensureProfileForSession(session).catch(() => {});
-      }
+    // Récupère la session existante uniquement — pas d'auto-login démo
+    // (évite les conflits entre 2 comptes connectés en parallèle).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session) ensureProfileForSession(session).catch(() => {});
       setLoading(false);
     });
 
@@ -77,13 +65,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    localStorage.removeItem(demoOptOutKey);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    localStorage.removeItem(demoOptOutKey);
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -96,7 +82,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    localStorage.setItem(demoOptOutKey, "true");
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);

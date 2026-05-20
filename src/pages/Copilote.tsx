@@ -359,9 +359,23 @@ const Copilote = () => {
 
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[92%] rounded-2xl px-5 py-4 text-[15px] leading-relaxed ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                <div
+                  className={`max-w-[92%] rounded-2xl px-5 py-4 ${msg.role === "user" ? "bg-primary text-primary-foreground text-[15px] leading-relaxed" : "bg-card border border-border/50 shadow-sm"}`}
+                  style={msg.role === "assistant" ? { fontFamily: '-apple-system, "SF Pro Text", "Inter", system-ui, sans-serif' } : undefined}
+                >
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-3 prose-headings:mb-2"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                    <div className="prose prose-base max-w-none text-[15.5px] leading-7
+                      prose-p:my-3 prose-p:text-foreground
+                      prose-headings:font-semibold prose-headings:text-foreground prose-headings:mt-5 prose-headings:mb-2
+                      prose-h1:text-lg prose-h2:text-base prose-h3:text-[15px]
+                      prose-strong:text-foreground prose-strong:font-semibold
+                      prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-li:leading-7
+                      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                      prose-code:text-primary prose-code:bg-primary/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+                      prose-blockquote:border-l-primary/40 prose-blockquote:text-muted-foreground prose-blockquote:italic
+                      prose-hr:my-5 prose-hr:border-border/50">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
                   ) : msg.content}
                 </div>
               </div>
