@@ -497,7 +497,7 @@ export const RadarInner = () => {
                           {generatingPlan === opp.id ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            <><Crosshair className="h-3 w-3" /> Plan</>
+                            <><Crosshair className="h-3 w-3" /> {opp.donnees?.plan_attaque ? "Rouvrir plan" : "Plan"}</>
                           )}
                         </Button>
                       )}
