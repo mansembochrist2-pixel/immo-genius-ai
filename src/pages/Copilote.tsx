@@ -178,18 +178,18 @@ const Copilote = () => {
 
     const buildBusinessContext = () => {
       const lines = [getAIContext()];
-      if (ctxExtras?.recentClients?.length) {
-        lines.push(`\n👥 CLIENTS RÉCENTS :`);
-        ctxExtras.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
+      if (ctxExtras?.pigeTop?.length) {
+        lines.push(`\n🔖 PIGES ENREGISTRÉES PRIORITAIRES :`);
+        ctxExtras.pigeTop.slice(0, 8).forEach((p: any, i: number) => {
+          const vendeur = p.contact_vendeur?.type || "vendeur à qualifier";
+          lines.push(`  ${i + 1}. [${p.score_pigeabilite ?? "?"}/100] ${p.titre}${p.ville ? " — " + p.ville : ""} · ${vendeur}${p.prix ? " · " + Number(p.prix).toLocaleString("fr-FR") + " €" : ""}`);
+        });
       }
       if (ctxExtras?.opportunities?.length) {
         lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
         ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
-      if (agentMode && ctxExtras?.prospectIds?.length) {
-        lines.push(`\n👤 PROSPECTS (IDs) :`);
-        ctxExtras.prospectIds.forEach((p: any) => lines.push(`  • id=${p.id} | ${p.nom} (${p.statut})`));
-      }
+      lines.push(`\n⚠️ Contrainte produit : ne pas proposer d'actions liées aux anciens modules prospects/clients, ventes/CA, inbox, agenda IA ou mémoire client.`);
       return lines.join("\n");
     };
 
