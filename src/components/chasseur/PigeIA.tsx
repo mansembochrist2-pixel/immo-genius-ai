@@ -603,11 +603,38 @@ export const PigeIA = () => {
             style={{ animation: `fadeInUp 0.5s ease-out ${i * 80}ms both` }}
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{k.label}</p>
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex-1">{k.label}</p>
+                {k.info && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center transition-colors" aria-label="Explication du score">
+                        <Info className="h-2.5 w-2.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 text-xs" align="end">
+                      <p className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5 text-primary" /> Score de pigeabilité moyen
+                      </p>
+                      <p className="text-muted-foreground leading-relaxed mb-3">
+                        Calculé sur vos <span className="font-medium text-foreground">{k.info.nb} annonces {k.info.source}</span>. Le score (0-100) reflète la probabilité de transformer l'annonce en mandat selon : type de vendeur (particulier vs agence), ancienneté, baisse de prix, multi-diffusion, qualité de l'annonce, prix/m² vs marché, et tension du secteur.
+                      </p>
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex justify-between text-[11px]"><span className="text-destructive">🔥 Top (≥75)</span><span className="font-mono">{k.info.top}</span></div>
+                        <div className="flex justify-between text-[11px]"><span className="text-warning">⚡ Moyennes (50-74)</span><span className="font-mono">{k.info.moy}</span></div>
+                        <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">💡 Faibles (&lt;50)</span><span className="font-mono">{k.info.faible}</span></div>
+                      </div>
+                      <div className="pt-2 border-t border-border/40">
+                        <p className="text-[10px] uppercase tracking-wider text-success font-semibold mb-1">Comment l'améliorer ?</p>
+                        <p className="text-muted-foreground">Enregistrez prioritairement des annonces de particuliers, récentes (&lt;7j), avec baisse de prix ou multi-diffusion. Supprimez les annonces de confrères ou hors cible pour faire monter la moyenne.</p>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <k.icon className="h-3.5 w-3.5 text-primary/60 transition-transform group-hover:scale-110" />
               </div>
               <p className="text-2xl font-bold tabular-nums">{k.value}</p>
+              {k.info?.source && <p className="text-[9px] text-muted-foreground mt-1">sur {k.info.nb} {k.info.source}</p>}
             </CardContent>
           </Card>
         ))}
