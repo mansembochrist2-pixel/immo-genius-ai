@@ -118,21 +118,8 @@ const Settings = () => {
                 <div className="space-y-2"><Label>{lang === "fr" ? "Téléphone" : "Phone"}</Label><Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} /></div>
                 <div className="space-y-2"><Label>{lang === "fr" ? "Agence" : "Agency"}</Label><Input value={profileForm.agency_name} onChange={(e) => setProfileForm({ ...profileForm, agency_name: e.target.value })} /></div>
                 <div className="space-y-2"><Label>{lang === "fr" ? "Objectif CA mensuel (€)" : "Monthly revenue goal (€)"}</Label><NumberInput value={profileForm.objectif_ca} onChange={(v) => setProfileForm({ ...profileForm, objectif_ca: v })} placeholder="Ex: 50 000" /></div>
-                <div className="space-y-2"><Label>{lang === "fr" ? "Zone géographique principale" : "Main geographic zone"}</Label><Input value={profileForm.zone_principale} onChange={(e) => setProfileForm({ ...profileForm, zone_principale: e.target.value })} placeholder="Ex: Paris 11, Lyon..." /></div>
-                
-                {/* Language selector */}
-                <div className="space-y-2 pt-4 border-t border-border/30">
-                  <Label className="flex items-center gap-2"><Globe className="h-4 w-4" /> {t("settings.language")}</Label>
-                  <Select value={lang} onValueChange={(v) => setLang(v as "fr" | "en")}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
-                      <SelectItem value="en">🇬🇧 English</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
+
 
                 <Button type="submit" disabled={updateProfile.isPending}>{updateProfile.isPending ? t("settings.saving") : t("settings.save")}</Button>
               </form>
