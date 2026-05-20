@@ -54,6 +54,7 @@ const Dashboard = () => {
         .from("actions_recommandees")
         .select("id, titre, priorite, score_pertinence, type, donnees_contexte, risque_si_ignore, objectif")
         .eq("statut", "en_attente")
+        .in("source_module", ["pige_ia", "radar", "estimation_ia", "studio_ia", "copilote"])
         .order("score_pertinence", { ascending: false })
         .limit(5);
       return data ?? [];
