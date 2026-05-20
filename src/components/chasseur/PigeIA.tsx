@@ -692,15 +692,14 @@ export const PigeIA = () => {
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">{byCategory[c.key]?.length || 0}</Badge>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                      className="text-muted-foreground/70 hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center cursor-help transition-colors"
+                      className="text-muted-foreground/70 hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center cursor-pointer transition-colors"
                       aria-label={`Explication ${c.label}`}
                     >
                       <Info className="h-2.5 w-2.5" />
-                    </span>
+                    </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 text-xs leading-relaxed" align="center" onClick={(e) => e.stopPropagation()}>
                     <p className="font-semibold text-sm mb-2 flex items-center gap-1.5">
