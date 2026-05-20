@@ -258,6 +258,8 @@ Deno.serve(async (req) => {
 
 Règle critique : tu notes le COMPTE observé, pas la qualité du scraping. Si les données directes Instagram sont limitées mais que la recherche web/métadonnées donne des indices positifs (bio claire, posts visibles, positionnement, immobilier, cohérence), tu ne dois pas pénaliser mécaniquement à 30/100. Tu dois distinguer "données non observables" et "compte faible". Ne jamais inventer de chiffres précis absents ; indique "non disponible".
 
+Important : quand "Données directes plateforme" contient biography, followers, posts_count ou recent_posts, ces données sont prioritaires sur Firecrawl. Tu dois les exploiter explicitement dans la synthèse, le scoring et les recommandations.
+
 Tu DOIS répondre UNIQUEMENT en JSON strict (sans balise markdown), au format suivant :
 {
   "score_global": 0-100,
@@ -286,16 +288,19 @@ Tu DOIS répondre UNIQUEMENT en JSON strict (sans balise markdown), au format su
 Spécificités plateforme : ${platMeta.conseils}`;
 
     const userPrompt = `Audit du compte ${platMeta.name} suivant :
-URL : ${url}
+URL : ${normalizedUrl}
 Handle détecté : ${handle || "inconnu"}
 Métadonnées : ${JSON.stringify(scrapedMeta).slice(0, 1500)}
 
 Statut extraction : ${scrapeStatus}
 Liens détectés : ${scrapedLinks.slice(0, 10).join(" | ") || "non disponibles"}
 
+Données directes plateforme / API publique / HTML :
+${JSON.stringify({ directProfileData, htmlEvidence: htmlEvidence.slice(0, 3500) }).slice(0, 8500)}
+
 Contenu scrapé de la page de profil :
 """
-${scrapedMarkdown || "(scraping non disponible — base ton audit sur l'URL/handle et les bonnes pratiques générales de la plateforme pour un agent immobilier)"}
+${scrapedMarkdown || htmlEvidence || "(scraping non disponible — base ton audit sur l'URL/handle et les bonnes pratiques générales de la plateforme pour un agent immobilier)"}
 """
 
 Éléments complémentaires trouvés via recherche web :
@@ -330,7 +335,7 @@ Produis un audit complet, lucide et actionnable pour un agent immobilier qui veu
     return new Response(JSON.stringify({
       analyse,
       handle,
-      profil_data: { url, plateforme: platKey, scraped_at: new Date().toISOString(), scrape_status: scrapeStatus, meta: scrapedMeta, links: scrapedLinks, search_evidence: searchEvidence.slice(0, 8), excerpt: scrapedMarkdown.slice(0, 2000) },
+      profil_data: { url: normalizedUrl, plateforme: platKey, handle, scraped_at: new Date().toISOString(), scrape_status: scrapeStatus, direct_profile: directProfileData, meta: scrapedMeta, links: scrapedLinks, search_evidence: searchEvidence.slice(0, 8), excerpt: (scrapedMarkdown || htmlEvidence).slice(0, 2000) },
       metrics: analyse.metrics || {},
       score_global: typeof analyse.score_global === "number" ? analyse.score_global : 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
