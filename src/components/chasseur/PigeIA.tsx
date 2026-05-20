@@ -427,12 +427,31 @@ export const PigeIA = () => {
     return list;
   }, [zoneAnnonces, byCategory.top.length]);
 
+  // Score moyen : priorité aux annonces enregistrées par l'agent, sinon zone en cours.
+  const scoreBaseList = savedAnnonces.length > 0 ? savedAnnonces : zoneAnnonces;
+  const scoreMoyen = scoreBaseList.length
+    ? Math.round(scoreBaseList.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / scoreBaseList.length)
+    : null;
+  const scoreSource = savedAnnonces.length > 0 ? "enregistrées" : (activeZone ? "zone analysée" : null);
+
   const kpis = [
     { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
     { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
     { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck },
-    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(zoneAnnonces.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
-  ];
+    {
+      label: "Score moyen",
+      value: scoreMoyen !== null ? `${scoreMoyen}/100` : "—",
+      icon: TrendingUp,
+      info: scoreMoyen !== null ? {
+        source: scoreSource,
+        nb: scoreBaseList.length,
+        top: scoreBaseList.filter((a: any) => (a.score_pigeabilite || 0) >= 75).length,
+        moy: scoreBaseList.filter((a: any) => (a.score_pigeabilite || 0) >= 50 && (a.score_pigeabilite || 0) < 75).length,
+        faible: scoreBaseList.filter((a: any) => (a.score_pigeabilite || 0) < 50).length,
+      } : null,
+    },
+  ] as any[];
+
 
   const renderCard = (a: any) => {
     const photo = (a.photos as any[])?.[0];
