@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  Bot, Send, Zap, Target, TrendingUp, CalendarDays, BarChart3, Loader2,
-  Plus, MessageSquare, Pencil, Trash2, Clock, Users, Search, Check, X, HelpCircle,
+  Bot, Send, Zap, Target, TrendingUp, BarChart3,
+  Plus, MessageSquare, Pencil, Trash2, Search, Check, X, HelpCircle, BookmarkCheck, Crosshair, FileText,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,11 +53,11 @@ const Copilote = () => {
   }, []);
 
   const QUICK_ACTIONS = [
-    { label: lang === "fr" ? "Que faire aujourd'hui ?" : "What to do today?", icon: Zap, prompt: lang === "fr" ? "Analyse mes piges, opportunités Radar, prospects chauds et actions en attente. Dis-moi exactement les 3 priorités du jour pour conquérir un mandat." : "Analyze my listings, Radar opportunities, hot prospects and pending actions. Give me today's top 3 priorities." },
-    { label: lang === "fr" ? "Stratégie de pige" : "Pige strategy", icon: Target, prompt: lang === "fr" ? "Analyse mes annonces pigées avec les meilleurs scores et donne-moi un script d'appel personnalisé pour les 3 meilleures." : "Analyze my top-scoring listings and give me a tailored call script for the top 3." },
-    { label: lang === "fr" ? "Plan d'attaque zone" : "Zone attack plan", icon: TrendingUp, prompt: lang === "fr" ? "Sur la base de mes opportunités Radar, propose-moi un plan d'attaque commerciale concret pour ma zone prioritaire." : "Based on my Radar opportunities, propose a concrete commercial attack plan for my priority zone." },
-    { label: lang === "fr" ? "Coaching négociation" : "Negotiation coaching", icon: BarChart3, prompt: lang === "fr" ? "Donne-moi 5 techniques de négociation concrètes pour décrocher un mandat exclusif face à un vendeur réticent." : "Give me 5 concrete negotiation techniques to win an exclusive mandate from a reluctant seller." },
-    { label: lang === "fr" ? "Relancer prospects" : "Follow up prospects", icon: Users, prompt: lang === "fr" ? "Identifie les prospects chauds que je n'ai pas relancés et propose un plan de relance précis." : "Identify hot prospects I haven't followed up and propose a precise follow-up plan." },
+    { label: lang === "fr" ? "Priorités mandats" : "Mandate priorities", icon: Zap, prompt: lang === "fr" ? "Analyse uniquement mes piges enregistrées, leurs scores et mes opportunités Radar. Donne-moi les 3 actions prioritaires pour décrocher un mandat cette semaine." : "Analyze only my saved Pige IA listings, their scores and Radar opportunities. Give me the top 3 actions to win a mandate this week." },
+    { label: lang === "fr" ? "Top piges" : "Top listings", icon: BookmarkCheck, prompt: lang === "fr" ? "Classe mes piges enregistrées par priorité commerciale. Pour chaque bien, explique le score et l'action immédiate à faire." : "Rank my saved listings by commercial priority. For each property, explain the score and the immediate action." },
+    { label: lang === "fr" ? "Script vendeur" : "Seller script", icon: Target, prompt: lang === "fr" ? "À partir de mes meilleures piges enregistrées, prépare un script d'appel vendeur court, naturel et orienté mandat exclusif." : "Based on my best saved listings, prepare a short natural seller call script focused on exclusive mandate conversion." },
+    { label: lang === "fr" ? "Stratégie zone" : "Zone strategy", icon: Crosshair, prompt: lang === "fr" ? "Analyse mes opportunités Radar sauvegardées et propose une stratégie de prospection terrain sur la meilleure zone actuelle." : "Analyze my saved Radar opportunities and propose a field prospecting strategy for the current best zone." },
+    { label: lang === "fr" ? "Audit offre" : "Offer audit", icon: FileText, prompt: lang === "fr" ? "Aide-moi à transformer mes données Pige IA et Radar en une offre commerciale claire pour convaincre un propriétaire vendeur." : "Help me turn my Pige IA and Radar data into a clear commercial offer for a property seller." },
   ];
 
   const { data: conversations = [] } = useQuery({
@@ -80,17 +80,13 @@ const Copilote = () => {
   const { data: ctxExtras } = useQuery({
     queryKey: ["copilote-extras"],
     queryFn: async () => {
-      const [oppsRes, recentClientsRes, pigeRes, prospectsIdsRes] = await Promise.all([
-        supabase.from("opportunites").select("titre, zone, score, type, description").order("score", { ascending: false }).limit(5),
-        supabase.from("prospects").select("nom, statut, motivation, freins, budget_min, budget_max, secteur_recherche, score_ia, derniere_interaction").order("updated_at", { ascending: false }).limit(10),
-        supabase.from("annonces_pige").select("titre, ville, prix, score_pigeabilite").order("score_pigeabilite", { ascending: false }).limit(10),
-        supabase.from("prospects").select("id, nom, statut").order("updated_at", { ascending: false }).limit(20),
+      const [oppsRes, pigeRes] = await Promise.all([
+        supabase.from("opportunites").select("titre, zone, score, type, description, donnees").order("score", { ascending: false }).limit(8),
+        supabase.from("annonces_pige").select("titre, ville, prix, score_pigeabilite, contact_vendeur, signaux_marche, analyse_ia, notes_agent, saved_to_vivier").eq("saved_to_vivier", true).order("score_pigeabilite", { ascending: false }).limit(10),
       ]);
       return {
         opportunities: oppsRes.data || [],
-        recentClients: recentClientsRes.data || [],
         pigeTop: pigeRes.data || [],
-        prospectIds: prospectsIdsRes.data || [],
       };
     },
     enabled: !!user,
