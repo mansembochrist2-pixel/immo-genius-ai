@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sparkles, Loader2, Download, Save, FileText, Wand2, Info,
-  TrendingUp, Calculator, ArrowLeft, BadgeEuro, FileDown,
+  TrendingUp, Calculator, FileDown,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
