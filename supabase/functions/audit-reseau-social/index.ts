@@ -19,6 +19,125 @@ const isWeakScrape = (text: string) => {
 
 const compact = (value: unknown, max = 4000) => String(value || "").replace(/\s+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, max);
 
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+const normalizeUrl = (raw: string) => {
+  try {
+    const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    return new URL(candidate).toString();
+  } catch {
+    return raw;
+  }
+};
+
+const decodeHtml = (value: string) => value
+  .replace(/&amp;/g, "&")
+  .replace(/&quot;/g, '"')
+  .replace(/&#39;/g, "'")
+  .replace(/&lt;/g, "<")
+  .replace(/&gt;/g, ">");
+
+const extractHandleFromUrl = (raw: string, platform: string) => {
+  try {
+    const u = new URL(normalizeUrl(raw));
+    const host = u.hostname.replace(/^www\./, "");
+    const parts = u.pathname.split("/").filter(Boolean).map(p => p.replace(/^@/, ""));
+    if (platform === "instagram" && host.includes("instagram.com")) {
+      const reserved = new Set(["p", "reel", "reels", "stories", "explore", "accounts", "direct"]);
+      return parts.find(p => !reserved.has(p.toLowerCase())) || "";
+    }
+    if (platform === "tiktok" && host.includes("tiktok.com")) return parts.find(p => p) || "";
+    if (platform === "linkedin" && host.includes("linkedin.com")) return parts.slice(0, 2).join("/") || "";
+    if (platform === "facebook" && host.includes("facebook.com")) {
+      const reserved = new Set(["profile.php", "pages", "groups", "events"]);
+      return parts.find(p => !reserved.has(p.toLowerCase())) || "";
+    }
+  } catch { /* fallback below */ }
+  const fallback = raw.match(/(?:@|\/)([\w.\-]{2,40})(?:\/|\?|$)/);
+  return fallback ? fallback[1].replace(/^@/, "") : "";
+};
+
+const metaFromHtml = (html: string) => {
+  const meta: Record<string, string> = {};
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+  if (title) meta.title = decodeHtml(title.replace(/<[^>]+>/g, " ").trim());
+  const tags = html.match(/<meta\s+[^>]*>/gi) || [];
+  for (const tag of tags) {
+    const key = tag.match(/\b(?:property|name)=["']([^"']+)["']/i)?.[1]?.toLowerCase();
+    const content = tag.match(/\bcontent=["']([^"']*)["']/i)?.[1];
+    if (key && content) meta[key] = decodeHtml(content.trim());
+  }
+  return meta;
+};
+
+const fetchText = async (targetUrl: string, timeoutMs = 14000) => {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(targetUrl, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8" },
+    });
+    const text = await res.text().catch(() => "");
+    return { ok: res.ok, status: res.status, text };
+  } catch (e: any) {
+    return { ok: false, status: 0, text: "", error: e?.message || "fetch failed" };
+  } finally {
+    clearTimeout(t);
+  }
+};
+
+const fetchInstagramProfile = async (handle: string) => {
+  if (!handle) return null;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 14000);
+  try {
+    const apiUrl = `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(handle)}`;
+    const res = await fetch(apiUrl, {
+      signal: ctrl.signal,
+      headers: {
+        "User-Agent": USER_AGENT,
+        "X-IG-App-ID": "936619743392459",
+        "Accept": "application/json,text/plain,*/*",
+        "Referer": `https://www.instagram.com/${handle}/`,
+      },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { status: "error", http_status: res.status, error: json?.message || "Instagram a refusé l'accès public" };
+    const user = json?.data?.user || json?.user;
+    if (!user) return { status: "empty", http_status: res.status, error: "Profil Instagram non trouvé dans la réponse" };
+    const mediaEdges = user.edge_owner_to_timeline_media?.edges || [];
+    return {
+      status: "ok",
+      username: user.username,
+      full_name: user.full_name,
+      biography: user.biography,
+      category_name: user.category_name,
+      is_verified: Boolean(user.is_verified),
+      is_private: Boolean(user.is_private),
+      external_url: user.external_url,
+      followers: user.edge_followed_by?.count ?? user.follower_count ?? null,
+      following: user.edge_follow?.count ?? user.following_count ?? null,
+      posts_count: user.edge_owner_to_timeline_media?.count ?? user.media_count ?? null,
+      recent_posts: mediaEdges.slice(0, 9).map((edge: any) => {
+        const n = edge.node || edge;
+        return {
+          shortcode: n.shortcode,
+          caption: compact(n.edge_media_to_caption?.edges?.[0]?.node?.text || n.caption?.text || "", 700),
+          likes: n.edge_liked_by?.count ?? n.like_count ?? null,
+          comments: n.edge_media_to_comment?.count ?? n.comment_count ?? null,
+          timestamp: n.taken_at_timestamp ? new Date(n.taken_at_timestamp * 1000).toISOString() : null,
+          is_video: Boolean(n.is_video),
+        };
+      }),
+    };
+  } catch (e: any) {
+    return { status: e?.name === "AbortError" ? "timeout" : "error", error: e?.message || "Instagram profile fetch failed" };
+  } finally {
+    clearTimeout(t);
+  }
+};
+
 const firecrawlPost = async (apiKey: string, path: string, body: Record<string, unknown>, timeoutMs = 30000) => {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -44,6 +163,7 @@ Deno.serve(async (req) => {
     if (!url || !plateforme) {
       return new Response(JSON.stringify({ error: "url et plateforme requis" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const normalizedUrl = normalizeUrl(String(url).trim());
     const platKey = String(plateforme).toLowerCase();
     const platMeta = PLATFORM_HINTS[platKey];
     if (!platMeta) {
@@ -56,18 +176,35 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY manquant" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 1. Scrape la page de profil + recherche web complémentaire (Firecrawl)
+    // 1. Collecte multi-sources : API publique Instagram quand possible, HTML direct, Firecrawl scrape puis recherche web.
     let scrapedMarkdown = "";
     let scrapedMeta: any = {};
     let scrapedLinks: string[] = [];
     let searchEvidence: any[] = [];
+    let directProfileData: any = null;
+    let htmlEvidence = "";
     let scrapeStatus: "ok" | "timeout" | "skipped" | "error" = "skipped";
-    const handleMatch = url.match(/(?:@|\/)([\w.\-]{2,40})(?:\/|\?|$)/);
-    const handle = handleMatch ? handleMatch[1].replace(/^@/, "") : "";
+    const handle = extractHandleFromUrl(normalizedUrl, platKey);
+
+    if (platKey === "instagram" && handle) {
+      directProfileData = await fetchInstagramProfile(handle);
+      if (directProfileData?.status === "ok") scrapeStatus = "ok";
+    }
+
+    const htmlFetch = await fetchText(normalizedUrl);
+    if (htmlFetch.text) {
+      scrapedMeta = { ...metaFromHtml(htmlFetch.text), ...scrapedMeta };
+      htmlEvidence = compact(htmlFetch.text
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " "), 5000);
+      if (!isWeakScrape(htmlEvidence)) scrapeStatus = "ok";
+    }
+
     if (FIRECRAWL_API_KEY) {
       try {
         const profile = await firecrawlPost(FIRECRAWL_API_KEY, "scrape", {
-          url,
+          url: normalizedUrl,
           formats: ["markdown", "summary", "links", "html"],
           onlyMainContent: false,
           waitFor: 6000,
@@ -78,18 +215,19 @@ Deno.serve(async (req) => {
           const md = fcJson.markdown || fcJson.data?.markdown || fcJson.summary || fcJson.data?.summary || "";
           const htmlFallback = compact((fcJson.html || fcJson.data?.html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " "), 6000);
           scrapedMarkdown = (isWeakScrape(md) && htmlFallback ? `${md}\n\nHTML visible extrait :\n${htmlFallback}` : md).slice(0, 12000);
-          scrapedMeta = fcJson.metadata || fcJson.data?.metadata || {};
+          scrapedMeta = { ...scrapedMeta, ...(fcJson.metadata || fcJson.data?.metadata || {}) };
           scrapedLinks = (fcJson.links || fcJson.data?.links || []).slice(0, 25);
-          scrapeStatus = isWeakScrape(scrapedMarkdown) ? "error" : "ok";
+          if (!isWeakScrape(scrapedMarkdown)) scrapeStatus = "ok";
         } else {
-          scrapeStatus = "error";
+          if (scrapeStatus !== "ok") scrapeStatus = "error";
         }
 
-        if (handle && isWeakScrape(scrapedMarkdown)) {
+        if (handle && (scrapeStatus !== "ok" || isWeakScrape(scrapedMarkdown))) {
           const queries = [
-            `site:instagram.com/${handle} ${handle}`,
-            `"${handle}" Instagram agent immobilier`,
-            `"${handle}" immobilier`,
+            `site:${platKey === "instagram" ? "instagram.com" : platKey + ".com"} ${handle}`,
+            `"${handle}" "${platMeta.name}" immobilier`,
+            `"${handle}" agent immobilier`,
+            `"${handle}" real estate`,
           ];
           for (const query of queries) {
             const s = await firecrawlPost(FIRECRAWL_API_KEY, "search", {
@@ -120,6 +258,8 @@ Deno.serve(async (req) => {
 
 Règle critique : tu notes le COMPTE observé, pas la qualité du scraping. Si les données directes Instagram sont limitées mais que la recherche web/métadonnées donne des indices positifs (bio claire, posts visibles, positionnement, immobilier, cohérence), tu ne dois pas pénaliser mécaniquement à 30/100. Tu dois distinguer "données non observables" et "compte faible". Ne jamais inventer de chiffres précis absents ; indique "non disponible".
 
+Important : quand "Données directes plateforme" contient biography, followers, posts_count ou recent_posts, ces données sont prioritaires sur Firecrawl. Tu dois les exploiter explicitement dans la synthèse, le scoring et les recommandations.
+
 Tu DOIS répondre UNIQUEMENT en JSON strict (sans balise markdown), au format suivant :
 {
   "score_global": 0-100,
@@ -148,16 +288,19 @@ Tu DOIS répondre UNIQUEMENT en JSON strict (sans balise markdown), au format su
 Spécificités plateforme : ${platMeta.conseils}`;
 
     const userPrompt = `Audit du compte ${platMeta.name} suivant :
-URL : ${url}
+URL : ${normalizedUrl}
 Handle détecté : ${handle || "inconnu"}
 Métadonnées : ${JSON.stringify(scrapedMeta).slice(0, 1500)}
 
 Statut extraction : ${scrapeStatus}
 Liens détectés : ${scrapedLinks.slice(0, 10).join(" | ") || "non disponibles"}
 
+Données directes plateforme / API publique / HTML :
+${JSON.stringify({ directProfileData, htmlEvidence: htmlEvidence.slice(0, 3500) }).slice(0, 8500)}
+
 Contenu scrapé de la page de profil :
 """
-${scrapedMarkdown || "(scraping non disponible — base ton audit sur l'URL/handle et les bonnes pratiques générales de la plateforme pour un agent immobilier)"}
+${scrapedMarkdown || htmlEvidence || "(scraping non disponible — base ton audit sur l'URL/handle et les bonnes pratiques générales de la plateforme pour un agent immobilier)"}
 """
 
 Éléments complémentaires trouvés via recherche web :
@@ -192,7 +335,7 @@ Produis un audit complet, lucide et actionnable pour un agent immobilier qui veu
     return new Response(JSON.stringify({
       analyse,
       handle,
-      profil_data: { url, plateforme: platKey, scraped_at: new Date().toISOString(), scrape_status: scrapeStatus, meta: scrapedMeta, links: scrapedLinks, search_evidence: searchEvidence.slice(0, 8), excerpt: scrapedMarkdown.slice(0, 2000) },
+      profil_data: { url: normalizedUrl, plateforme: platKey, handle, scraped_at: new Date().toISOString(), scrape_status: scrapeStatus, direct_profile: directProfileData, meta: scrapedMeta, links: scrapedLinks, search_evidence: searchEvidence.slice(0, 8), excerpt: (scrapedMarkdown || htmlEvidence).slice(0, 2000) },
       metrics: analyse.metrics || {},
       score_global: typeof analyse.score_global === "number" ? analyse.score_global : 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
