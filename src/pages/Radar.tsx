@@ -178,25 +178,79 @@ export const RadarInner = () => {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Zones analysées", value: String(totalOpps), icon: MapPin, info: undefined as string | undefined },
-          { label: "Score moyen", value: `${avgScore}/100`, icon: Target, info: "Moyenne pondérée des scores de toutes les zones analysées. Calculé à partir de : prix au m² DVF (30%), liquidité du marché / délai de vente (25%), tendance 12 mois (20%), volume de transactions (15%), dispersion des prix (10%). Source : DVF data.gouv.fr (Etalab). Fiabilité : élevée si > 20 transactions sur 12 mois, moyenne sinon." },
-          { label: "Opportunités", value: String(nbOpportunites), icon: TrendingUp, color: "text-success", info: undefined as string | undefined },
-          { label: "Risques", value: String(nbRisques), icon: AlertTriangle, color: "text-destructive", info: undefined as string | undefined },
-        ].map((kpi: any) => (
-          <Card key={kpi.label} className="bg-card/60 border-border/30">
+          {
+            label: "Zones analysées", value: String(totalOpps), icon: MapPin,
+            info: {
+              titre: "Zones analysées",
+              corps: "Nombre total de zones que vous avez analysées via Radar Prospection. Chaque analyse est sauvegardée et reste consultable.",
+            },
+          },
+          {
+            label: "Score moyen", value: `${avgScore}/100`, icon: Target,
+            info: {
+              titre: "Comment est calculé ce score ?",
+              corps: "Moyenne pondérée des scores de toutes vos zones (opportunités + risques).\n\nCritères analysés par l'IA à partir des données DVF officielles :\n• Prix au m² réels (30%)\n• Liquidité du marché / délai de vente (25%)\n• Tendance 12 mois (20%)\n• Volume de transactions (15%)\n• Dispersion des prix (10%)\n\nFiabilité : élevée si > 20 transactions sur 12 mois.\nSource : DVF data.gouv.fr (Etalab).",
+              ameliorer: "Analysez davantage de zones porteuses (centre-ville, secteurs tendus) pour faire monter la moyenne, et supprimez les zones de test.",
+            },
+          },
+          {
+            label: "Opportunités", value: String(nbOpportunites), icon: TrendingUp, color: "text-success",
+            info: {
+              titre: "Opportunités détectées",
+              corps: "Zones classées 'opportunité' par l'IA : marché favorable côté vendeurs, prix accessibles, tension acheteurs ou signaux de mandats à conquérir.",
+            },
+          },
+          {
+            label: "Risques", value: String(nbRisques), icon: AlertTriangle, color: "text-destructive",
+            info: {
+              titre: "Zones à risque",
+              corps: "Zones classées 'risque' : prix surévalués, liquidité faible, baisse de tendance ou forte concurrence agence.",
+            },
+          },
+        ].map((kpi: any, i) => (
+          <Card
+            key={kpi.label}
+            className="bg-card/60 border-border/30 transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 duration-300"
+            style={{ animation: `fadeInUpR 0.5s ease-out ${i * 80}ms both` }}
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
-                <kpi.icon className={`h-4 w-4 ${kpi.color || "text-primary"}`} />
+                <kpi.icon className={`h-4 w-4 ${kpi.color || "text-primary"} transition-transform hover:scale-110`} />
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex-1">{kpi.label}</p>
                 {kpi.info && (
-                  <span title={kpi.info} className="cursor-help text-muted-foreground hover:text-primary text-[10px] border border-border rounded-full w-4 h-4 inline-flex items-center justify-center">i</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center transition-colors"
+                        aria-label="Plus d'informations"
+                      >
+                        <Info className="h-2.5 w-2.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 text-xs" align="end">
+                      <p className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5 text-primary" /> {kpi.info.titre}
+                      </p>
+                      <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{kpi.info.corps}</p>
+                      {kpi.info.ameliorer && (
+                        <div className="mt-3 pt-3 border-t border-border/40">
+                          <p className="text-[10px] uppercase tracking-wider text-success font-semibold mb-1">Comment améliorer ?</p>
+                          <p className="text-muted-foreground">{kpi.info.ameliorer}</p>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
-              <p className="text-xl font-bold">{kpi.value}</p>
+              <p className="text-xl font-bold tabular-nums">{kpi.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
+      <style>{`@keyframes fadeInUpR { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+
 
       {/* Analyse de zone */}
       <Card className="mb-6 bg-card/60 border-border/30">
