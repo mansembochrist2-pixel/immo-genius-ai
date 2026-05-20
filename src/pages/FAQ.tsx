@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { HelpCircle, Search, BookOpen, Shield, Sparkles, Mail, CalendarDays, Users, FileEdit, TrendingUp, Radar, Bot, LayoutDashboard, Zap } from "lucide-react";
+import { HelpCircle, Search, BookOpen, Shield, Sparkles, FileEdit, TrendingUp, Radar, Bot, LayoutDashboard, Zap } from "lucide-react";
 
 interface FAQItem { q: string; a: string; tags: string[]; }
 interface FAQCategory { id: string; label: string; icon: any; items: FAQItem[]; }
