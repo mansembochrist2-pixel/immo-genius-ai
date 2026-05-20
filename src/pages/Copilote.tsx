@@ -53,11 +53,11 @@ const Copilote = () => {
   }, []);
 
   const QUICK_ACTIONS = [
-    { label: lang === "fr" ? "Que faire aujourd'hui ?" : "What to do today?", icon: CalendarDays, prompt: lang === "fr" ? "Analyse mon agenda, mes messages non lus, mes prospects chauds et mes actions en attente. Dis-moi exactement ce que je dois faire aujourd'hui pour maximiser mon business." : "Analyze my agenda, unread messages, hot prospects and pending actions. Tell me exactly what I should do today." },
-    { label: lang === "fr" ? "Préparer mon RDV" : "Prepare my meeting", icon: Target, prompt: lang === "fr" ? "Aide-moi à préparer mon prochain rendez-vous client." : "Help me prepare for my next client meeting." },
-    { label: lang === "fr" ? "Analyser mon portefeuille" : "Analyze portfolio", icon: BarChart3, prompt: lang === "fr" ? "Analyse mon portefeuille clients et donne-moi des recommandations." : "Analyze my client portfolio and give recommendations." },
-    { label: lang === "fr" ? "Coaching vente" : "Sales coaching", icon: TrendingUp, prompt: lang === "fr" ? "Donne-moi des conseils concrets pour améliorer mes performances de vente." : "Give me concrete tips to improve my sales performance." },
-    { label: lang === "fr" ? "Relancer mes prospects" : "Follow up prospects", icon: Users, prompt: lang === "fr" ? "Identifie les prospects chauds que je n'ai pas relancés et propose un plan de relance." : "Identify hot prospects I haven't followed up and propose a plan." },
+    { label: lang === "fr" ? "Que faire aujourd'hui ?" : "What to do today?", icon: Zap, prompt: lang === "fr" ? "Analyse mes piges, opportunités Radar, prospects chauds et actions en attente. Dis-moi exactement les 3 priorités du jour pour conquérir un mandat." : "Analyze my listings, Radar opportunities, hot prospects and pending actions. Give me today's top 3 priorities." },
+    { label: lang === "fr" ? "Stratégie de pige" : "Pige strategy", icon: Target, prompt: lang === "fr" ? "Analyse mes annonces pigées avec les meilleurs scores et donne-moi un script d'appel personnalisé pour les 3 meilleures." : "Analyze my top-scoring listings and give me a tailored call script for the top 3." },
+    { label: lang === "fr" ? "Plan d'attaque zone" : "Zone attack plan", icon: TrendingUp, prompt: lang === "fr" ? "Sur la base de mes opportunités Radar, propose-moi un plan d'attaque commerciale concret pour ma zone prioritaire." : "Based on my Radar opportunities, propose a concrete commercial attack plan for my priority zone." },
+    { label: lang === "fr" ? "Coaching négociation" : "Negotiation coaching", icon: BarChart3, prompt: lang === "fr" ? "Donne-moi 5 techniques de négociation concrètes pour décrocher un mandat exclusif face à un vendeur réticent." : "Give me 5 concrete negotiation techniques to win an exclusive mandate from a reluctant seller." },
+    { label: lang === "fr" ? "Relancer prospects" : "Follow up prospects", icon: Users, prompt: lang === "fr" ? "Identifie les prospects chauds que je n'ai pas relancés et propose un plan de relance précis." : "Identify hot prospects I haven't followed up and propose a precise follow-up plan." },
   ];
 
   const { data: conversations = [] } = useQuery({
