@@ -406,6 +406,20 @@ export default function Expertise() {
 
           {/* === RESULTS === */}
           <div className="xl:col-span-3 space-y-4">
+            {loadingPrefill && (
+              <AnalysisLoader
+                module="Pré-remplissage IA"
+                context={inputs.adresse || undefined}
+                messages={[
+                  "Connexion aux bases DVF, ADEME et observatoires locaux…",
+                  "Estimation du loyer et du plafond légal éventuel…",
+                  "Estimation des charges, taxe foncière et coût des travaux…",
+                  "Calcul des aides MaPrimeRénov' & CEE…",
+                  "Préparation des champs pré-remplis…",
+                ]}
+                eta="15 à 40 secondes"
+              />
+            )}
             {/* KPIs principaux */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Kpi label="Rentabilité brute" value={fmtPct(results.rentabilite_brute)} />
@@ -413,6 +427,10 @@ export default function Expertise() {
               <Kpi label="Nette-nette" value={fmtPct(results.rentabilite_nette_nette)} highlight />
               <Kpi label="Cash-flow / mois" value={fmtEur(results.cash_flow_mensuel)} highlight={results.cash_flow_mensuel >= 0} negative={results.cash_flow_mensuel < 0} />
             </div>
+
+            {/* Graphiques "Effet Wow" */}
+            <ExpertiseCharts inputs={inputs} results={results} />
+
 
             {results.warnings.length > 0 && (
               <Card className="bg-amber-50 border-amber-200">
