@@ -350,9 +350,20 @@ export default function Expertise() {
               <section className="space-y-3 pt-2 border-t border-border/20">
                 <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Rénovation énergétique</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Coût travaux (€)</Label><NumberInput value={String(inputs.cout_travaux)} onChange={v => set("cout_travaux", Number(v) || 0)} className="mt-1 h-9" /></div>
-                  <div><Label className="text-xs">Aides (€)</Label><NumberInput value={String(inputs.aides_renovation)} onChange={v => set("aides_renovation", Number(v) || 0)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Coût travaux (€) {prefillNote && <SourceHint source="Barèmes ADEME / Effy pour passage du DPE actuel au DPE cible" />}
+                    </Label>
+                    <NumberInput value={String(inputs.cout_travaux)} onChange={v => set("cout_travaux", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Aides (€) {prefillNote && <SourceHint source="MaPrimeRénov' + CEE, barème 2025 (ANAH / France Rénov')" />}
+                    </Label>
+                    <NumberInput value={String(inputs.aides_renovation)} onChange={v => set("aides_renovation", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label className="text-xs">Gain loyer/mois</Label><NumberInput value={String(inputs.gain_loyer_post_travaux)} onChange={v => set("gain_loyer_post_travaux", Number(v) || 0)} className="mt-1 h-9" /></div>
                   <div><Label className="text-xs">Économie charges/an</Label><NumberInput value={String(inputs.economie_charges_post_travaux)} onChange={v => set("economie_charges_post_travaux", Number(v) || 0)} className="mt-1 h-9" /></div>
