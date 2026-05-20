@@ -42,7 +42,6 @@ const Settings = () => {
         phone: profile.phone || "",
         agency_name: profile.agency_name || "",
         objectif_ca: profile.objectif_ca?.toString() || "",
-        zone_principale: profile.zone_principale || "",
       });
     }
   }, [profile]);
@@ -57,7 +56,6 @@ const Settings = () => {
         phone: profileForm.phone,
         agency_name: profileForm.agency_name,
         objectif_ca: profileForm.objectif_ca ? Number(profileForm.objectif_ca) : 0,
-        zone_principale: profileForm.zone_principale || null,
       }).eq("id", user!.id);
       if (error) throw error;
     },
