@@ -380,7 +380,6 @@ const EstimationIA = () => {
                 toast.success(lang === "fr" ? "Estimation envoyée vers Documents" : "Estimation sent to Documents");
                 navigate("/documents");
               }}><Wand2 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</Button>
-              <Button variant="outline" onClick={sauvegarderEstimation}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
             </div>
           </div>
         ) : (
