@@ -26,6 +26,10 @@ import {
   ExpertiseResults,
 } from "@/lib/expertise-calc";
 import { exportExpertisePDF, exportExpertiseDocx, NarrativeReport } from "@/lib/expertise-export";
+import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
+import { SourceHint, DISCLAIMER_TEXT } from "@/components/valorisation/SourceHint";
+import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 const fmtEur = (n?: number) =>
   n == null || isNaN(n) ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`;
