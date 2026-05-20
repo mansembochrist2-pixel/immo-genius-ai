@@ -333,6 +333,9 @@ export const AuditReseaux = () => {
 const AuditDetails = ({ audit }: { audit: any }) => {
   const a = audit.analyse_ia || {};
   const breakdown = a.score_breakdown || {};
+  const collected = audit.profil_data || {};
+  const direct = collected.direct_profile || {};
+  const recentPosts = Array.isArray(direct.recent_posts) ? direct.recent_posts.filter((p: any) => p?.caption || p?.likes != null || p?.comments != null) : [];
   return (
     <Card className="rounded-2xl border-border/50">
       <CardHeader className="pb-3">
@@ -357,6 +360,34 @@ const AuditDetails = ({ audit }: { audit: any }) => {
             <p className="text-sm leading-relaxed">{a.synthese}</p>
           </div>
         )}
+
+        <div className="rounded-xl border border-border/30 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Données réellement collectées</p>
+            <Badge variant="outline" className="text-[10px]">{collected.scrape_status === "ok" ? "Profil lu" : "Lecture partielle"}</Badge>
+          </div>
+          {direct?.status === "ok" ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div><p className="text-muted-foreground">Abonnés</p><p className="font-medium">{direct.followers?.toLocaleString?.("fr-FR") || "n/d"}</p></div>
+                <div><p className="text-muted-foreground">Posts</p><p className="font-medium">{direct.posts_count?.toLocaleString?.("fr-FR") || "n/d"}</p></div>
+                <div><p className="text-muted-foreground">Catégorie</p><p className="font-medium truncate">{direct.category_name || "n/d"}</p></div>
+                <div><p className="text-muted-foreground">Vérifié</p><p className="font-medium">{direct.is_verified ? "Oui" : "Non"}</p></div>
+              </div>
+              {direct.biography && <p className="text-xs leading-relaxed"><span className="text-muted-foreground">Bio : </span>{direct.biography}</p>}
+              {recentPosts.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium">Publications récentes détectées</p>
+                  {recentPosts.slice(0, 3).map((post: any, i: number) => (
+                    <p key={i} className="text-[11px] text-muted-foreground leading-relaxed truncate">• {post.caption || `${post.likes ?? "n/d"} likes · ${post.comments ?? "n/d"} commentaires`}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground leading-relaxed">La plateforme limite l'accès public direct. L'audit utilise alors les métadonnées, Firecrawl et la recherche web complémentaire, sans inventer les métriques absentes.</p>
+          )}
+        </div>
 
         {/* Breakdown */}
         {Object.keys(breakdown).length > 0 && (
