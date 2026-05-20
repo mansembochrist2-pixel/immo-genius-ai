@@ -531,22 +531,6 @@ export const RadarInner = () => {
                       >
                         <Bot className="h-3 w-3" /> Copilote
                       </Button>
-                      {!isRisque && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-7 gap-1"
-                          disabled={generatingPlan === opp.id}
-                          onClick={() => openOrGeneratePlan(opp)}
-                          title={opp.donnees?.plan_attaque ? "Rouvrir le plan d'attaque déjà généré (sans nouvel appel IA)" : "Génère et sauvegarde un plan d'attaque détaillé."}
-                        >
-                          {generatingPlan === opp.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <><Crosshair className="h-3 w-3" /> {opp.donnees?.plan_attaque ? "Rouvrir plan" : "Plan"}</>
-                          )}
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
