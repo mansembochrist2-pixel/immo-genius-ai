@@ -257,8 +257,6 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Performance KPIs */}
-      <PerformanceWidget />
     </AppLayout>
   );
 };
