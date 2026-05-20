@@ -138,6 +138,79 @@ const fetchInstagramProfile = async (handle: string) => {
   }
 };
 
+const fetchTikTokProfile = async (handle: string) => {
+  if (!handle) return null;
+  const clean = handle.replace(/^@/, "");
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 14000);
+  try {
+    const res = await fetch(`https://www.tiktok.com/@${encodeURIComponent(clean)}`, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8" },
+    });
+    const html = await res.text().catch(() => "");
+    if (!html) return { status: "error", platform: "tiktok", http_status: res.status, error: "Réponse TikTok vide" };
+    const m = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+    if (!m) return { status: "empty", platform: "tiktok", http_status: res.status, error: "Données TikTok introuvables" };
+    let data: any = {};
+    try { data = JSON.parse(m[1]); } catch { return { status: "error", platform: "tiktok", error: "Parsing TikTok échoué" }; }
+    const userDetail = data?.__DEFAULT_SCOPE__?.["webapp.user-detail"];
+    const user = userDetail?.userInfo?.user;
+    const stats = userDetail?.userInfo?.stats || userDetail?.userInfo?.statsV2;
+    if (!user) return { status: "empty", platform: "tiktok", error: "Profil TikTok introuvable" };
+    const itemList = data?.__DEFAULT_SCOPE__?.["webapp.user-post"]?.itemList || [];
+    return {
+      status: "ok",
+      platform: "tiktok",
+      username: user.uniqueId,
+      full_name: user.nickname,
+      biography: user.signature,
+      is_verified: Boolean(user.verified),
+      is_private: Boolean(user.privateAccount),
+      followers: Number(stats?.followerCount ?? 0) || null,
+      following: Number(stats?.followingCount ?? 0) || null,
+      posts_count: Number(stats?.videoCount ?? 0) || null,
+      total_likes: Number(stats?.heartCount ?? stats?.heart ?? 0) || null,
+      recent_posts: itemList.slice(0, 9).map((it: any) => ({
+        id: it.id,
+        caption: compact(it.desc, 500),
+        likes: it.stats?.diggCount ?? null,
+        comments: it.stats?.commentCount ?? null,
+        shares: it.stats?.shareCount ?? null,
+        plays: it.stats?.playCount ?? null,
+        timestamp: it.createTime ? new Date(it.createTime * 1000).toISOString() : null,
+      })),
+    };
+  } catch (e: any) {
+    return { status: e?.name === "AbortError" ? "timeout" : "error", platform: "tiktok", error: e?.message || "TikTok fetch failed" };
+  } finally {
+    clearTimeout(t);
+  }
+};
+
+const fetchOpenGraphProfile = async (targetUrl: string, platform: string) => {
+  const res = await fetchText(targetUrl, 14000);
+  if (!res.text) return { status: "error", platform, error: res.error || "Pas de HTML" };
+  const meta = metaFromHtml(res.text);
+  const text = res.text
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ");
+  const followersMatch = text.match(/([\d][\d\s.,kKmM]*)\s*(abonnés?|followers|j['']aime|likes|mentions j['']aime|relations)/i);
+  return {
+    status: (meta?.["og:title"] || meta?.title) ? "ok" : "partial",
+    platform,
+    http_status: res.status,
+    full_name: meta?.["og:title"] || meta?.title || null,
+    biography: meta?.["og:description"] || meta?.description || null,
+    image: meta?.["og:image"] || null,
+    external_url: meta?.["og:url"] || targetUrl,
+    followers_text: followersMatch?.[0]?.trim() || null,
+    html_excerpt: compact(text, 3500),
+  };
+};
+
 const firecrawlPost = async (apiKey: string, path: string, body: Record<string, unknown>, timeoutMs = 30000) => {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -189,6 +262,12 @@ Deno.serve(async (req) => {
     if (platKey === "instagram" && handle) {
       directProfileData = await fetchInstagramProfile(handle);
       if (directProfileData?.status === "ok") scrapeStatus = "ok";
+    } else if (platKey === "tiktok" && handle) {
+      directProfileData = await fetchTikTokProfile(handle);
+      if (directProfileData?.status === "ok") scrapeStatus = "ok";
+    } else if ((platKey === "facebook" || platKey === "linkedin") && handle) {
+      directProfileData = await fetchOpenGraphProfile(normalizedUrl, platKey);
+      if (directProfileData?.status === "ok") scrapeStatus = "ok";
     }
 
     const htmlFetch = await fetchText(normalizedUrl);
@@ -223,8 +302,9 @@ Deno.serve(async (req) => {
         }
 
         if (handle && (scrapeStatus !== "ok" || isWeakScrape(scrapedMarkdown))) {
+          const domainMap: Record<string, string> = { instagram: "instagram.com", facebook: "facebook.com", tiktok: "tiktok.com", linkedin: "linkedin.com" };
           const queries = [
-            `site:${platKey === "instagram" ? "instagram.com" : platKey + ".com"} ${handle}`,
+            `site:${domainMap[platKey] || platKey + ".com"} ${handle}`,
             `"${handle}" "${platMeta.name}" immobilier`,
             `"${handle}" agent immobilier`,
             `"${handle}" real estate`,
