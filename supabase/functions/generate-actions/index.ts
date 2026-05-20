@@ -5,22 +5,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Tu es le moteur décisionnel d'un copilote immobilier stratégique. Tu analyses les données multi-modules (clients, messages, opportunités, ventes) pour générer des ACTIONS RECOMMANDÉES précises et actionnables.
+const SYSTEM_PROMPT = `Tu es le moteur décisionnel d'un copilote immobilier stratégique centré sur la conquête de mandats. Tu analyses UNIQUEMENT les modules actuels : Pige IA, Radar Prospection, Estimation IA, Studio IA et Copilote.
+
+Modules retirés et INTERDITS dans tes réponses : anciens clients/prospects CRM, inbox IA, agenda IA, mémoire client, ventes/CA, relances prospects génériques.
 
 Pour chaque action, fournis un JSON strict :
 {
   "actions": [
     {
-      "type": "relance" | "rdv" | "negociation" | "alerte_risque" | "opportunite" | "suivi",
+      "type": "pige" | "radar" | "estimation" | "studio" | "negociation" | "opportunite" | "suivi",
       "titre": "Titre court et actionnable",
       "objectif": "Ce que l'agent doit accomplir",
       "action_attendue": "L'action concrète à réaliser",
       "risque_si_ignore": "Conséquence business si non traité",
       "priorite": "critique" | "haute" | "moyenne" | "basse",
       "score_pertinence": 0-100,
-      "client_nom": "Nom du client lié (si applicable)",
+      "bien_ou_zone": "Annonce, bien ou zone lié(e) si applicable",
       "date_suggeree_delai_heures": nombre d'heures avant action recommandée,
-      "source_module": "inbox" | "clients" | "radar" | "ventes"
+      "source_module": "pige_ia" | "radar" | "estimation_ia" | "studio_ia" | "copilote"
     }
   ]
 }
@@ -29,7 +31,8 @@ Règles :
 - Maximum 8 actions, minimum 2
 - Priorise par impact business réel
 - Score >= 80 = action critique
-- Détecte : relances manquées (>48h sans réponse), RDV implicites, engagements flous, risques commerciaux, prospects inactifs
+- Détecte : top piges à traiter, vendeurs particuliers à qualifier, annonces avec baisse de prix/multi-diffusion, zones Radar porteuses, risques de marché, contenus ou estimations à préparer
+- Ne jamais écrire "relancer le client" ou "prospect chaud" sans donnée explicite issue de Pige IA/Radar
 - Sois concret et spécifique, pas générique
 - Ne crée que des actions à fort impact
 - Réponds UNIQUEMENT en JSON valide`;
