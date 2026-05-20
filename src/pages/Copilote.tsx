@@ -31,6 +31,7 @@ const Copilote = () => {
   const { lang } = useLanguage();
   const { stats, getAIContext } = useBusinessData();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
