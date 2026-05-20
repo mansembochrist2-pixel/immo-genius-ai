@@ -315,6 +315,19 @@ const Copilote = () => {
               ))}
             </CardContent>
           </Card>
+
+          {/* Aide / FAQ */}
+          <Card className="bg-card border-border rounded-2xl shadow-sm">
+            <CardContent className="p-4">
+              <Button variant="outline" size="sm" className="w-full justify-start text-xs gap-2 h-9" onClick={() => navigate("/faq")}>
+                <HelpCircle className="h-3.5 w-3.5 text-primary" />
+                {lang === "fr" ? "Centre d'aide & FAQ" : "Help center & FAQ"}
+              </Button>
+              <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                {lang === "fr" ? "Plus de 40 réponses détaillées sur tous les modules." : "40+ detailed answers across all modules."}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Chat */}
