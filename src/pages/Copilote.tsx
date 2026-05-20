@@ -369,7 +369,7 @@ const Copilote = () => {
                   "Cross-referencing radar opportunities…",
                   "Building strategic answer…",
                 ]}
-                compact
+                inline
               />
             )}
           </div>
