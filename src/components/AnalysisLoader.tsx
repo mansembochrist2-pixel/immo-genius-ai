@@ -33,7 +33,7 @@ export const AnalysisLoader = ({
   module,
   context,
   messages = DEFAULT_MESSAGES,
-  eta = "10 à 30 secondes",
+  eta = "30 à 90 secondes selon la charge",
   inline = false,
 }: Props) => {
   const [idx, setIdx] = useState(0);
