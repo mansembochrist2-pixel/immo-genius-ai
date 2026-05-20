@@ -262,6 +262,12 @@ Deno.serve(async (req) => {
     if (platKey === "instagram" && handle) {
       directProfileData = await fetchInstagramProfile(handle);
       if (directProfileData?.status === "ok") scrapeStatus = "ok";
+    } else if (platKey === "tiktok" && handle) {
+      directProfileData = await fetchTikTokProfile(handle);
+      if (directProfileData?.status === "ok") scrapeStatus = "ok";
+    } else if ((platKey === "facebook" || platKey === "linkedin") && handle) {
+      directProfileData = await fetchOpenGraphProfile(normalizedUrl, platKey);
+      if (directProfileData?.status === "ok") scrapeStatus = "ok";
     }
 
     const htmlFetch = await fetchText(normalizedUrl);
