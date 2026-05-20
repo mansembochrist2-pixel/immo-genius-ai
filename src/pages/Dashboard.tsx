@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useBusinessData } from "@/contexts/BusinessContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PerformanceWidget } from "@/components/dashboard/PerformanceWidget";
 
 const InfoTip = ({ children }: { children: React.ReactNode }) => (
   <TooltipProvider delayDuration={150}>
