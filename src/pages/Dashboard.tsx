@@ -252,7 +252,7 @@ const Dashboard = () => {
         <Card className="bg-card border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> Top pige IA</CardTitle>
+              <CardTitle className="text-sm flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> Top piges enregistrées</CardTitle>
               <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/chasseur?tab=pige")}>Toutes <ArrowRight className="h-3 w-3 ml-1" /></Button>
             </div>
           </CardHeader>
@@ -260,16 +260,20 @@ const Dashboard = () => {
             {topPige.length === 0 ? (
               <div className="text-center py-6">
                 <Phone className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground italic">Aucune annonce pigée pour l'instant.</p>
-                <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => navigate("/chasseur?tab=pige")}>Lancer ma première pige</Button>
+                <p className="text-xs text-muted-foreground italic">Aucune pige enregistrée pour l'instant.</p>
+                <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => navigate("/chasseur?tab=pige")}>Ouvrir Pige IA</Button>
               </div>
             ) : (
               <div className="space-y-2">
-                {topPige.map((p: any) => (
+                {topPige.map((p: any, index: number) => (
                   <div key={p.id} className="flex items-center justify-between bg-secondary/50 rounded-xl p-3 cursor-pointer hover:bg-secondary" onClick={() => navigate("/chasseur?tab=pige")}>
+                    <Badge variant="outline" className="mr-2 h-6 w-6 p-0 justify-center shrink-0 text-[10px]">{index + 1}</Badge>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium truncate">{p.titre}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{p.ville || "—"} {p.prix ? `· ${Number(p.prix).toLocaleString("fr-FR")} €` : ""}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">
+                        {index === 0 ? "Priorité immédiate : meilleur potentiel de mandat." : "Priorité classée par score de pigeabilité enregistré."}
+                      </p>
                     </div>
                     <Badge className={`text-[10px] shrink-0 ${(p.score_pigeabilite || 0) >= 75 ? "bg-success/15 text-success border-success/30" : (p.score_pigeabilite || 0) >= 50 ? "bg-warning/15 text-warning border-warning/30" : "bg-muted text-muted-foreground"}`}>
                       {p.score_pigeabilite || 0}/100
