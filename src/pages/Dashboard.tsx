@@ -60,17 +60,23 @@ const Dashboard = () => {
     },
   });
 
-  const { data: topPige = [] } = useQuery({
+  const { data: savedPige = [] } = useQuery({
     queryKey: ["dashboard-pige"],
     queryFn: async () => {
       const { data } = await supabase
         .from("annonces_pige")
-        .select("id, titre, ville, prix, score_pigeabilite")
+        .select("id, titre, ville, prix, score_pigeabilite, contact_vendeur, signaux_marche, analyse_ia, saved_to_vivier")
+        .eq("saved_to_vivier", true)
         .order("score_pigeabilite", { ascending: false })
-        .limit(5);
+        .limit(10);
       return data ?? [];
     },
   });
+
+  const savedCount = savedPige.length;
+  const savedAverageScore = savedCount ? Math.round(savedPige.reduce((sum: number, p: any) => sum + (Number(p.score_pigeabilite) || 0), 0) / savedCount) : 0;
+  const savedTopScore = savedCount ? Math.max(...savedPige.map((p: any) => Number(p.score_pigeabilite) || 0)) : 0;
+  const topPige = savedPige.slice(0, 5);
 
   const actionMutation = useMutation({
     mutationFn: async ({ id, statut }: { id: string; statut: string }) => {
@@ -88,16 +94,17 @@ const Dashboard = () => {
     setGeneratingActions(true);
     try {
       const businessContext = [
-        `Pige IA : ${stats.pige.total} annonces (top ${stats.pige.topScore}/100, ${stats.pige.nouvelles} nouvelles en 24h, score moyen ${stats.pige.scoreMoyen}/100)`,
-        `Opportunités Radar : ${stats.opportunites.total} (top ${stats.opportunites.topScore}/100)`,
-        `Prospects actifs : ${stats.prospects.actifs} (chauds ${stats.prospects.chauds})`,
-        `Ventes : ${stats.sales.total} | CA total ${stats.sales.montantTotal.toLocaleString("fr-FR")} €`,
+        `Pige IA : ${savedCount} annonces enregistrées dans le vivier, score moyen ${savedAverageScore}/100, top ${savedTopScore}/100.`,
+        `Top piges enregistrées : ${savedPige.slice(0, 5).map((p: any, i: number) => `${i + 1}. ${p.titre} (${p.score_pigeabilite || 0}/100, ${p.ville || "zone inconnue"})`).join(" | ") || "aucune"}.`,
+        `Opportunités Radar : ${stats.opportunites.total} analyses sauvegardées (top ${stats.opportunites.topScore}/100).`,
+        `Modules autorisés pour les recommandations : Pige IA, Radar Prospection, Estimation IA, Studio IA, Copilote.`,
+        `Interdiction : ne pas générer d'actions liées aux anciens prospects/clients, ventes/CA, inbox, agenda IA ou mémoire client.`,
       ].join("\n");
       const { data, error } = await supabase.functions.invoke("generate-actions", { body: { businessContext } });
       if (error || data?.error) throw new Error(data?.error || error?.message);
       if (data?.actions?.length && user) {
         const rows = data.actions.map((a: any) => ({
-          user_id: user.id, titre: a.titre, type: a.type || "relance", priorite: a.priorite || "moyenne",
+          user_id: user.id, titre: a.titre, type: a.type || "opportunite", priorite: a.priorite || "moyenne",
           score_pertinence: a.score_pertinence ?? 50, objectif: a.objectif, action_attendue: a.action_attendue,
           risque_si_ignore: a.risque_si_ignore, source_module: a.source_module, donnees_contexte: a,
         }));
