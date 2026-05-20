@@ -12,6 +12,30 @@ const PLATFORM_HINTS: Record<string, { name: string; conseils: string }> = {
   linkedin: { name: "LinkedIn", conseils: "Posts d'expertise, storytelling pro, carrousels PDF, autorité, headline, recommandations, réseau local." },
 };
 
+const isWeakScrape = (text: string) => {
+  const t = (text || "").toLowerCase();
+  return text.trim().length < 700 || /(log in|login|sign up|créez un compte|connectez-vous|page isn.?t available|content unavailable|captcha)/i.test(t);
+};
+
+const compact = (value: unknown, max = 4000) => String(value || "").replace(/\s+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, max);
+
+const firecrawlPost = async (apiKey: string, path: string, body: Record<string, unknown>, timeoutMs = 30000) => {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`https://api.firecrawl.dev/v2/${path}`, {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, json };
+  } finally {
+    clearTimeout(t);
+  }
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -32,44 +56,62 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY manquant" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 1. Scrape la page de profil (Firecrawl si dispo, timeout 25s, sinon best-effort)
+    // 1. Scrape la page de profil + recherche web complémentaire (Firecrawl)
     let scrapedMarkdown = "";
     let scrapedMeta: any = {};
+    let scrapedLinks: string[] = [];
+    let searchEvidence: any[] = [];
     let scrapeStatus: "ok" | "timeout" | "skipped" | "error" = "skipped";
+    const handleMatch = url.match(/(?:@|\/)([\w.\-]{2,40})(?:\/|\?|$)/);
+    const handle = handleMatch ? handleMatch[1].replace(/^@/, "") : "";
     if (FIRECRAWL_API_KEY) {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 25000);
       try {
-        const fc = await fetch("https://api.firecrawl.dev/v2/scrape", {
-          method: "POST",
-          signal: ctrl.signal,
-          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url,
-            formats: ["markdown", "summary"],
-            onlyMainContent: true,
-            waitFor: 2000,
-          }),
+        const profile = await firecrawlPost(FIRECRAWL_API_KEY, "scrape", {
+          url,
+          formats: ["markdown", "summary", "links", "html"],
+          onlyMainContent: false,
+          waitFor: 6000,
+          location: { country: "FR", languages: ["fr", "en"] },
         });
-        const fcJson = await fc.json().catch(() => ({}));
-        if (fc.ok) {
+        const fcJson = profile.json;
+        if (profile.ok) {
           scrapedMarkdown = (fcJson.markdown || fcJson.data?.markdown || fcJson.summary || fcJson.data?.summary || "").slice(0, 12000);
           scrapedMeta = fcJson.metadata || fcJson.data?.metadata || {};
-          scrapeStatus = scrapedMarkdown ? "ok" : "error";
+          scrapedLinks = (fcJson.links || fcJson.data?.links || []).slice(0, 25);
+          scrapeStatus = isWeakScrape(scrapedMarkdown) ? "error" : "ok";
         } else {
           scrapeStatus = "error";
+        }
+
+        if (handle && isWeakScrape(scrapedMarkdown)) {
+          const queries = [
+            `site:instagram.com/${handle} ${handle}`,
+            `"${handle}" Instagram agent immobilier`,
+            `"${handle}" immobilier`,
+          ];
+          for (const query of queries) {
+            const s = await firecrawlPost(FIRECRAWL_API_KEY, "search", {
+              query,
+              limit: 5,
+              lang: "fr",
+              country: "FR",
+              scrapeOptions: { formats: ["markdown"] },
+            }, 20000);
+            const results = Array.isArray(s.json?.data) ? s.json.data : Array.isArray(s.json?.web) ? s.json.web : [];
+            searchEvidence.push(...results.slice(0, 5).map((r: any) => ({
+              title: r.title,
+              url: r.url,
+              description: r.description,
+              markdown: compact(r.markdown, 1800),
+            })));
+          }
+          if (searchEvidence.length) scrapeStatus = "ok";
         }
       } catch (e: any) {
         scrapeStatus = e?.name === "AbortError" ? "timeout" : "error";
         console.warn("Firecrawl failed:", scrapeStatus, e?.message);
-      } finally {
-        clearTimeout(t);
       }
     }
-
-    // 2. Extraire le handle depuis l'URL
-    const handleMatch = url.match(/(?:@|\/)([\w.\-]{2,40})(?:\/|\?|$)/);
-    const handle = handleMatch ? handleMatch[1].replace(/^@/, "") : "";
 
     // 3. Appeler Lovable AI pour l'audit complet
     const systemPrompt = `Tu es un consultant senior en stratégie de contenu et social media pour des agents immobiliers français. Tu produis des audits ${platMeta.name} professionnels, lucides, ultra-actionnables. Tu ne fais JAMAIS de flatterie : tu pointes ce qui ne marche pas et donnes un plan concret. Ne JAMAIS inventer de chiffres précis (nombre d'abonnés, vues, engagement) que tu n'as pas dans les données ; si tu ne sais pas, dis "non disponible" dans les metrics et concentre-toi sur l'analyse qualitative observable.
