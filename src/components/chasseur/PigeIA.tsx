@@ -460,7 +460,7 @@ export const PigeIA = () => {
     const sig = a.signaux_marche || {};
     const ficheReady = a.fiche_proprietaire && Object.keys(a.fiche_proprietaire || {}).length > 0;
     return (
-      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSavedOpen(false); setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
+      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
         {photo ? (
           <div className="h-40 bg-secondary/30 overflow-hidden relative">
             <img src={photo} alt={a.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
