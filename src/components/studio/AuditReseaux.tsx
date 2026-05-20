@@ -201,14 +201,17 @@ export const AuditReseaux = () => {
               <AnalysisLoader
                 module={`Audit ${plat.label}`}
                 context={url.replace(/^https?:\/\//, "").slice(0, 40)}
-                eta="15 à 30 secondes"
+                eta="30 à 90 secondes selon la disponibilité du profil"
                 messages={[
                   `Connexion au profil ${plat.label}…`,
+                  "Lecture de la bio et des métadonnées…",
                   "Extraction des publications récentes…",
-                  "Analyse du branding et de la bio…",
+                  "Analyse du branding visuel et du ton…",
                   "Mesure de l'engagement et de la régularité…",
+                  "Croisement avec les bonnes pratiques immo…",
                   "Identification des axes de progrès…",
                   "Construction du plan d'action 30 jours…",
+                  "Finalisation du rapport — quasi terminé…",
                 ]}
               />
             )}
