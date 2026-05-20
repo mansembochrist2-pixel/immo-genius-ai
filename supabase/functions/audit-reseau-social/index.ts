@@ -75,7 +75,9 @@ Deno.serve(async (req) => {
         });
         const fcJson = profile.json;
         if (profile.ok) {
-          scrapedMarkdown = (fcJson.markdown || fcJson.data?.markdown || fcJson.summary || fcJson.data?.summary || "").slice(0, 12000);
+          const md = fcJson.markdown || fcJson.data?.markdown || fcJson.summary || fcJson.data?.summary || "";
+          const htmlFallback = compact((fcJson.html || fcJson.data?.html || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " "), 6000);
+          scrapedMarkdown = (isWeakScrape(md) && htmlFallback ? `${md}\n\nHTML visible extrait :\n${htmlFallback}` : md).slice(0, 12000);
           scrapedMeta = fcJson.metadata || fcJson.data?.metadata || {};
           scrapedLinks = (fcJson.links || fcJson.data?.links || []).slice(0, 25);
           scrapeStatus = isWeakScrape(scrapedMarkdown) ? "error" : "ok";
