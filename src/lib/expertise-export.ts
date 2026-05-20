@@ -255,7 +255,7 @@ export function exportExpertisePDF(
 
 /* ============================ DOCX ============================ */
 
-const docPara = (text: string, opts: Partial<{ bold: boolean; size: number; color: string; align: AlignmentType; spaceAfter: number }> = {}) =>
+const docPara = (text: string, opts: Partial<{ bold: boolean; size: number; color: string; align: (typeof AlignmentType)[keyof typeof AlignmentType]; spaceAfter: number }> = {}) =>
   new Paragraph({
     alignment: opts.align,
     spacing: { after: opts.spaceAfter ?? 120 },
