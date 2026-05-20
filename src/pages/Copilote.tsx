@@ -256,7 +256,7 @@ const Copilote = () => {
                 <Input placeholder={lang === "fr" ? "Rechercher..." : "Search..."} value={convSearch} onChange={e => setConvSearch(e.target.value)} className="pl-7 h-7 text-xs" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-1 max-h-48 overflow-y-auto">
+            <CardContent className="space-y-1 max-h-36 lg:max-h-44 overflow-y-auto">
               {filteredConversations.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">{lang === "fr" ? "Aucune conversation" : "No conversations"}</p>
               ) : filteredConversations.map(c => (
@@ -308,7 +308,7 @@ const Copilote = () => {
             <CardHeader className="pb-2"><CardTitle className="text-sm">{lang === "fr" ? "Actions rapides" : "Quick Actions"}</CardTitle></CardHeader>
             <CardContent className="space-y-1.5">
               {QUICK_ACTIONS.map(a => (
-                <Button key={a.label} variant="ghost" size="sm" className="w-full justify-start text-xs h-8 gap-2" onClick={() => envoyer(a.prompt)} disabled={isLoading}>
+                <Button key={a.label} variant="ghost" size="sm" className="w-full justify-start text-xs min-h-8 h-auto py-2 gap-2 whitespace-normal text-left" onClick={() => envoyer(a.prompt)} disabled={isLoading}>
                   <a.icon className="h-3.5 w-3.5" />{a.label}
                 </Button>
               ))}
