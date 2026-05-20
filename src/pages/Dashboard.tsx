@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useBusinessData } from "@/contexts/BusinessContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PerformanceWidget } from "@/components/dashboard/PerformanceWidget";
 
 const InfoTip = ({ children }: { children: React.ReactNode }) => (
   <TooltipProvider delayDuration={150}>
@@ -266,7 +267,7 @@ const Dashboard = () => {
             {topPige.length === 0 ? (
               <div className="text-center py-6">
                 <Phone className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground italic">Aucune annonce piégée pour l'instant.</p>
+                <p className="text-xs text-muted-foreground italic">Aucune annonce pigée pour l'instant.</p>
                 <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => navigate("/chasseur?tab=pige")}>Lancer ma première pige</Button>
               </div>
             ) : (
@@ -287,6 +288,9 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Performance KPIs */}
+      <PerformanceWidget />
     </AppLayout>
   );
 };

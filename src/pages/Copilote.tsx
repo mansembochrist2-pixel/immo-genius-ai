@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
   Bot, Send, Zap, Target, TrendingUp, CalendarDays, BarChart3, Loader2,
-  Plus, MessageSquare, Pencil, Trash2, Clock, Users, Search, Check, X,
+  Plus, MessageSquare, Pencil, Trash2, Clock, Users, Search, Check, X, HelpCircle,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useBusinessData } from "@/contexts/BusinessContext";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
+import { useNavigate } from "react-router-dom";
 
 interface Message { role: "user" | "assistant"; content: string; actions?: string[]; }
 interface Conversation { id: string; assistant_type: string; messages: Message[]; created_at: string; updated_at: string; }
@@ -29,6 +31,7 @@ const Copilote = () => {
   const { lang } = useLanguage();
   const { stats, getAIContext } = useBusinessData();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -312,6 +315,19 @@ const Copilote = () => {
               ))}
             </CardContent>
           </Card>
+
+          {/* Aide / FAQ */}
+          <Card className="bg-card border-border rounded-2xl shadow-sm">
+            <CardContent className="p-4">
+              <Button variant="outline" size="sm" className="w-full justify-start text-xs gap-2 h-9" onClick={() => navigate("/faq")}>
+                <HelpCircle className="h-3.5 w-3.5 text-primary" />
+                {lang === "fr" ? "Centre d'aide & FAQ" : "Help center & FAQ"}
+              </Button>
+              <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                {lang === "fr" ? "Plus de 40 réponses détaillées sur tous les modules." : "40+ detailed answers across all modules."}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Chat */}
@@ -352,9 +368,22 @@ const Copilote = () => {
             ))}
 
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex justify-start">
-                <div className="bg-secondary rounded-2xl px-4 py-3"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div>
-              </div>
+              <AnalysisLoader
+                module="Copilote"
+                context={lang === "fr" ? "Analyse de votre contexte business" : "Analyzing your business context"}
+                messages={lang === "fr" ? [
+                  "Connexion aux données live…",
+                  "Lecture de votre agenda et prospects chauds…",
+                  "Croisement avec vos opportunités Radar…",
+                  "Construction de la réponse stratégique…",
+                ] : [
+                  "Connecting to live data…",
+                  "Reading agenda and hot prospects…",
+                  "Cross-referencing radar opportunities…",
+                  "Building strategic answer…",
+                ]}
+                inline
+              />
             )}
           </div>
 
