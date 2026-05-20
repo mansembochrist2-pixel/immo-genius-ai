@@ -62,7 +62,24 @@ export const RadarInner = () => {
     setIsAnalyzing(true);
     setAnalyseResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-zone", { body: { adresse, secteur } });
+      // Récupère la précédente analyse de la même zone pour analyse différentielle
+      let previousAnalysis: any = null;
+      let previousDate: string | null = null;
+      if (user) {
+        const { data: prevList } = await supabase
+          .from("analyses_zone")
+          .select("resultat, created_at")
+          .eq("user_id", user.id)
+          .ilike("adresse", adresse.trim())
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (prevList && prevList[0]) {
+          previousAnalysis = prevList[0].resultat;
+          previousDate = prevList[0].created_at;
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke("analyze-zone", { body: { adresse, secteur, previousAnalysis, previousDate } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setAnalyseResult(data);
@@ -87,16 +104,18 @@ export const RadarInner = () => {
             signaux_vendeurs: data.signaux_vendeurs, micro_secteurs: data.micro_secteurs,
             profils_vendeurs_probables: data.profils_vendeurs_probables,
             fraicheur_donnees: data.fraicheur_donnees, dvf_raw: data.dvf_raw, secteur,
+            justification_score: data.justification_score,
+            evolution_depuis_derniere: data.evolution_depuis_derniere,
+            full_result: data,
           },
           statut: "nouvelle",
         });
-        // Sauvegarde aussi dans analyses_zone (historique complet)
         await supabase.from("analyses_zone").insert({
           user_id: user.id, adresse, secteur, resultat: data, sources_utilisees: data.sources || [],
         });
         queryClient.invalidateQueries({ queryKey: ["opportunites"] });
       }
-      toast.success("Analyse sauvegardée");
+      toast.success(previousAnalysis ? "Analyse mise à jour (vs précédente)" : "Analyse sauvegardée");
     } catch (e: any) {
       if (isCreditsError(e)) {
         handleApiError(e);
@@ -107,6 +126,41 @@ export const RadarInner = () => {
       setIsAnalyzing(false);
     }
   };
+
+  const reopenAnalysis = (opp: any) => {
+    const d = opp.donnees || {};
+    // Reconstruit le résultat d'analyse à partir des données sauvegardées
+    const restored = d.full_result || {
+      prix_m2_moyen: d.prix_m2,
+      tendance: d.tendance,
+      delai_vente: d.delai_vente,
+      nb_biens_estimes: d.nb_biens,
+      volume_ventes: d.volume_ventes,
+      liquidite: d.liquidite,
+      score_opportunite: d.score_opportunite,
+      score_risque: d.score_risque,
+      score_global: d.score_global,
+      niveau_global: d.niveau_global,
+      classification: opp.type,
+      plan_action: d.plan_action,
+      analyse_strategique: d.analyse_strategique,
+      score_vendeur: d.score_vendeur,
+      confiance_vendeur: d.confiance_vendeur,
+      signaux_vendeurs: d.signaux_vendeurs,
+      micro_secteurs: d.micro_secteurs,
+      profils_vendeurs_probables: d.profils_vendeurs_probables,
+      fraicheur_donnees: d.fraicheur_donnees,
+      justification_score: d.justification_score,
+      sources: opp.sources,
+    };
+    setAdresse(opp.zone || "");
+    setSecteur(d.secteur || "Résidentiel");
+    setAnalyseResult(restored);
+    toast.success("Analyse rouverte");
+    // scroll vers le haut
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
 
   const openOrGeneratePlan = async (opp: any) => {
     // Si un plan a déjà été généré pour cette opportunité, le rouvrir sans appel IA.
