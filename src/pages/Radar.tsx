@@ -7,7 +7,7 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import {
   Radar as RadarIcon, TrendingUp, TrendingDown, MapPin, AlertTriangle, Target, Search,
-  Zap, ExternalLink, Plus, Loader2, Trash2, BarChart3, Clock, Home, Crosshair, Bot, Info,
+  Zap, ExternalLink, Loader2, Trash2, BarChart3, Clock, Home, Bot, Info,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +31,6 @@ export const RadarInner = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [filter, setFilter] = useState<"all" | "opportunite" | "risque">("all");
   const [planAttaque, setPlanAttaque] = useState<any>(null);
-  const [generatingPlan, setGeneratingPlan] = useState<string | null>(null);
 
   const { data: opportunites = [], isLoading } = useQuery({
     queryKey: ["opportunites"],
@@ -160,38 +159,6 @@ export const RadarInner = () => {
     // scroll vers le haut
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-
-  const openOrGeneratePlan = async (opp: any) => {
-    // Si un plan a déjà été généré pour cette opportunité, le rouvrir sans appel IA.
-    const saved = opp.donnees?.plan_attaque;
-    if (saved && (saved.profil_cible || saved.angle_commercial || saved.priorites?.length)) {
-      setPlanAttaque({ ...saved, oppId: opp.id, oppTitre: opp.titre });
-      toast.success("Plan rouvert (sauvegardé)");
-      return;
-    }
-    setGeneratingPlan(opp.id);
-    setPlanAttaque(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-plan-attaque", {
-        body: { opportunite: { titre: opp.titre, zone: opp.zone, score: opp.score, type: opp.type, description: opp.description, donnees: opp.donnees } },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setPlanAttaque({ ...data, oppId: opp.id, oppTitre: opp.titre });
-      // Persister le plan dans donnees pour rouverture instantanée
-      const newDonnees = { ...(opp.donnees || {}), plan_attaque: data };
-      await supabase.from("opportunites").update({ donnees: newDonnees }).eq("id", opp.id);
-      queryClient.invalidateQueries({ queryKey: ["opportunites"] });
-      toast.success("Plan d'attaque généré et sauvegardé");
-    } catch (e: any) {
-      if (isCreditsError(e)) handleApiError(e);
-      else toast.error(e?.message || "Erreur de génération");
-    } finally {
-      setGeneratingPlan(null);
-    }
-  };
-
 
   const [search, setSearch] = useState("");
 
