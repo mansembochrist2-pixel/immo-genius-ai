@@ -386,7 +386,7 @@ const EstimationIA = () => {
                     dpe: form.dpe,
                     prix_acquisition: editableResult.recommandation_prix || editableResult.prix_moyen,
                   }));
-                  navigate("/expertise");
+                  navigate("/valorisation/expertise");
                 }}
               >
                 <BarChart3 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Analyser la Rentabilité & Valorisation" : "Analyze Rentability & Valuation"}
