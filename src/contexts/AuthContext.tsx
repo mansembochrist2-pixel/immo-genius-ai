@@ -65,13 +65,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    localStorage.removeItem(demoOptOutKey);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    localStorage.removeItem(demoOptOutKey);
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -84,7 +82,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    localStorage.setItem(demoOptOutKey, "true");
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
