@@ -1,22 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { NumberInput } from "@/components/ui/number-input";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
-  Bot, Zap, TrendingUp, ArrowRight, Target, AlertTriangle, Play, SkipForward, X, DollarSign,
-  Crosshair, Palette, Search, FileText, BarChart3, Phone, Pencil, Check, Sparkles, Info,
+  Bot, Zap, TrendingUp, ArrowRight, Target, Play, SkipForward, X,
+  Crosshair, Palette, Search, FileText, BarChart3, Phone, Sparkles, Info, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useBusinessData } from "@/contexts/BusinessContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PerformanceWidget } from "@/components/dashboard/PerformanceWidget";
 
 const InfoTip = ({ children }: { children: React.ReactNode }) => (
   <TooltipProvider delayDuration={150}>
@@ -38,35 +35,17 @@ const Dashboard = () => {
   const { stats } = useBusinessData();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
-  const [editingCA, setEditingCA] = useState(false);
-  const [caInput, setCaInput] = useState("");
+  const [generatingActions, setGeneratingActions] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("objectif_ca, zone_principale").eq("id", user!.id).single();
+      const { data } = await supabase.from("profiles").select("zone_principale").eq("id", user!.id).single();
       return data;
     },
     enabled: !!user,
   });
 
-  const objectifCa = Number((profile as any)?.objectif_ca) || 0;
-
-  const updateCaMutation = useMutation({
-    mutationFn: async (value: number) => {
-      const { error } = await supabase.from("profiles").update({ objectif_ca: value } as any).eq("id", user!.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      setEditingCA(false);
-      toast.success("Objectif mis à jour");
-    },
-  });
-
-  const caMois = stats.sales.ceMois;
-  const caTotal = stats.sales.montantTotal;
-  const caProgress = objectifCa > 0 ? Math.min(100, Math.round((caMois / objectifCa) * 100)) : 0;
 
   const { data: actions = [] } = useQuery({
     queryKey: ["dashboard-actions"],
@@ -104,6 +83,36 @@ const Dashboard = () => {
     },
   });
 
+  const generateActions = async () => {
+    if (generatingActions) return;
+    setGeneratingActions(true);
+    try {
+      const businessContext = [
+        `Pige IA : ${stats.pige.total} annonces (top ${stats.pige.topScore}/100, ${stats.pige.nouvelles} nouvelles en 24h, score moyen ${stats.pige.scoreMoyen}/100)`,
+        `Opportunités Radar : ${stats.opportunites.total} (top ${stats.opportunites.topScore}/100)`,
+        `Prospects actifs : ${stats.prospects.actifs} (chauds ${stats.prospects.chauds})`,
+        `Ventes : ${stats.sales.total} | CA total ${stats.sales.montantTotal.toLocaleString("fr-FR")} €`,
+      ].join("\n");
+      const { data, error } = await supabase.functions.invoke("generate-actions", { body: { businessContext } });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.actions?.length && user) {
+        const rows = data.actions.map((a: any) => ({
+          user_id: user.id, titre: a.titre, type: a.type || "relance", priorite: a.priorite || "moyenne",
+          score_pertinence: a.score_pertinence ?? 50, objectif: a.objectif, action_attendue: a.action_attendue,
+          risque_si_ignore: a.risque_si_ignore, source_module: a.source_module, donnees_contexte: a,
+        }));
+        await supabase.from("actions_recommandees").insert(rows);
+        queryClient.invalidateQueries({ queryKey: ["dashboard-actions"] });
+        toast.success(`${rows.length} actions générées`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur génération");
+    } finally {
+      setGeneratingActions(false);
+    }
+  };
+
+
   const QUICK_ACTIONS = [
     { label: "Nouvelle pige IA", icon: Phone, action: () => navigate("/chasseur?tab=pige") },
     { label: "Analyser une zone", icon: Search, action: () => navigate("/chasseur?tab=radar") },
@@ -140,44 +149,12 @@ const Dashboard = () => {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <Card className="bg-card border-border col-span-2 lg:col-span-1 rounded-2xl shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-primary" /> Objectif CA</p>
-              <button className="h-6 w-6 rounded-md hover:bg-muted/20 flex items-center justify-center" onClick={() => { setEditingCA(!editingCA); setCaInput(objectifCa.toString()); }}>
-                <Pencil className="h-3 w-3 text-muted-foreground" />
-              </button>
-            </div>
-            {editingCA ? (
-              <div className="mt-2 space-y-2">
-                <NumberInput value={caInput} onChange={v => setCaInput(v)} placeholder="50 000" className="h-8 text-sm" autoFocus
-                  onKeyDown={e => { if (e.key === "Enter") updateCaMutation.mutate(Number(caInput)); if (e.key === "Escape") setEditingCA(false); }} />
-                <div className="flex gap-1">
-                  <Button size="sm" className="h-6 text-[10px] flex-1" onClick={() => updateCaMutation.mutate(Number(caInput))}><Check className="h-3 w-3 mr-1" /> OK</Button>
-                  <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setEditingCA(false)}><X className="h-3 w-3" /></Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="text-2xl font-bold mt-2 text-foreground">{caMois.toLocaleString("fr-FR")}€</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">ce mois · Total : {caTotal.toLocaleString("fr-FR")}€</p>
-                {objectifCa > 0 ? (
-                  <><Progress value={caProgress} className="mt-2 h-1.5" />
-                  <p className="text-[10px] text-muted-foreground mt-1.5">{caProgress}% de {objectifCa.toLocaleString("fr-FR")}€</p></>
-                ) : (
-                  <p className="text-[10px] mt-2"><button className="text-primary hover:underline" onClick={() => { setEditingCA(true); setCaInput(""); }}>Définir objectif →</button></p>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-primary" /> Annonces pigées
-              <InfoTip>Nombre total d'annonces détectées par votre Pige IA et conservées dans votre vivier. +24h indique les nouvelles entrées depuis hier.</InfoTip>
+              <Phone className="h-3.5 w-3.5 text-primary" /> Pige enregistrée
+              <InfoTip>Annonces sauvegardées dans votre vivier de pige IA.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.total}</p>
             <p className="text-[10px] text-primary mt-2 font-medium">+{stats.pige.nouvelles} en 24h →</p>
@@ -188,7 +165,7 @@ const Dashboard = () => {
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Target className="h-3.5 w-3.5 text-primary" /> Score pigeabilité moyen
-              <InfoTip>Moyenne des scores IA sur l'ensemble de vos annonces pigées. Le score combine type de vendeur, ancienneté, signaux de baisse, qualité de l'annonce et tension du secteur.</InfoTip>
+              <InfoTip>Moyenne des scores IA sur vos annonces pigées.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.scoreMoyen}<span className="text-sm text-muted-foreground">/100</span></p>
             <p className="text-[10px] text-primary mt-2 font-medium">Top {stats.pige.topScore} →</p>
@@ -199,7 +176,7 @@ const Dashboard = () => {
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Crosshair className="h-3.5 w-3.5 text-primary" /> Opportunités Radar
-              <InfoTip>Opportunités de prospection détectées sur votre secteur (zones tendues, biens à fort potentiel de mandat, signaux de marché).</InfoTip>
+              <InfoTip>Opportunités détectées sur votre secteur.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.opportunites.total}</p>
             <p className="text-[10px] text-primary mt-2 font-medium">Analyser →</p>
@@ -210,7 +187,7 @@ const Dashboard = () => {
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Palette className="h-3.5 w-3.5 text-primary" /> Studio IA
-              <InfoTip>Génération d'annonces, posts réseaux, mandats et audits de comptes sociaux propulsés par l'IA.</InfoTip>
+              <InfoTip>Annonces, posts réseaux, mandats et audits sociaux par IA.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground"><Sparkles className="h-5 w-5 inline text-primary" /></p>
             <p className="text-[10px] text-primary mt-2 font-medium">Créer →</p>
@@ -224,12 +201,21 @@ const Dashboard = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> Actions recommandées</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/copilote")}>Copilote <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={generateActions} disabled={generatingActions}>
+                {generatingActions ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                Générer
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
             {actions.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-4 text-center">Aucune action en attente.</p>
+              <div className="text-center py-6">
+                <Bot className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground italic mb-3">Aucune action en attente.</p>
+                <Button size="sm" variant="outline" className="text-xs" onClick={generateActions} disabled={generatingActions}>
+                  {generatingActions ? <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Génération…</> : <><Sparkles className="h-3 w-3 mr-1" /> Générer mes actions IA</>}
+                </Button>
+              </div>
             ) : (
               <div className="space-y-2">
                 {actions.map((a: any) => (
@@ -289,8 +275,6 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Performance KPIs */}
-      <PerformanceWidget />
     </AppLayout>
   );
 };

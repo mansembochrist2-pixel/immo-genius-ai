@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { HelpCircle, Search, BookOpen, Shield, Sparkles, Mail, CalendarDays, Users, FileEdit, TrendingUp, Radar, Bot, LayoutDashboard, Zap } from "lucide-react";
+import { HelpCircle, Search, BookOpen, Shield, Sparkles, FileEdit, TrendingUp, Radar, Bot, LayoutDashboard, Zap } from "lucide-react";
 
 interface FAQItem { q: string; a: string; tags: string[]; }
 interface FAQCategory { id: string; label: string; icon: any; items: FAQItem[]; }
@@ -30,39 +30,6 @@ const CATEGORIES: FAQCategory[] = [
       { q: "Comment ajuster manuellement mon CA réalisé ?", a: "Cliquez sur le montant en gras (CA ce mois) sur le widget Objectif CA, saisissez le nouveau montant et validez. Une vente d'ajustement est créée automatiquement pour refléter la différence.", tags: ["ca", "ventes", "ajustement"] },
       { q: "À quoi sert la barre IA en haut du dashboard ?", a: "Elle vous donne un accès rapide au Copilote stratégique. Tapez votre question ou utilisez les suggestions (Estimer un bien, Rédiger une annonce, Relancer des clients, Analyser opportunités).", tags: ["copilote", "actions-rapides"] },
       { q: "Que signifient les alertes sur le dashboard ?", a: "Trois types : Critique (rouge — action urgente), Avertissement (orange — messages non lus), Info (bleu — opportunités détectées). Cliquez dessus pour aller directement au module concerné.", tags: ["alertes", "notifications"] },
-    ],
-  },
-  {
-    id: "inbox",
-    label: "Inbox intelligente",
-    icon: Mail,
-    items: [
-      { q: "Comment connecter ma boîte mail ?", a: "Paramètres → Intégrations → Connecter Google (ou Outlook). OAuth officiel : nous ne stockons jamais vos emails, l'IA les analyse à la volée.", tags: ["email", "oauth", "google", "outlook"] },
-      { q: "Comment l'IA détecte-t-elle l'urgence ?", a: "L'IA analyse le contenu, le ton, les mots-clés (urgent, signature, visite…), l'historique du contact et le délai écoulé. Score d'urgence de 0 à 5, affiché sur chaque message.", tags: ["urgence", "ia", "scoring"] },
-      { q: "Puis-je modifier les réponses suggérées par l'IA ?", a: "Oui, intégralement. L'IA propose, vous validez. Chaque réponse est éditable avant envoi. L'IA n'envoie JAMAIS un email sans votre validation explicite.", tags: ["reponses", "ia", "edition"] },
-      { q: "Mes emails sont-ils stockés sur vos serveurs ?", a: "Non. OAuth officiel = lecture à la volée. Aucun email n'est stocké. Vous pouvez révoquer l'accès en 1 clic depuis votre compte Google/Microsoft.", tags: ["confidentialite", "stockage", "rgpd"] },
-    ],
-  },
-  {
-    id: "agenda",
-    label: "Agenda IA",
-    icon: CalendarDays,
-    items: [
-      { q: "Comment créer un événement ?", a: "Bouton Nouveau en haut à droite, ou cliquez directement sur un créneau du calendrier. Choisissez le type (visite, appel, estimation, signature…), l'horaire et le client associé.", tags: ["evenement", "creation"] },
-      { q: "Comment associer un client à un événement ?", a: "Lors de la création, sélectionnez un client dans le menu déroulant. L'IA récupérera automatiquement son historique pour vous préparer un brief.", tags: ["client", "association"] },
-      { q: "Comment envoyer une mission au Copilote depuis l'agenda ?", a: "Ouvrez l'événement → bouton Préparer avec le Copilote. Le Copilote charge automatiquement le profil client (mémoire client), l'historique, les motivations et freins, puis génère un brief stratégique complet.", tags: ["copilote", "brief", "mission"] },
-      { q: "Que sont les Suggestions IA dans l'agenda ?", a: "Ce sont des actions recommandées par l'IA (relances, RDV de suivi). Cliquez sur Confirmer pour les transformer en événement automatiquement.", tags: ["suggestions", "ia"] },
-    ],
-  },
-  {
-    id: "memoire-client",
-    label: "Mémoire client",
-    icon: Users,
-    items: [
-      { q: "Qu'est-ce que le score IA d'un client ?", a: "Note de 0 à 100 calculée par l'IA : motivation détectée, fréquence d'interaction, adéquation budget/recherche, signaux d'engagement. Plus le score est élevé, plus le taux de signature est probable.", tags: ["score", "ia", "taux-signature"] },
-      { q: "Comment l'IA enrichit-elle un profil client ?", a: "À partir de chaque interaction (email, RDV, note), l'IA extrait : motivation, freins, budget, type de bien recherché, situation, délai. Le profil s'auto-enrichit en continu.", tags: ["enrichissement", "ia", "profil"] },
-      { q: "Puis-je modifier les informations d'un client ?", a: "Oui, tout est éditable. L'IA propose, vous gardez le contrôle. Cliquez sur n'importe quel champ pour le modifier.", tags: ["edition", "modification"] },
-      { q: "Comment exporter le profil d'un client ?", a: "Sur la fiche client, bouton Exporter PDF. Vous obtenez un dossier professionnel noir et blanc imprimable, contenant le profil stratégique complet.", tags: ["export", "pdf"] },
     ],
   },
   {

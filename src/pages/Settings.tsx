@@ -6,9 +6,8 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings as SettingsIcon, User, Download, Shield, Trash2, Loader2, Globe } from "lucide-react";
+import { Settings as SettingsIcon, User, Download, Shield, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +20,7 @@ const Settings = () => {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const queryClient = useQueryClient();
-  const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "", objectif_ca: "", zone_principale: "" });
+  const [profileForm, setProfileForm] = useState({ full_name: "", email: "", phone: "", agency_name: "", objectif_ca: "" });
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -42,7 +41,6 @@ const Settings = () => {
         phone: profile.phone || "",
         agency_name: profile.agency_name || "",
         objectif_ca: profile.objectif_ca?.toString() || "",
-        zone_principale: profile.zone_principale || "",
       });
     }
   }, [profile]);
@@ -57,7 +55,6 @@ const Settings = () => {
         phone: profileForm.phone,
         agency_name: profileForm.agency_name,
         objectif_ca: profileForm.objectif_ca ? Number(profileForm.objectif_ca) : 0,
-        zone_principale: profileForm.zone_principale || null,
       }).eq("id", user!.id);
       if (error) throw error;
     },
@@ -120,21 +117,8 @@ const Settings = () => {
                 <div className="space-y-2"><Label>{lang === "fr" ? "Téléphone" : "Phone"}</Label><Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} /></div>
                 <div className="space-y-2"><Label>{lang === "fr" ? "Agence" : "Agency"}</Label><Input value={profileForm.agency_name} onChange={(e) => setProfileForm({ ...profileForm, agency_name: e.target.value })} /></div>
                 <div className="space-y-2"><Label>{lang === "fr" ? "Objectif CA mensuel (€)" : "Monthly revenue goal (€)"}</Label><NumberInput value={profileForm.objectif_ca} onChange={(v) => setProfileForm({ ...profileForm, objectif_ca: v })} placeholder="Ex: 50 000" /></div>
-                <div className="space-y-2"><Label>{lang === "fr" ? "Zone géographique principale" : "Main geographic zone"}</Label><Input value={profileForm.zone_principale} onChange={(e) => setProfileForm({ ...profileForm, zone_principale: e.target.value })} placeholder="Ex: Paris 11, Lyon..." /></div>
-                
-                {/* Language selector */}
-                <div className="space-y-2 pt-4 border-t border-border/30">
-                  <Label className="flex items-center gap-2"><Globe className="h-4 w-4" /> {t("settings.language")}</Label>
-                  <Select value={lang} onValueChange={(v) => setLang(v as "fr" | "en")}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
-                      <SelectItem value="en">🇬🇧 English</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
+
 
                 <Button type="submit" disabled={updateProfile.isPending}>{updateProfile.isPending ? t("settings.saving") : t("settings.save")}</Button>
               </form>
