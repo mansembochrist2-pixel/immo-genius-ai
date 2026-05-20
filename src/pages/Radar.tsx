@@ -7,7 +7,7 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import {
   Radar as RadarIcon, TrendingUp, TrendingDown, MapPin, AlertTriangle, Target, Search,
-  Zap, ExternalLink, Plus, Loader2, Trash2, BarChart3, Clock, Home, Crosshair, Bot, Info,
+  Zap, ExternalLink, Loader2, Trash2, BarChart3, Clock, Home, Bot, Info,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,9 +30,6 @@ export const RadarInner = () => {
   const [analyseResult, setAnalyseResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [filter, setFilter] = useState<"all" | "opportunite" | "risque">("all");
-  const [planAttaque, setPlanAttaque] = useState<any>(null);
-  const [generatingPlan, setGeneratingPlan] = useState<string | null>(null);
-
   const { data: opportunites = [], isLoading } = useQuery({
     queryKey: ["opportunites"],
     queryFn: async () => {
@@ -160,38 +157,6 @@ export const RadarInner = () => {
     // scroll vers le haut
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-
-  const openOrGeneratePlan = async (opp: any) => {
-    // Si un plan a déjà été généré pour cette opportunité, le rouvrir sans appel IA.
-    const saved = opp.donnees?.plan_attaque;
-    if (saved && (saved.profil_cible || saved.angle_commercial || saved.priorites?.length)) {
-      setPlanAttaque({ ...saved, oppId: opp.id, oppTitre: opp.titre });
-      toast.success("Plan rouvert (sauvegardé)");
-      return;
-    }
-    setGeneratingPlan(opp.id);
-    setPlanAttaque(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-plan-attaque", {
-        body: { opportunite: { titre: opp.titre, zone: opp.zone, score: opp.score, type: opp.type, description: opp.description, donnees: opp.donnees } },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setPlanAttaque({ ...data, oppId: opp.id, oppTitre: opp.titre });
-      // Persister le plan dans donnees pour rouverture instantanée
-      const newDonnees = { ...(opp.donnees || {}), plan_attaque: data };
-      await supabase.from("opportunites").update({ donnees: newDonnees }).eq("id", opp.id);
-      queryClient.invalidateQueries({ queryKey: ["opportunites"] });
-      toast.success("Plan d'attaque généré et sauvegardé");
-    } catch (e: any) {
-      if (isCreditsError(e)) handleApiError(e);
-      else toast.error(e?.message || "Erreur de génération");
-    } finally {
-      setGeneratingPlan(null);
-    }
-  };
-
 
   const [search, setSearch] = useState("");
 
@@ -466,78 +431,6 @@ export const RadarInner = () => {
         </CardContent>
       </Card>
 
-      {/* Plan d'attaque result */}
-      {planAttaque && (
-        <Card className="mb-6 bg-card/60 border-primary/30 glow-border">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Crosshair className="h-4 w-4 text-primary" /> Plan d'attaque — {planAttaque.oppTitre}
-              </CardTitle>
-              <div className="flex items-center gap-1">
-                <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => {
-                  const summary = `Voici le plan d'attaque pour "${planAttaque.oppTitre}":\n\nProfil cible: ${planAttaque.profil_cible || "N/C"}\nAngle commercial: ${planAttaque.angle_commercial || "N/C"}\nTiming: ${planAttaque.timing_optimal || "N/C"}\nPotentiel: ${planAttaque.estimation_potentiel || "N/C"}\n\nPriorités: ${planAttaque.priorites?.join(", ") || "N/C"}\nRisques: ${planAttaque.risques?.join(", ") || "N/C"}\n\nAnalyse cette opportunité et propose-moi des actions concrètes.`;
-                  sessionStorage.setItem("copilote_prefill", summary);
-                  navigate("/copilote");
-                }}>
-                  <Bot className="h-3 w-3" /> Envoyer au Copilote
-                </Button>
-                <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setPlanAttaque(null)}>
-                  Fermer ✕
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {planAttaque.profil_cible && (
-                <div className="bg-muted/10 rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Profil cible</p>
-                  <p className="text-xs">{planAttaque.profil_cible}</p>
-                </div>
-              )}
-              {planAttaque.angle_commercial && (
-                <div className="bg-muted/10 rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Angle commercial</p>
-                  <p className="text-xs">{planAttaque.angle_commercial}</p>
-                </div>
-              )}
-              {planAttaque.timing_optimal && (
-                <div className="bg-muted/10 rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Timing optimal</p>
-                  <p className="text-xs">{planAttaque.timing_optimal}</p>
-                </div>
-              )}
-              {planAttaque.estimation_potentiel && (
-                <div className="bg-muted/10 rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Potentiel estimé</p>
-                  <p className="text-xs font-medium text-primary">{planAttaque.estimation_potentiel}</p>
-                </div>
-              )}
-            </div>
-            {planAttaque.priorites?.length > 0 && (
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Priorités</p>
-                <div className="space-y-1">
-                  {planAttaque.priorites.map((p: string, i: number) => (
-                    <div key={i} className="flex items-start gap-2 text-xs">
-                      <Badge variant="outline" className="text-[8px] px-1 py-0 shrink-0">{i + 1}</Badge>
-                      <span>{p}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {planAttaque.risques?.length > 0 && (
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Risques identifiés</p>
-                <ul className="space-y-1">{planAttaque.risques.map((r: string, i: number) => <li key={i} className="text-xs flex items-start gap-1"><AlertTriangle className="h-3 w-3 mt-0.5 text-destructive shrink-0" />{r}</li>)}</ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Filtres + recherche */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -638,22 +531,6 @@ export const RadarInner = () => {
                       >
                         <Bot className="h-3 w-3" /> Copilote
                       </Button>
-                      {!isRisque && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-7 gap-1"
-                          disabled={generatingPlan === opp.id}
-                          onClick={() => openOrGeneratePlan(opp)}
-                          title={opp.donnees?.plan_attaque ? "Rouvrir le plan d'attaque déjà généré (sans nouvel appel IA)" : "Génère et sauvegarde un plan d'attaque détaillé."}
-                        >
-                          {generatingPlan === opp.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <><Crosshair className="h-3 w-3" /> {opp.donnees?.plan_attaque ? "Rouvrir plan" : "Plan"}</>
-                          )}
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>

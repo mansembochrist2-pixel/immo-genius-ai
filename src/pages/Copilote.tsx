@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  Bot, Send, Zap, Target, TrendingUp, CalendarDays, BarChart3, Loader2,
-  Plus, MessageSquare, Pencil, Trash2, Clock, Users, Search, Check, X, HelpCircle,
+  Bot, Send, Zap, Target, TrendingUp, BarChart3,
+  Plus, MessageSquare, Pencil, Trash2, Search, Check, X, HelpCircle, BookmarkCheck, Crosshair, FileText,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,11 +53,11 @@ const Copilote = () => {
   }, []);
 
   const QUICK_ACTIONS = [
-    { label: lang === "fr" ? "Que faire aujourd'hui ?" : "What to do today?", icon: Zap, prompt: lang === "fr" ? "Analyse mes piges, opportunités Radar, prospects chauds et actions en attente. Dis-moi exactement les 3 priorités du jour pour conquérir un mandat." : "Analyze my listings, Radar opportunities, hot prospects and pending actions. Give me today's top 3 priorities." },
-    { label: lang === "fr" ? "Stratégie de pige" : "Pige strategy", icon: Target, prompt: lang === "fr" ? "Analyse mes annonces pigées avec les meilleurs scores et donne-moi un script d'appel personnalisé pour les 3 meilleures." : "Analyze my top-scoring listings and give me a tailored call script for the top 3." },
-    { label: lang === "fr" ? "Plan d'attaque zone" : "Zone attack plan", icon: TrendingUp, prompt: lang === "fr" ? "Sur la base de mes opportunités Radar, propose-moi un plan d'attaque commerciale concret pour ma zone prioritaire." : "Based on my Radar opportunities, propose a concrete commercial attack plan for my priority zone." },
-    { label: lang === "fr" ? "Coaching négociation" : "Negotiation coaching", icon: BarChart3, prompt: lang === "fr" ? "Donne-moi 5 techniques de négociation concrètes pour décrocher un mandat exclusif face à un vendeur réticent." : "Give me 5 concrete negotiation techniques to win an exclusive mandate from a reluctant seller." },
-    { label: lang === "fr" ? "Relancer prospects" : "Follow up prospects", icon: Users, prompt: lang === "fr" ? "Identifie les prospects chauds que je n'ai pas relancés et propose un plan de relance précis." : "Identify hot prospects I haven't followed up and propose a precise follow-up plan." },
+    { label: lang === "fr" ? "Priorités mandats" : "Mandate priorities", icon: Zap, prompt: lang === "fr" ? "Analyse uniquement mes piges enregistrées, leurs scores et mes opportunités Radar. Donne-moi les 3 actions prioritaires pour décrocher un mandat cette semaine." : "Analyze only my saved Pige IA listings, their scores and Radar opportunities. Give me the top 3 actions to win a mandate this week." },
+    { label: lang === "fr" ? "Top piges" : "Top listings", icon: BookmarkCheck, prompt: lang === "fr" ? "Classe mes piges enregistrées par priorité commerciale. Pour chaque bien, explique le score et l'action immédiate à faire." : "Rank my saved listings by commercial priority. For each property, explain the score and the immediate action." },
+    { label: lang === "fr" ? "Script vendeur" : "Seller script", icon: Target, prompt: lang === "fr" ? "À partir de mes meilleures piges enregistrées, prépare un script d'appel vendeur court, naturel et orienté mandat exclusif." : "Based on my best saved listings, prepare a short natural seller call script focused on exclusive mandate conversion." },
+    { label: lang === "fr" ? "Stratégie zone" : "Zone strategy", icon: Crosshair, prompt: lang === "fr" ? "Analyse mes opportunités Radar sauvegardées et propose une stratégie de prospection terrain sur la meilleure zone actuelle." : "Analyze my saved Radar opportunities and propose a field prospecting strategy for the current best zone." },
+    { label: lang === "fr" ? "Audit offre" : "Offer audit", icon: FileText, prompt: lang === "fr" ? "Aide-moi à transformer mes données Pige IA et Radar en une offre commerciale claire pour convaincre un propriétaire vendeur." : "Help me turn my Pige IA and Radar data into a clear commercial offer for a property seller." },
   ];
 
   const { data: conversations = [] } = useQuery({
@@ -80,17 +80,13 @@ const Copilote = () => {
   const { data: ctxExtras } = useQuery({
     queryKey: ["copilote-extras"],
     queryFn: async () => {
-      const [oppsRes, recentClientsRes, pigeRes, prospectsIdsRes] = await Promise.all([
-        supabase.from("opportunites").select("titre, zone, score, type, description").order("score", { ascending: false }).limit(5),
-        supabase.from("prospects").select("nom, statut, motivation, freins, budget_min, budget_max, secteur_recherche, score_ia, derniere_interaction").order("updated_at", { ascending: false }).limit(10),
-        supabase.from("annonces_pige").select("titre, ville, prix, score_pigeabilite").order("score_pigeabilite", { ascending: false }).limit(10),
-        supabase.from("prospects").select("id, nom, statut").order("updated_at", { ascending: false }).limit(20),
+      const [oppsRes, pigeRes] = await Promise.all([
+        supabase.from("opportunites").select("titre, zone, score, type, description, donnees").order("score", { ascending: false }).limit(8),
+        supabase.from("annonces_pige").select("titre, ville, prix, score_pigeabilite, contact_vendeur, signaux_marche, analyse_ia, notes_agent, saved_to_vivier").eq("saved_to_vivier", true).order("score_pigeabilite", { ascending: false }).limit(10),
       ]);
       return {
         opportunities: oppsRes.data || [],
-        recentClients: recentClientsRes.data || [],
         pigeTop: pigeRes.data || [],
-        prospectIds: prospectsIdsRes.data || [],
       };
     },
     enabled: !!user,
@@ -182,18 +178,18 @@ const Copilote = () => {
 
     const buildBusinessContext = () => {
       const lines = [getAIContext()];
-      if (ctxExtras?.recentClients?.length) {
-        lines.push(`\n👥 CLIENTS RÉCENTS :`);
-        ctxExtras.recentClients.slice(0, 5).forEach((c: any) => lines.push(`  • ${c.nom} (${c.statut}) Score: ${c.score_ia ?? "?"}/100`));
+      if (ctxExtras?.pigeTop?.length) {
+        lines.push(`\n🔖 PIGES ENREGISTRÉES PRIORITAIRES :`);
+        ctxExtras.pigeTop.slice(0, 8).forEach((p: any, i: number) => {
+          const vendeur = p.contact_vendeur?.type || "vendeur à qualifier";
+          lines.push(`  ${i + 1}. [${p.score_pigeabilite ?? "?"}/100] ${p.titre}${p.ville ? " — " + p.ville : ""} · ${vendeur}${p.prix ? " · " + Number(p.prix).toLocaleString("fr-FR") + " €" : ""}`);
+        });
       }
       if (ctxExtras?.opportunities?.length) {
         lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
         ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
-      if (agentMode && ctxExtras?.prospectIds?.length) {
-        lines.push(`\n👤 PROSPECTS (IDs) :`);
-        ctxExtras.prospectIds.forEach((p: any) => lines.push(`  • id=${p.id} | ${p.nom} (${p.statut})`));
-      }
+      lines.push(`\n⚠️ Contrainte produit : ne pas proposer d'actions liées aux anciens modules prospects/clients, ventes/CA, inbox, agenda IA ou mémoire client.`);
       return lines.join("\n");
     };
 
@@ -260,7 +256,7 @@ const Copilote = () => {
                 <Input placeholder={lang === "fr" ? "Rechercher..." : "Search..."} value={convSearch} onChange={e => setConvSearch(e.target.value)} className="pl-7 h-7 text-xs" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-1 max-h-48 overflow-y-auto">
+            <CardContent className="space-y-1 max-h-36 lg:max-h-44 overflow-y-auto">
               {filteredConversations.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">{lang === "fr" ? "Aucune conversation" : "No conversations"}</p>
               ) : filteredConversations.map(c => (
@@ -290,17 +286,20 @@ const Copilote = () => {
           {/* Context */}
           <Card className="bg-card border-border rounded-2xl shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> {lang === "fr" ? "Contexte actif" : "Active Context"}</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2.5">
               {[
-                { label: "Clients actifs", value: stats.prospects.actifs },
-                { label: lang === "fr" ? "CA ce mois / Total" : "Revenue mo / Total", value: `${stats.sales.ceMois.toLocaleString("fr-FR")} € / ${stats.sales.montantTotal.toLocaleString("fr-FR")} €` },
-                { label: lang === "fr" ? "Opportunités" : "Opportunities", value: stats.opportunites.total },
+                { label: "Piges enregistrées", value: stats.pige.total },
+                { label: "Score moyen vivier", value: `${stats.pige.scoreMoyen}/100` },
+                { label: lang === "fr" ? "Analyses Radar" : "Radar analyses", value: stats.opportunites.total },
               ].map(i => (
                 <div key={i.label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{i.label}</span>
                   <span className="font-medium">{i.value}</span>
                 </div>
               ))}
+              <p className="text-[10px] leading-relaxed text-muted-foreground pt-2 border-t border-border/50">
+                Connecté aux modules actuels : Pige IA, Radar, Estimation et Studio. Les anciens modules clients, CA, agenda et inbox sont exclus du raisonnement.
+              </p>
             </CardContent>
           </Card>
 
@@ -309,7 +308,7 @@ const Copilote = () => {
             <CardHeader className="pb-2"><CardTitle className="text-sm">{lang === "fr" ? "Actions rapides" : "Quick Actions"}</CardTitle></CardHeader>
             <CardContent className="space-y-1.5">
               {QUICK_ACTIONS.map(a => (
-                <Button key={a.label} variant="ghost" size="sm" className="w-full justify-start text-xs h-8 gap-2" onClick={() => envoyer(a.prompt)} disabled={isLoading}>
+                <Button key={a.label} variant="ghost" size="sm" className="w-full justify-start text-xs min-h-8 h-auto py-2 gap-2 whitespace-normal text-left" onClick={() => envoyer(a.prompt)} disabled={isLoading}>
                   <a.icon className="h-3.5 w-3.5" />{a.label}
                 </Button>
               ))}
@@ -331,7 +330,7 @@ const Copilote = () => {
         </div>
 
         {/* Chat */}
-        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-140px)] min-h-[700px]">
+        <Card className="lg:col-span-3 bg-card border-border rounded-2xl shadow-sm flex flex-col h-[calc(100vh-170px)] min-h-[560px] lg:min-h-[620px]">
           <CardHeader className="pb-2 border-b border-border">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Copilote Estate AI</CardTitle>
@@ -346,8 +345,8 @@ const Copilote = () => {
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
                 <Bot className="h-16 w-16 text-primary/20" />
                 <div>
-                  <p className="text-lg font-medium">{lang === "fr" ? "Bonjour, je suis votre Copilote Stratégique" : "Hello, I'm your Strategic Copilot"}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{lang === "fr" ? "Posez-moi n'importe quelle question sur votre activité." : "Ask me anything about your business."}</p>
+                  <p className="text-lg font-medium">{lang === "fr" ? "Prêt à prioriser vos prochains mandats" : "Ready to prioritize your next mandates"}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{lang === "fr" ? "Je travaille avec vos piges enregistrées, vos analyses Radar, vos estimations et votre Studio IA." : "I work with your saved listings, Radar analyses, valuations and AI Studio."}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center max-w-md">
                   {QUICK_ACTIONS.map(a => (
@@ -387,12 +386,12 @@ const Copilote = () => {
                 context={lang === "fr" ? "Analyse de votre contexte business" : "Analyzing your business context"}
                 messages={lang === "fr" ? [
                   "Connexion aux données live…",
-                  "Lecture de votre agenda et prospects chauds…",
+                  "Lecture de vos piges enregistrées…",
                   "Croisement avec vos opportunités Radar…",
                   "Construction de la réponse stratégique…",
                 ] : [
                   "Connecting to live data…",
-                  "Reading agenda and hot prospects…",
+                  "Reading saved listings…",
                   "Cross-referencing radar opportunities…",
                   "Building strategic answer…",
                 ]}
