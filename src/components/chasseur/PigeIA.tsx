@@ -246,6 +246,8 @@ export const PigeIA = () => {
   const [activeTab, setActiveTab] = useState<string>("top");
   const [notesDraft, setNotesDraft] = useState<string>("");
   const [savedOpen, setSavedOpen] = useState(false);
+  const [savedSearch, setSavedSearch] = useState("");
+
 
   const sendToCopilote = (a: any) => {
     const ai = a.analyse_ia || {};
@@ -427,12 +429,31 @@ export const PigeIA = () => {
     return list;
   }, [zoneAnnonces, byCategory.top.length]);
 
+  // Score moyen : priorité aux annonces enregistrées par l'agent, sinon zone en cours.
+  const scoreBaseList = savedAnnonces.length > 0 ? savedAnnonces : zoneAnnonces;
+  const scoreMoyen = scoreBaseList.length
+    ? Math.round(scoreBaseList.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / scoreBaseList.length)
+    : null;
+  const scoreSource = savedAnnonces.length > 0 ? "enregistrées" : (activeZone ? "zone analysée" : null);
+
   const kpis = [
     { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
     { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
     { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck },
-    { label: "Score moyen", value: zoneAnnoncesCount ? Math.round(zoneAnnonces.reduce((s, a: any) => s + (a.score_pigeabilite || 0), 0) / zoneAnnoncesCount) + "/100" : "—", icon: TrendingUp },
-  ];
+    {
+      label: "Score moyen",
+      value: scoreMoyen !== null ? `${scoreMoyen}/100` : "—",
+      icon: TrendingUp,
+      info: scoreMoyen !== null ? {
+        source: scoreSource,
+        nb: scoreBaseList.length,
+        top: scoreBaseList.filter((a: any) => (a.score_pigeabilite || 0) >= 75).length,
+        moy: scoreBaseList.filter((a: any) => (a.score_pigeabilite || 0) >= 50 && (a.score_pigeabilite || 0) < 75).length,
+        faible: scoreBaseList.filter((a: any) => (a.score_pigeabilite || 0) < 50).length,
+      } : null,
+    },
+  ] as any[];
+
 
   const renderCard = (a: any) => {
     const photo = (a.photos as any[])?.[0];
@@ -441,7 +462,7 @@ export const PigeIA = () => {
     const sig = a.signaux_marche || {};
     const ficheReady = a.fiche_proprietaire && Object.keys(a.fiche_proprietaire || {}).length > 0;
     return (
-      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSavedOpen(false); setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
+      <Card key={a.id} className="rounded-2xl overflow-hidden bg-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group" onClick={() => { setSelected(a); setNotesDraft(a.notes_agent || ""); }}>
         {photo ? (
           <div className="h-40 bg-secondary/30 overflow-hidden relative">
             <img src={photo} alt={a.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
@@ -584,11 +605,38 @@ export const PigeIA = () => {
             style={{ animation: `fadeInUp 0.5s ease-out ${i * 80}ms both` }}
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{k.label}</p>
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex-1">{k.label}</p>
+                {k.info && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center transition-colors" aria-label="Explication du score">
+                        <Info className="h-2.5 w-2.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 text-xs" align="end">
+                      <p className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5 text-primary" /> Score de pigeabilité moyen
+                      </p>
+                      <p className="text-muted-foreground leading-relaxed mb-3">
+                        Calculé sur vos <span className="font-medium text-foreground">{k.info.nb} annonces {k.info.source}</span>. Le score (0-100) reflète la probabilité de transformer l'annonce en mandat selon : type de vendeur (particulier vs agence), ancienneté, baisse de prix, multi-diffusion, qualité de l'annonce, prix/m² vs marché, et tension du secteur.
+                      </p>
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex justify-between text-[11px]"><span className="text-destructive">🔥 Top (≥75)</span><span className="font-mono">{k.info.top}</span></div>
+                        <div className="flex justify-between text-[11px]"><span className="text-warning">⚡ Moyennes (50-74)</span><span className="font-mono">{k.info.moy}</span></div>
+                        <div className="flex justify-between text-[11px]"><span className="text-muted-foreground">💡 Faibles (&lt;50)</span><span className="font-mono">{k.info.faible}</span></div>
+                      </div>
+                      <div className="pt-2 border-t border-border/40">
+                        <p className="text-[10px] uppercase tracking-wider text-success font-semibold mb-1">Comment l'améliorer ?</p>
+                        <p className="text-muted-foreground">Enregistrez prioritairement des annonces de particuliers, récentes (&lt;7j), avec baisse de prix ou multi-diffusion. Supprimez les annonces de confrères ou hors cible pour faire monter la moyenne.</p>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <k.icon className="h-3.5 w-3.5 text-primary/60 transition-transform group-hover:scale-110" />
               </div>
               <p className="text-2xl font-bold tabular-nums">{k.value}</p>
+              {k.info?.source && <p className="text-[9px] text-muted-foreground mt-1">sur {k.info.nb} {k.info.source}</p>}
             </CardContent>
           </Card>
         ))}
@@ -690,15 +738,53 @@ export const PigeIA = () => {
             <div className="rounded-2xl border border-dashed border-border bg-muted/20 py-14 text-center">
               <Bookmark className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium">Aucune annonce enregistrée</p>
-              <p className="text-xs text-muted-foreground mt-1">Cliquez sur l’icône signet d’une annonce intéressante pour la retrouver ici.</p>
+              <p className="text-xs text-muted-foreground mt-1">Cliquez sur l'icône signet d'une annonce intéressante pour la retrouver ici.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {savedAnnonces.map(renderCard)}
-            </div>
+            <>
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={savedSearch}
+                  onChange={(e) => setSavedSearch(e.target.value)}
+                  placeholder="Rechercher par titre, ville, prix, vendeur, notes…"
+                  className="pl-9 h-10 rounded-xl bg-background"
+                />
+              </div>
+              {(() => {
+                const q = savedSearch.trim().toLowerCase();
+                const filtered = q
+                  ? savedAnnonces.filter((a: any) => {
+                      const hay = [
+                        a.titre, a.ville, a.code_postal, a.adresse, a.description,
+                        a.contact_vendeur?.nom, a.contact_vendeur?.agence_nom, a.contact_vendeur?.telephone,
+                        a.notes_agent, a.type_bien, a.prix ? String(a.prix) : "",
+                        a.workflow_statut,
+                      ].filter(Boolean).join(" ").toLowerCase();
+                      return hay.includes(q);
+                    })
+                  : savedAnnonces;
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-10 text-sm text-muted-foreground">
+                      Aucune annonce ne correspond à "{savedSearch}".
+                    </div>
+                  );
+                }
+                return (
+                  <>
+                    {q && <p className="text-[11px] text-muted-foreground mb-2">{filtered.length} résultat{filtered.length > 1 ? "s" : ""} sur {savedAnnonces.length}</p>}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {filtered.map(renderCard)}
+                    </div>
+                  </>
+                );
+              })()}
+            </>
           )}
         </DialogContent>
       </Dialog>
+
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
