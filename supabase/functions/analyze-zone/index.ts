@@ -49,7 +49,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { adresse: adresseRaw, secteur } = await req.json();
+    const { adresse: adresseRaw, secteur, previousAnalysis, previousDate } = await req.json();
     // Normalisation d'adresse : trim, espaces multiples, casse
     const adresse = String(adresseRaw || "")
       .replace(/\s+/g, " ")
@@ -125,11 +125,24 @@ Tu dois IMPÉRATIVEMENT produire une analyse complète en mode estimation :
 - Sources alternatives à citer : "Estimations marché secteur", "Tendances marché immobilier France", "Connaissance zone".
 - INTERDIT d'écrire "donnée indisponible" ou de laisser un champ vide. Formule plutôt : "estimation basée sur données de zone (fiabilité moyenne)".`;
 
+    let contextePrevious = "";
+    if (previousAnalysis && previousDate) {
+      const daysAgo = Math.max(1, Math.round((Date.now() - new Date(previousDate).getTime()) / 86400000));
+      contextePrevious = `\n\n=== ANALYSE PRÉCÉDENTE DE CETTE ZONE (il y a ${daysAgo} jours) ===
+Score opportunité précédent : ${previousAnalysis.score_opportunite ?? "?"}/100
+Score risque précédent : ${previousAnalysis.score_risque ?? "?"}/100
+Prix/m² précédent : ${previousAnalysis.prix_m2_moyen ?? "?"}
+Tendance précédente : ${previousAnalysis.tendance ?? "?"}
+Synthèse précédente : ${previousAnalysis.analyse_strategique?.resume_marche?.slice(0, 400) || previousAnalysis.strategie?.slice(0, 400) || "—"}
+
+INSTRUCTION : Compare ta nouvelle analyse avec la précédente. Dans ton champ "evolution_depuis_derniere", indique en 2-3 phrases ce qui a changé (prix, tension, opportunités nouvelles, risques apparus/disparus). Si tu n'as pas de nouvelles données DVF différentes, indique-le honnêtement et concentre-toi sur les évolutions stratégiques observables.`;
+    }
+
     const userPrompt = `Analyse cette zone de prospection immobilière :
 - Adresse / Quartier : ${adresse}
 - Secteur ciblé : ${secteur}
 
-${contexteDVF}
+${contexteDVF}${contextePrevious}
 
 Calcule scores opportunité et risque en t'appuyant sur ces données réelles, et produis un plan d'action concret.`;
 
@@ -214,6 +227,17 @@ Calcule scores opportunité et risque en t'appuyant sur ces données réelles, e
                   type: "array",
                   description: "Profils-types (typologie + situation probable, JAMAIS nominatif)",
                   items: {
+                    type: "object",
+                    properties: {
+                      type_bien: { type: "string" },
+                      situation_probable: { type: "string" },
+                      argument_approche: { type: "string" },
+                    },
+                    required: ["type_bien", "situation_probable", "argument_approche"],
+                    additionalProperties: false,
+                  },
+                },
+                evolution_depuis_derniere: { type: "string", description: "Si analyse précédente fournie, décrit en 2-3 phrases ce qui a changé. Sinon, chaîne vide." },
                     type: "object",
                     properties: {
                       type_bien: { type: "string" },
