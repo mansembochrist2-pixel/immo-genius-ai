@@ -6,7 +6,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const BAN_URL = "https://api-adresse.data.gouv.fr/search/";
+const BAN_URLS = [
+  "https://data.geopf.fr/geocodage/search",
+  "https://api-adresse.data.gouv.fr/search",
+];
+
+async function geocode(adresse: string): Promise<Response> {
+  let lastErr: unknown = null;
+  for (const base of BAN_URLS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(`${base}/?q=${encodeURIComponent(adresse)}&limit=1`, {
+          headers: { "User-Agent": "EstateAI/1.0 (contact@estateai.app)", "Accept": "application/json" },
+        });
+        if (res.ok) return res;
+        lastErr = new Error(`${base} -> ${res.status}`);
+      } catch (e) {
+        lastErr = e;
+      }
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+  throw lastErr ?? new Error("Geocoding failed");
+}
 const CADASTRE_URL = "https://apicarto.ign.fr/api/cadastre/parcelle";
 const DVF_URL = "https://app.dvf.etalab.gouv.fr/api/mutations3";
 
@@ -23,8 +45,8 @@ serve(async (req) => {
       });
     }
 
-    // 1. Géocodage BAN
-    const geoRes = await fetch(`${BAN_URL}?q=${encodeURIComponent(adresse)}&limit=1`);
+    // 1. Géocodage BAN (avec fallback géoplateforme IGN)
+    const geoRes = await geocode(adresse);
     const geoJson = await geoRes.json();
     const feature = geoJson.features?.[0];
     if (!feature) {
