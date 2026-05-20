@@ -301,7 +301,12 @@ export default function Expertise() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Loyer mensuel (€)</Label><NumberInput value={String(inputs.loyer_mensuel)} onChange={v => set("loyer_mensuel", Number(v) || 0)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Loyer mensuel (€) {prefillNote && <SourceHint source="Observatoires locaux des loyers, DVF, estimation IA" />}
+                    </Label>
+                    <NumberInput value={String(inputs.loyer_mensuel)} onChange={v => set("loyer_mensuel", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
                   <div><Label className="text-xs">Vacance (%)</Label><NumberInput value={String(inputs.vacance_locative_pct)} onChange={v => set("vacance_locative_pct", Number(v) || 0)} className="mt-1 h-9" /></div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -309,12 +314,28 @@ export default function Expertise() {
                   <Label className="text-xs">Zone d'encadrement des loyers</Label>
                 </div>
                 {inputs.encadrement_loyer && (
-                  <div><Label className="text-xs">Loyer plafond (€)</Label><NumberInput value={String(inputs.loyer_plafond ?? "")} onChange={v => set("loyer_plafond", Number(v) || undefined)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Loyer plafond (€) {prefillNote && <SourceHint source="Décrets préfectoraux d'encadrement (Paris, Lille, Lyon, Bordeaux, Montpellier...)" />}
+                    </Label>
+                    <NumberInput value={String(inputs.loyer_plafond ?? "")} onChange={v => set("loyer_plafond", Number(v) || undefined)} className="mt-1 h-9" />
+                  </div>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label className="text-xs">Charges copro/an</Label><NumberInput value={String(inputs.charges_copro_annuelles)} onChange={v => set("charges_copro_annuelles", Number(v) || 0)} className="mt-1 h-9" /></div>
-                  <div><Label className="text-xs">Taxe foncière/an</Label><NumberInput value={String(inputs.taxe_fonciere_annuelle)} onChange={v => set("taxe_fonciere_annuelle", Number(v) || 0)} className="mt-1 h-9" /></div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Charges copro/an {prefillNote && <SourceHint source="Moyennes ANIL/INSEE pour le type de bien et la zone" />}
+                    </Label>
+                    <NumberInput value={String(inputs.charges_copro_annuelles)} onChange={v => set("charges_copro_annuelles", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Taxe foncière/an {prefillNote && <SourceHint source="Données DGFiP / collectivités locales pour la commune" />}
+                    </Label>
+                    <NumberInput value={String(inputs.taxe_fonciere_annuelle)} onChange={v => set("taxe_fonciere_annuelle", Number(v) || 0)} className="mt-1 h-9" />
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div><Label className="text-xs">GLI annuelle (€)</Label><NumberInput value={String(inputs.assurance_gli)} onChange={v => set("assurance_gli", Number(v) || 0)} className="mt-1 h-9" /></div>
                   <div><Label className="text-xs">PNO annuelle (€)</Label><NumberInput value={String(inputs.assurance_pno)} onChange={v => set("assurance_pno", Number(v) || 0)} className="mt-1 h-9" /></div>
