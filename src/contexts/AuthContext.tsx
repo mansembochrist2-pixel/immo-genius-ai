@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const demoOptOutKey = "estate-ai-demo-opt-out";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -53,23 +52,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const authPage = ["/login", "/signup", "/forgot-password"].includes(window.location.pathname);
-      if (!session && !authPage && localStorage.getItem(demoOptOutKey) !== "true") {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: "demo@estate-ai.app",
-          password: "DemoEstate2026!",
-        });
-        if (!error && data.session) {
-          setSession(data.session);
-          setUser(data.user);
-          ensureProfileForSession(data.session).catch(() => {});
-        }
-      } else {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session) ensureProfileForSession(session).catch(() => {});
-      }
+    // Récupère la session existante uniquement — pas d'auto-login démo
+    // (évite les conflits entre 2 comptes connectés en parallèle).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session) ensureProfileForSession(session).catch(() => {});
       setLoading(false);
     });
 
