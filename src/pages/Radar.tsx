@@ -274,6 +274,26 @@ export const RadarInner = () => {
             </Button>
           </div>
 
+          {isAnalyzing && (
+            <div className="mt-4">
+              <AnalysisLoader
+                module="Radar Prospection"
+                context={adresse}
+                eta="30 à 90 secondes selon la zone"
+                messages={[
+                  "Géocodage de la zone…",
+                  "Connexion aux données DVF officielles…",
+                  "Analyse des transactions 24 derniers mois…",
+                  "Calcul des prix médians et de la tension…",
+                  "Détection des micro-secteurs porteurs…",
+                  "Identification des profils vendeurs probables…",
+                  "Construction de la stratégie commerciale…",
+                  "Finalisation du rapport — quasi terminé…",
+                ]}
+              />
+            </div>
+          )}
+
           {analyseResult && (
             <div className="mt-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -292,6 +312,9 @@ export const RadarInner = () => {
                   <Button size="sm" variant="outline" className="text-xs h-7 gap-1"
                     onClick={() => sendToCopilote({ zone: adresse, type: analyseResult.classification, donnees: analyseResult }, adresse)}>
                     <Bot className="h-3 w-3" /> Envoyer au Copilote
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => { setAnalyseResult(null); setAdresse(""); }}>
+                    Fermer ✕
                   </Button>
                 </div>
               </div>
