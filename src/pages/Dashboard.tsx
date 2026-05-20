@@ -267,7 +267,7 @@ const Dashboard = () => {
             {topPige.length === 0 ? (
               <div className="text-center py-6">
                 <Phone className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground italic">Aucune annonce piégée pour l'instant.</p>
+                <p className="text-xs text-muted-foreground italic">Aucune annonce pigée pour l'instant.</p>
                 <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => navigate("/chasseur?tab=pige")}>Lancer ma première pige</Button>
               </div>
             ) : (
