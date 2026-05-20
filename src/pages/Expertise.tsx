@@ -226,7 +226,7 @@ export default function Expertise() {
                 </p>
               )}
             </CardHeader>
-            <CardContent className="space-y-5 max-h-[calc(100vh-220px)] overflow-y-auto pr-2">
+            <CardContent className="space-y-5 xl:max-h-[calc(100vh-260px)] xl:overflow-y-auto xl:pr-2">
               {/* Bien */}
               <section className="space-y-3">
                 <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Le bien</p>
