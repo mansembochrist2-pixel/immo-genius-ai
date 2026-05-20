@@ -194,25 +194,23 @@ export default function Expertise() {
 
   return (
     <AppLayout>
-      <div className="page-header flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="page-title flex items-center gap-3">
-            <BadgeEuro className="h-7 w-7 text-primary" />
-            Expertise <span className="gradient-text">Valeur & Rendement</span>
-          </h1>
-          <p className="page-subtitle">
-            Analyse financière complète : rentabilité, simulation post-rénovation, plus-value, cash-flow.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => navigate("/valorisation")}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Retour à Valorisation IA
-        </Button>
+      <div className="page-header">
+        <h1 className="page-title flex items-center gap-3">
+          <TrendingUp className="h-7 w-7 text-primary" />
+          <span className="gradient-text">Valorisation</span>
+        </h1>
+        <p className="page-subtitle">
+          Analyse financière complète : rentabilité, simulation post-rénovation, plus-value, cash-flow.
+        </p>
       </div>
+
+      <ValorisationTabs current="expertise" />
 
       <TooltipProvider delayDuration={200}>
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           {/* === INPUTS === */}
-          <Card className="xl:col-span-2 bg-card/60 border-border/30 h-fit sticky top-20">
+          <Card className="xl:col-span-2 bg-card/60 border-border/30 xl:sticky xl:top-20 xl:self-start">
+
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-primary" />
