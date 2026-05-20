@@ -131,10 +131,13 @@ const EstimationIA = () => {
       <div className="page-header">
         <h1 className="page-title flex items-center gap-3">
           <TrendingUp className="h-7 w-7 text-primary" />
-          Valorisation <span className="gradient-text">IA</span>
+          <span className="gradient-text">Valorisation</span>
         </h1>
         <p className="page-subtitle">{lang === "fr" ? "Estimez la valeur de marché d'un bien, puis basculez en un clic vers l'analyse rentabilité & expertise patrimoniale." : "Estimate market value, then switch to full rentability & expertise analysis."}</p>
       </div>
+
+      <ValorisationTabs current="estimation" />
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-card/60 border-border/30">
