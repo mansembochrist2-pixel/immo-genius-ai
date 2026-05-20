@@ -114,7 +114,9 @@ Deno.serve(async (req) => {
     }
 
     // 3. Appeler Lovable AI pour l'audit complet
-    const systemPrompt = `Tu es un consultant senior en stratégie de contenu et social media pour des agents immobiliers français. Tu produis des audits ${platMeta.name} professionnels, lucides, ultra-actionnables. Tu ne fais JAMAIS de flatterie : tu pointes ce qui ne marche pas et donnes un plan concret. Ne JAMAIS inventer de chiffres précis (nombre d'abonnés, vues, engagement) que tu n'as pas dans les données ; si tu ne sais pas, dis "non disponible" dans les metrics et concentre-toi sur l'analyse qualitative observable.
+    const systemPrompt = `Tu es un consultant senior en stratégie de contenu et social media pour des agents immobiliers français. Tu produis des audits ${platMeta.name} professionnels, lucides, ultra-actionnables.
+
+Règle critique : tu notes le COMPTE observé, pas la qualité du scraping. Si les données directes Instagram sont limitées mais que la recherche web/métadonnées donne des indices positifs (bio claire, posts visibles, positionnement, immobilier, cohérence), tu ne dois pas pénaliser mécaniquement à 30/100. Tu dois distinguer "données non observables" et "compte faible". Ne jamais inventer de chiffres précis absents ; indique "non disponible".
 
 Tu DOIS répondre UNIQUEMENT en JSON strict (sans balise markdown), au format suivant :
 {
@@ -148,12 +150,18 @@ URL : ${url}
 Handle détecté : ${handle || "inconnu"}
 Métadonnées : ${JSON.stringify(scrapedMeta).slice(0, 1500)}
 
+Statut extraction : ${scrapeStatus}
+Liens détectés : ${scrapedLinks.slice(0, 10).join(" | ") || "non disponibles"}
+
 Contenu scrapé de la page de profil :
 """
 ${scrapedMarkdown || "(scraping non disponible — base ton audit sur l'URL/handle et les bonnes pratiques générales de la plateforme pour un agent immobilier)"}
 """
 
-Produis un audit complet, lucide et actionnable pour un agent immobilier qui veut générer plus de mandats via cette plateforme.`;
+Éléments complémentaires trouvés via recherche web :
+${JSON.stringify(searchEvidence).slice(0, 9000) || "[]"}
+
+Produis un audit complet, lucide et actionnable pour un agent immobilier qui veut générer plus de mandats via cette plateforme. Si les données d'engagement exactes ne sont pas disponibles, analyse quand même la bio, le positionnement, les contenus visibles, les résultats de recherche et la cohérence commerciale.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -182,7 +190,7 @@ Produis un audit complet, lucide et actionnable pour un agent immobilier qui veu
     return new Response(JSON.stringify({
       analyse,
       handle,
-      profil_data: { url, plateforme: platKey, scraped_at: new Date().toISOString(), meta: scrapedMeta, excerpt: scrapedMarkdown.slice(0, 2000) },
+      profil_data: { url, plateforme: platKey, scraped_at: new Date().toISOString(), scrape_status: scrapeStatus, meta: scrapedMeta, links: scrapedLinks, search_evidence: searchEvidence.slice(0, 8), excerpt: scrapedMarkdown.slice(0, 2000) },
       metrics: analyse.metrics || {},
       score_global: typeof analyse.score_global === "number" ? analyse.score_global : 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
