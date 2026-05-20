@@ -30,10 +30,10 @@ const scoreBadgeColor = (score: number) => {
 };
 
 const CATEGORIES = [
-  { key: "top",        label: "🔥 Top opportunités",  min: 75, color: "text-destructive",       info: "Score ≥ 75/100 : vendeur particulier, signaux faibles côté vendeur, prix accessible. À appeler dans la journée." },
-  { key: "moyenne",    label: "⚡ Moyennes",          min: 50, color: "text-warning",           info: "Score 50–74 : potentiel correct, qualification rapide recommandée pour confirmer la mandatabilité." },
-  { key: "faible",     label: "💡 Faibles",           min: 25, color: "text-primary",           info: "Score 25–49 : angles limités. À traiter si vous avez de la bande passante." },
-  { key: "surveiller", label: "👁 À surveiller",      min: 0,  color: "text-muted-foreground",  info: "Score < 25 : pas d'angle immédiat (vendeur déjà chez un confrère, prix élevé). Surveillez les évolutions." },
+  { key: "top",        label: "🔥 Top opportunités",  min: 75, color: "text-destructive",       info: "**Score ≥ 75/100.** Vendeurs particuliers détectés OU baisse de prix OU multi-diffusion (signe de mandat simple) + prix réaliste vs marché. **À appeler dans la journée** : c'est ici que se trouvent les mandats à signer cette semaine." },
+  { key: "moyenne",    label: "⚡ Moyennes",          min: 50, color: "text-warning",           info: "**Score 50-74.** Potentiel correct : soit le bien est intéressant mais le vendeur est une agence, soit le prix est légèrement au-dessus du marché. **Qualification rapide recommandée** pour confirmer si l'angle est exploitable (négo prix, expiration mandat…)." },
+  { key: "faible",     label: "💡 Faibles",           min: 25, color: "text-primary",           info: "**Score 25-49.** Angles très limités : bien hors zone porteuse, vendeur peu motivé, ou prix surévalué. **À traiter uniquement si bande passante** disponible — ROI commercial faible." },
+  { key: "surveiller", label: "👁 À surveiller",      min: 0,  color: "text-muted-foreground",  info: "**Score < 25.** Annonces déjà chez un confrère exclusif, prix totalement déconnecté, ou données vendeur introuvables. **Aucun angle immédiat** — mais à surveiller car une baisse de prix ou un changement d'agence peut faire monter le score plus tard. Cette catégorie reste souvent vide : c'est normal." },
 ] as const;
 
 const WORKFLOW = [
@@ -440,7 +440,7 @@ export const PigeIA = () => {
   const kpis = [
     { label: activeZone ? `Opportunités sur ${activeZone}` : "Opportunités (lancez une recherche)", value: zoneAnnoncesCount, icon: Radar },
     { label: "🔥 Top (≥75)", value: byCategory.top.length, icon: Flame },
-    { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck },
+    { label: "🔖 Enregistrés", value: savedAnnonces.length, icon: BookmarkCheck, onClick: () => setSavedOpen(true), clickable: true },
     {
       label: "Score moyen",
       value: scoreMoyen !== null ? `${scoreMoyen}/100` : "—",
@@ -538,15 +538,9 @@ export const PigeIA = () => {
       {/* Search hero */}
       <Card className="bg-gradient-to-br from-primary/5 via-card to-accent/5 border-primary/20 rounded-3xl overflow-hidden">
         <CardContent className="p-8">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold truncate">Chasseur de mandats · Détection IA temps réel</p>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => setSavedOpen(true)} className="rounded-xl gap-2 shrink-0 bg-background/80">
-              <BookmarkCheck className="h-3.5 w-3.5" /> Enregistrés
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{savedAnnonces.length}</Badge>
-            </Button>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold truncate">Chasseur de mandats · Détection IA temps réel</p>
           </div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
             Quelle zone souhaitez-vous <span className="gradient-text">piger</span> ?
@@ -602,7 +596,11 @@ export const PigeIA = () => {
         {kpis.map((k, i) => (
           <Card
             key={k.label}
-            className="bg-card border-border rounded-2xl transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 duration-300"
+            onClick={k.clickable ? k.onClick : undefined}
+            className={cn(
+              "bg-card border-border rounded-2xl transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 duration-300",
+              k.clickable && "cursor-pointer hover:border-primary/60"
+            )}
             style={{ animation: `fadeInUp 0.5s ease-out ${i * 80}ms both` }}
           >
             <CardContent className="p-4">
@@ -611,7 +609,7 @@ export const PigeIA = () => {
                 {k.info && (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button type="button" className="text-muted-foreground hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center transition-colors" aria-label="Explication du score">
+                      <button type="button" onClick={(e) => e.stopPropagation()} className="text-muted-foreground hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center transition-colors" aria-label="Explication du score">
                         <Info className="h-2.5 w-2.5" />
                       </button>
                     </PopoverTrigger>
@@ -638,6 +636,7 @@ export const PigeIA = () => {
               </div>
               <p className="text-2xl font-bold tabular-nums">{k.value}</p>
               {k.info?.source && <p className="text-[9px] text-muted-foreground mt-1">sur {k.info.nb} {k.info.source}</p>}
+              {k.clickable && <p className="text-[9px] text-primary mt-1 font-medium">Voir mes enregistrés →</p>}
             </CardContent>
           </Card>
         ))}
@@ -697,13 +696,17 @@ export const PigeIA = () => {
                       role="button"
                       tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                      className="opacity-50 hover:opacity-100 cursor-help"
+                      className="text-muted-foreground/70 hover:text-primary border border-border rounded-full w-4 h-4 inline-flex items-center justify-center cursor-help transition-colors"
+                      aria-label={`Explication ${c.label}`}
                     >
-                      <HelpCircle className="h-3 w-3" />
+                      <Info className="h-2.5 w-2.5" />
                     </span>
                   </PopoverTrigger>
-                  <PopoverContent className="w-64 text-xs" align="center" onClick={(e) => e.stopPropagation()}>
-                    {c.info}
+                  <PopoverContent className="w-80 text-xs leading-relaxed" align="center" onClick={(e) => e.stopPropagation()}>
+                    <p className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                      <span className={c.color}>{c.label}</span>
+                    </p>
+                    <div className="text-muted-foreground whitespace-pre-line" dangerouslySetInnerHTML={{ __html: c.info.replace(/\*\*(.+?)\*\*/g, '<strong class="text-foreground">$1</strong>') }} />
                   </PopoverContent>
                 </Popover>
               </TabsTrigger>
