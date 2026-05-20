@@ -14,6 +14,7 @@ export const routeLoaders = {
   copilote: () => import("../pages/Copilote"),
   studio: () => import("../pages/Documents"),
   estimation: () => import("../pages/EstimationIA"),
+  expertise: () => import("../pages/Expertise"),
   settings: () => import("../pages/Settings"),
   sauvegardes: () => import("../pages/Sauvegardes"),
   mentionsLegales: () => import("../pages/MentionsLegales"),

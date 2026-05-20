@@ -23,6 +23,7 @@ const Chasseur = lazyWithRetry(routeLoaders.chasseur);
 const Copilote = lazyWithRetry(routeLoaders.copilote);
 const Documents = lazyWithRetry(routeLoaders.studio);
 const EstimationIA = lazyWithRetry(routeLoaders.estimation);
+const Expertise = lazyWithRetry(routeLoaders.expertise);
 const Settings = lazyWithRetry(routeLoaders.settings);
 const Sauvegardes = lazyWithRetry(routeLoaders.sauvegardes);
 const MentionsLegales = lazyWithRetry(routeLoaders.mentionsLegales);
@@ -92,6 +93,8 @@ const App = () => (
                   <Route path="/studio" element={<Documents />} />
                   <Route path="/documents" element={<Navigate to="/studio" replace />} />
                   <Route path="/estimation" element={<EstimationIA />} />
+                  <Route path="/valorisation" element={<EstimationIA />} />
+                  <Route path="/expertise" element={<Expertise />} />
                   <Route path="/sauvegardes" element={<Sauvegardes />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/faq" element={<FAQ />} />
