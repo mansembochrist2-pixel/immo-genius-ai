@@ -509,12 +509,29 @@ export default function Expertise() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {loadingNarrative && (
+                  <AnalysisLoader
+                    module="Rédaction du dossier d'expertise"
+                    context={inputs.adresse || undefined}
+                    messages={[
+                      "Analyse des indicateurs de rentabilité…",
+                      "Mise en perspective marché local & comparables DVF…",
+                      "Rédaction de la synthèse exécutive…",
+                      "Construction de la stratégie de valorisation…",
+                      "Mise en forme du rapport client…",
+                    ]}
+                    eta="30 à 60 secondes"
+                  />
+                )}
                 {!narrative ? (
-                  <Button className="w-full" onClick={genererRapport} disabled={loadingNarrative}>
-                    {loadingNarrative ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> L'IA rédige le dossier...</> : <><Sparkles className="h-4 w-4 mr-2" /> Générer le dossier d'expertise</>}
-                  </Button>
+                  !loadingNarrative && (
+                    <Button className="w-full" onClick={genererRapport} disabled={loadingNarrative}>
+                      <Sparkles className="h-4 w-4 mr-2" /> Générer le dossier d'expertise
+                    </Button>
+                  )
                 ) : (
                   <>
+
                     <NarrativeBlock label="Synthèse exécutive" value={narrative.synthese_executive || ""} onChange={(v) => setNarrative({ ...narrative, synthese_executive: v })} />
                     <NarrativeBlock label="Analyse du bien & marché" value={narrative.analyse_actuelle || ""} onChange={(v) => setNarrative({ ...narrative, analyse_actuelle: v })} />
                     <NarrativeBlock label="Stratégie de valorisation" value={narrative.analyse_valorisation || ""} onChange={(v) => setNarrative({ ...narrative, analyse_valorisation: v })} />
