@@ -142,8 +142,8 @@ const Dashboard = () => {
             <Bot className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-base font-semibold text-foreground">Que voulez-vous conquérir aujourd'hui ?</p>
-            <p className="text-xs text-muted-foreground">Pige, prospection, estimation, contenu — votre arme commerciale IA est prête.</p>
+            <p className="text-base font-semibold text-foreground">Que voulez-vous transformer en mandat aujourd'hui ?</p>
+            <p className="text-xs text-muted-foreground">Piges enregistrées, Radar, estimation, contenu — tout part de vos modules actifs.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -160,22 +160,22 @@ const Dashboard = () => {
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-primary" /> Pige enregistrée
-              <InfoTip>Annonces sauvegardées dans votre vivier de pige IA.</InfoTip>
+              <Phone className="h-3.5 w-3.5 text-primary" /> Piges enregistrées
+              <InfoTip>Uniquement les annonces que vous avez enregistrées dans le vivier du module Pige IA.</InfoTip>
             </p>
-            <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.total}</p>
-            <p className="text-[10px] text-primary mt-2 font-medium">+{stats.pige.nouvelles} en 24h →</p>
+            <p className="text-2xl font-bold mt-2 text-foreground">{savedCount}</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">Voir mon vivier →</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Target className="h-3.5 w-3.5 text-primary" /> Score pigeabilité moyen
-              <InfoTip>Moyenne des scores IA sur vos annonces pigées.</InfoTip>
+              <Target className="h-3.5 w-3.5 text-primary" /> Score pigeable moyen
+              <InfoTip>Moyenne des scores IA calculée uniquement sur les piges enregistrées dans votre vivier.</InfoTip>
             </p>
-            <p className="text-2xl font-bold mt-2 text-foreground">{stats.pige.scoreMoyen}<span className="text-sm text-muted-foreground">/100</span></p>
-            <p className="text-[10px] text-primary mt-2 font-medium">Top {stats.pige.topScore} →</p>
+            <p className="text-2xl font-bold mt-2 text-foreground">{savedAverageScore}<span className="text-sm text-muted-foreground">/100</span></p>
+            <p className="text-[10px] text-primary mt-2 font-medium">sur {savedCount} pige{savedCount > 1 ? "s" : ""} enregistrée{savedCount > 1 ? "s" : ""} →</p>
           </CardContent>
         </Card>
 
