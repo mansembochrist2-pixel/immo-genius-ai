@@ -288,6 +288,9 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Performance KPIs */}
+      <PerformanceWidget />
     </AppLayout>
   );
 };
