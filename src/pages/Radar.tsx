@@ -619,7 +619,25 @@ export const RadarInner = () => {
                         </Badge>
                       ))}
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex gap-1 shrink-0 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7 gap-1"
+                        onClick={() => reopenAnalysis(opp)}
+                        title="Rouvrir l'analyse complète (sans nouvel appel IA)"
+                      >
+                        <BarChart3 className="h-3 w-3" /> Voir l'analyse
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7 gap-1"
+                        onClick={() => sendToCopilote(opp, opp.titre)}
+                        title="Envoyer cette analyse au Copilote pour avis stratégique"
+                      >
+                        <Bot className="h-3 w-3" /> Copilote
+                      </Button>
                       {!isRisque && (
                         <Button
                           size="sm"
