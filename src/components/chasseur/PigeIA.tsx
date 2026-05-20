@@ -325,11 +325,12 @@ export const PigeIA = () => {
 
   const runSearch = async () => {
     if (!zone.trim()) { toast.error("Entrez une ville, un quartier ou un code postal"); return; }
+    if (!user?.id) { toast.error("Connectez-vous pour lancer une recherche de pige."); return; }
     setSearching(true);
     setActiveZone(zone.trim());
     setActiveTab("top");
     try {
-      const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim(), user_id: user?.id } });
+      const { data, error } = await supabase.functions.invoke("search-pige-zone", { body: { zone: zone.trim(), user_id: user.id } });
       if (error && !data) { toast.error("Erreur lors de la récupération des annonces."); return; }
       const res = (data || {}) as any;
       const status: string = res.status || (res.error ? "scraping_error" : "success");
