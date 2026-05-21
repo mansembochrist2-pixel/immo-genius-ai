@@ -21,7 +21,7 @@ interface NumberInputProps extends Omit<React.ComponentProps<"input">, "value" |
  *   - tolerates pasted values containing spaces, commas, currency symbols
  */
 export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
-  ({ value, onChange, allowDecimal = false, format = "thousands", className, inputMode, ...rest }, ref) => {
+  ({ value, onChange, allowDecimal = true, format = "thousands", className, inputMode, ...rest }, ref) => {
     const raw = value == null ? "" : String(value);
 
     const formatDisplay = (v: string): string => {
