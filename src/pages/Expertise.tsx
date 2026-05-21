@@ -30,6 +30,9 @@ import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { SourceHint, DISCLAIMER_TEXT } from "@/components/valorisation/SourceHint";
 import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
 import { FiscalOptimizer } from "@/components/valorisation/FiscalOptimizer";
+import { PremiumKpis } from "@/components/valorisation/PremiumKpis";
+import { ConseilStrategique } from "@/components/valorisation/ConseilStrategique";
+import { StrategeIA } from "@/components/valorisation/StrategeIA";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 const fmtEur = (n?: number) =>
