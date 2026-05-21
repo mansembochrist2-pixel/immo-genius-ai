@@ -69,6 +69,25 @@ export const AuditReseaux = () => {
 
   const plat = PLATEFORMES.find(p => p.key === active)!;
 
+  // All audits (toutes plateformes) — pour afficher le compteur réel par plateforme
+  // sans devoir cliquer dessus.
+  const { data: allAudits = [] } = useQuery({
+    queryKey: ["audits-reseaux-all", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("audits_reseaux" as any)
+        .select("id, plateforme")
+        .eq("user_id", user.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const countByPlatform = (key: Plateforme) =>
+    (allAudits as any[]).filter((a) => a.plateforme === key).length;
+
   const { data: audits = [] } = useQuery({
     queryKey: ["audits-reseaux", active, user?.id],
     queryFn: async () => {
@@ -111,6 +130,7 @@ export const AuditReseaux = () => {
       toast.success("Audit terminé et sauvegardé");
       setUrl("");
       qc.invalidateQueries({ queryKey: ["audits-reseaux", active, user.id] });
+      qc.invalidateQueries({ queryKey: ["audits-reseaux-all", user.id] });
       const fresh = await supabase.from("audits_reseaux" as any).select("*").eq("user_id", user.id).eq("plateforme", active).order("created_at", { ascending: false }).limit(1).single();
       if (fresh.data) setSelectedAudit(fresh.data);
     } catch (e: any) {
@@ -127,6 +147,7 @@ export const AuditReseaux = () => {
     toast.success("Audit supprimé");
     if (selectedAudit?.id === id) setSelectedAudit(null);
     qc.invalidateQueries({ queryKey: ["audits-reseaux", active, user?.id] });
+    qc.invalidateQueries({ queryKey: ["audits-reseaux-all", user?.id] });
   };
 
   // Evolution chart data
@@ -155,7 +176,7 @@ export const AuditReseaux = () => {
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium">{p.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{audits.filter((a: any) => a.plateforme === p.key).length} audit(s)</p>
+                  <p className="text-[10px] text-muted-foreground">{countByPlatform(p.key)} audit{countByPlatform(p.key) > 1 ? "s" : ""}</p>
                 </div>
               </button>
             );
