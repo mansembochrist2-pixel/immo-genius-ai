@@ -459,7 +459,7 @@ export function suggestOptimizations(
   }
 
   // 2. Allonger durée crédit (max 25 ans)
-  if (i.duree_credit_annees < 25 && i.capital_emprunte !== 0) {
+  if (i.duree_credit_annees < 25 && results.capital_emprunte > 0) {
     const newDuree = Math.min(25, i.duree_credit_annees + 5);
     const d = simulate({ duree_credit_annees: newDuree });
     if (d > 5) {
