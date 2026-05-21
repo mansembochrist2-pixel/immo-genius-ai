@@ -82,7 +82,7 @@ const CATEGORIES: FAQCategory[] = [
     items: [
       { q: "Mes données sont-elles sécurisées ?", a: "Oui : chiffrement en transit (TLS) et au repos (AES-256), isolation stricte par compte (Row Level Security), hébergement européen (RGPD), authentification OAuth officielle.", tags: ["securite", "chiffrement"] },
       { q: "Qui peut voir mes données ?", a: "Vous seul. Chaque agent a son espace privé totalement isolé. Aucun autre utilisateur, ni notre équipe, n'accède à vos données clients.", tags: ["isolation", "confidentialite"] },
-      { q: "Comment exporter toutes mes données ?", a: "Paramètres → RGPD → Exporter mes données. Vous recevez un fichier JSON complet (clients, mandats, estimations, agenda, inbox).", tags: ["export", "rgpd"] },
+      { q: "Comment exporter toutes mes données ?", a: "Paramètres → RGPD → Exporter mes données. Vous recevez un fichier JSON complet (analyses Radar, piges, estimations, rapports d'expertise, audits Studio).", tags: ["export", "rgpd"] },
       { q: "Comment supprimer mon compte ?", a: "Paramètres → RGPD → Supprimer mon compte. Suppression définitive sous 30 jours conformément au RGPD. Vous pouvez exporter vos données avant suppression.", tags: ["suppression", "rgpd"] },
     ],
   },
