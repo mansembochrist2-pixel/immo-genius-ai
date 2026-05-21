@@ -434,18 +434,16 @@ export default function Expertise() {
                 eta="15 à 40 secondes"
               />
             )}
-            {/* KPIs principaux */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Kpi label="Rentabilité brute" value={fmtPct(results.rentabilite_brute)} />
-              <Kpi label="Rentabilité nette" value={fmtPct(results.rentabilite_nette)} />
-              <Kpi label="Nette-nette" value={fmtPct(results.rentabilite_nette_nette)} highlight />
-              <Kpi label="Cash-flow / mois" value={fmtEur(results.cash_flow_mensuel)} highlight={results.cash_flow_mensuel >= 0} negative={results.cash_flow_mensuel < 0} />
-            </div>
+            {/* KPIs Premium en haut */}
+            <PremiumKpis results={results} />
+
+            {/* Conseil IA dynamique (instantané, déterministe) */}
+            <ConseilStrategique inputs={inputs} results={results} />
 
             {/* Graphiques "Effet Wow" */}
             <ExpertiseCharts inputs={inputs} results={results} />
 
-            {/* Intelligence fiscale & optimisation */}
+            {/* Intelligence fiscale & optimisation (déterministe) */}
             <FiscalOptimizer
               inputs={inputs}
               results={results}
@@ -454,6 +452,10 @@ export default function Expertise() {
                 toast.success("Paramètre appliqué — résultats mis à jour.");
               }}
             />
+
+            {/* Stratège IA — leviers avancés (LLM) */}
+            <StrategeIA inputs={inputs} results={results} />
+
 
 
 
