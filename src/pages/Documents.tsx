@@ -503,7 +503,28 @@ const Studio = () => {
               </CardContent>
             </Card>
 
-            {mandatContent ? (
+            {loadingMandat && !mandatContent ? (
+              <AnalysisLoader
+                module={lang === "fr" ? "Rédaction du mandat" : "Drafting mandate"}
+                context={mandatType}
+                eta={lang === "fr" ? "30 à 90 secondes" : "30 to 90 seconds"}
+                messages={lang === "fr" ? [
+                  "Lecture du template et des informations du mandant…",
+                  "Vérification de la conformité loi Hoguet & ALUR…",
+                  "Structuration des articles du mandat…",
+                  "Rédaction des clauses sur mesure…",
+                  "Insertion des données du bien et des honoraires…",
+                  "Mise en forme finale prête à signer…",
+                ] : [
+                  "Reading the template and seller information…",
+                  "Checking Hoguet & ALUR compliance…",
+                  "Structuring mandate articles…",
+                  "Drafting custom clauses…",
+                  "Inserting property and fees data…",
+                  "Final ready-to-sign formatting…",
+                ]}
+              />
+            ) : mandatContent ? (
               <Card className="bg-card/60 border-border/30">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-sm flex items-center gap-2"><Pencil className="h-4 w-4 text-primary" /> {lang === "fr" ? "Aperçu" : "Preview"} — {mandatType}</CardTitle>
@@ -516,10 +537,12 @@ const Studio = () => {
                     onChange={e => setMandatContent(e.target.value)}
                     className="bg-muted/5 border-border/20 text-sm min-h-[400px] font-mono leading-relaxed"
                   />
-                  <div className="flex gap-2">
-                    <Button size="sm" className="flex-1 gap-1" onClick={downloadMandatDocx}><Download className="h-3.5 w-3.5" /> {lang === "fr" ? "Télécharger .docx" : "Download .docx"}</Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button size="sm" className="flex-1 min-w-[140px] gap-1" onClick={downloadMandatDocx}><Download className="h-3.5 w-3.5" /> {lang === "fr" ? "Télécharger .docx" : "Download .docx"}</Button>
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => copier(mandatContent)}><Copy className="h-3.5 w-3.5" /> {t("docs.copy")}</Button>
-                    <Button size="sm" variant="outline" className="gap-1" onClick={() => toast.info(lang === "fr" ? "Envoi par email — connecteur à configurer" : "Email sending — connector to configure")}><Send className="h-3.5 w-3.5" /> {lang === "fr" ? "Envoyer" : "Send"}</Button>
+                    <Button size="sm" variant="outline" className="gap-1 border-primary/30 hover:bg-primary/5 hover:text-primary" onMouseEnter={() => preloadRoute.copilote()} onClick={() => sendToCopilote(lang === "fr" ? "mandat" : "mandate", mandatContent)}>
+                      <Bot className="h-3.5 w-3.5" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -580,7 +603,26 @@ const Studio = () => {
               </CardContent>
             </Card>
 
-            {annonce ? (
+            {loadingAnnonce && !annonce ? (
+              <AnalysisLoader
+                module={lang === "fr" ? "Rédaction de l'annonce" : "Drafting listing"}
+                context={annonceForm.adresse}
+                eta={lang === "fr" ? "20 à 60 secondes" : "20 to 60 seconds"}
+                messages={lang === "fr" ? [
+                  "Analyse du bien et de l'audience cible…",
+                  "Préparation des 3 versions (courte, longue, premium)…",
+                  "Rédaction du titre accrocheur…",
+                  "Construction des phrases d'accroche…",
+                  "Optimisation pour Leboncoin, SeLoger et réseaux sociaux…",
+                ] : [
+                  "Analyzing the property and target audience…",
+                  "Preparing 3 versions (short, long, premium)…",
+                  "Crafting the catchy headline…",
+                  "Building catchphrases…",
+                  "Optimizing for listing portals and social media…",
+                ]}
+              />
+            ) : annonce ? (
               <Card className="bg-card/60 border-border/30">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-sm">{annonce.titre_accrocheur || (lang === "fr" ? "Annonce générée" : "Generated listing")}</CardTitle>
@@ -645,6 +687,9 @@ const Studio = () => {
                       {annonce.hashtags.map((h: string) => (<Badge key={h} variant="secondary" className="text-[9px] cursor-pointer" onClick={() => copier(h)}>{h}</Badge>))}
                     </div>
                   )}
+                  <Button size="sm" variant="outline" className="w-full gap-1 border-primary/30 hover:bg-primary/5 hover:text-primary" onMouseEnter={() => preloadRoute.copilote()} onClick={() => sendToCopilote(lang === "fr" ? "texte d'annonce" : "listing copy", editableAnnonce[`version_${activeAnnonceFormat}`] || annonce[`version_${activeAnnonceFormat}`] || "")}>
+                    <Bot className="h-3.5 w-3.5" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -707,7 +752,26 @@ const Studio = () => {
               </CardContent>
             </Card>
 
-            {marketing ? (
+            {loadingMarketing && !marketing ? (
+              <AnalysisLoader
+                module={lang === "fr" ? "Création du contenu marketing" : "Crafting marketing content"}
+                context={marketingForm.type}
+                eta={lang === "fr" ? "15 à 40 secondes" : "15 to 40 seconds"}
+                messages={lang === "fr" ? [
+                  "Analyse de la cible et du ton souhaité…",
+                  "Recherche d'angles d'accroche pertinents…",
+                  "Rédaction de l'objet et du corps du message…",
+                  "Optimisation du call-to-action…",
+                  "Préparation des variantes et hashtags…",
+                ] : [
+                  "Analyzing target audience and tone…",
+                  "Finding relevant hooks…",
+                  "Drafting subject and body…",
+                  "Optimizing the call-to-action…",
+                  "Preparing variants and hashtags…",
+                ]}
+              />
+            ) : marketing ? (
               <Card className="bg-card/60 border-border/30">
                 <CardHeader><CardTitle className="text-sm flex items-center gap-2">{typeLabels[marketingForm.type] || "Contenu généré"}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -757,9 +821,14 @@ const Studio = () => {
                       </ul>
                     </div>
                   )}
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => copier(`${marketing.objet}\n\n${marketing.contenu_principal}\n\n${marketing.call_to_action}`)}>
-                    <Copy className="h-3 w-3 mr-2" /> {lang === "fr" ? "Copier tout" : "Copy all"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => copier(`${marketing.objet}\n\n${marketing.contenu_principal}\n\n${marketing.call_to_action}`)}>
+                      <Copy className="h-3 w-3 mr-2" /> {lang === "fr" ? "Copier tout" : "Copy all"}
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 border-primary/30 hover:bg-primary/5 hover:text-primary" onMouseEnter={() => preloadRoute.copilote()} onClick={() => sendToCopilote(lang === "fr" ? "contenu marketing" : "marketing content", `${marketing.objet}\n\n${marketing.contenu_principal}\n\n${marketing.call_to_action}`)}>
+                      <Bot className="h-3 w-3 mr-2" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
