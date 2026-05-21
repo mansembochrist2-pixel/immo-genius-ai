@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Mail, Radar, TrendingUp, Bot, Users, FileEdit, CalendarDays, LayoutDashboard,
+  Radar, TrendingUp, Bot, FileEdit, LayoutDashboard, Crosshair,
   ArrowRight, Lock, ShieldCheck, Sparkles, Star, Check, Zap, Clock, Target, Brain,
   ChevronRight, Quote,
 } from "lucide-react";
@@ -13,46 +13,41 @@ import dashboardMockup from "@/assets/dashboard-preview.jpeg";
 import heroBuilding3d from "@/assets/landing-hero-3d.jpg";
 
 const modules = [
-  { icon: LayoutDashboard, title: "Dashboard IA", desc: "Une vue 360° de votre activité : KPIs, objectif CA, prospects chauds et actions du jour priorisées par l'IA." },
-  { icon: Mail, title: "Inbox intelligente", desc: "Vos emails analysés en temps réel : intention détectée, urgence évaluée, réponses pré-rédigées validées en 1 clic." },
-  { icon: CalendarDays, title: "Agenda IA", desc: "Calendrier connecté avec brief automatique avant chaque RDV : historique client, points clés, objections probables." },
-  { icon: Users, title: "Mémoire client", desc: "Vos clients scorés par l'IA : motivation, freins, taux de signature et prochaine action recommandée." },
-  { icon: FileEdit, title: "Documents IA", desc: "Mandats, annonces et marketing générés en 30 secondes, 100% modifiables, ton ajustable (premium, familial, urbain…)." },
-  { icon: TrendingUp, title: "Estimation IA", desc: "Dossiers d'estimation précis basés sur DVF, INSEE et données locales. Export PDF professionnel pour vos prospects." },
-  { icon: Radar, title: "Radar prospection", desc: "Détection des vendeurs potentiels sur votre secteur, avec plan d'attaque commercial personnalisé." },
-  { icon: Bot, title: "Copilote stratégique", desc: "Votre directeur commercial IA : il connaît tous vos dossiers et vous suggère la meilleure action, 24/7." },
+  { icon: LayoutDashboard, title: "Dashboard IA", desc: "Vue 360° de votre activité de conquête : KPIs, opportunités du jour et actions priorisées par l'IA." },
+  { icon: Crosshair, title: "Chasseur de mandats", desc: "Radar de prospection + Pige IA : détection des vendeurs particuliers et zones porteuses avec plan d'attaque commercial." },
+  { icon: TrendingUp, title: "Valorisation IA", desc: "Estimation et expertise patrimoniale : dossiers basés sur DVF, INSEE, ADEME. Export PDF et Word professionnels." },
+  { icon: FileEdit, title: "Studio IA", desc: "Mandats, annonces, marketing et audit réseaux sociaux générés en 30 secondes, 100% modifiables." },
+  { icon: Radar, title: "Radar prospection", desc: "Analyse de zone DVF avec score d'opportunité, profils vendeurs probables et stratégie d'approche." },
+  { icon: Bot, title: "Copilote stratégique", desc: "Votre directeur commercial IA : il connaît vos analyses, vos pige et vous suggère la meilleure action, 24/7." },
 ];
 
 const benefits = [
-  { icon: Clock, title: "Gagnez 12h par semaine", desc: "Réponses, estimations, mandats : ce qui prenait des heures se fait en minutes." },
-  { icon: Target, title: "+38% de mandats signés", desc: "L'IA priorise les bons leads et propose la bonne approche au bon moment." },
-  { icon: Brain, title: "Aucun lead oublié", desc: "Chaque email analysé, chaque prospect scoré, chaque relance suggérée automatiquement." },
+  { icon: Clock, title: "Gagnez 12h par semaine", desc: "Estimations, mandats, audits : ce qui prenait des heures se fait en minutes." },
+  { icon: Target, title: "+38% de mandats signés", desc: "L'IA priorise les bonnes zones et propose la bonne approche au bon moment." },
+  { icon: Brain, title: "Aucune opportunité manquée", desc: "Chaque zone scorée, chaque vendeur potentiel détecté, chaque action recommandée." },
 ];
 
 const steps = [
-  { num: "01", title: "Connectez Google", desc: "Sécurisé, OAuth officiel. Vos emails restent chez vous, l'IA les analyse à la volée." },
-  { num: "02", title: "L'IA cartographie votre activité", desc: "En moins de 3 minutes, elle identifie vos prospects chauds, opportunités et urgences." },
+  { num: "01", title: "Créez votre compte", desc: "Onboarding guidé en 2 minutes : profil agent, secteur, zones de chasse." },
+  { num: "02", title: "L'IA cartographie votre marché", desc: "Lancez votre première analyse Radar : zones porteuses, prix, signaux vendeurs." },
   { num: "03", title: "Vous exécutez, l'IA optimise", desc: "Chaque jour, votre copilote vous propose les actions à plus fort impact business." },
 ];
 
 const testimonials = [
-  { name: "Nicolas R.", role: "Agent immobilier indépendant", text: "Je traite ma boîte mail en 20 minutes le matin au lieu de 2 heures. Et je n'oublie plus une seule relance." },
+  { name: "Nicolas R.", role: "Agent immobilier indépendant", text: "Le Radar m'a fait identifier 3 quartiers que je ne travaillais pas. J'ai signé 2 mandats en 6 semaines." },
   { name: "Sofia M.", role: "Agente commerciale en immobilier", text: "Les estimations qu'on sortait en 4h sont prêtes en 15 minutes. Je passe enfin du temps en RDV." },
-  { name: "Karim B.", role: "Mandataire immobilier", text: "Le copilote m'a fait signer 2 mandats supplémentaires le mois dernier juste en me disant qui relancer en priorité." },
+  { name: "Karim B.", role: "Mandataire immobilier", text: "Le copilote est devenu mon réflexe stratégique. Je ne lance plus une action sans lui demander son avis." },
 ];
 
 const faqs = [
-  { q: "Mes emails sont-ils stockés sur vos serveurs ?", a: "Non. La connexion Google se fait via OAuth officiel : nous lisons vos emails à la volée pour les analyser, mais nous ne les stockons jamais. Vous pouvez révoquer l'accès en 1 clic depuis votre compte Google." },
-  { q: "Combien de temps pour être opérationnel ?", a: "3 minutes. Vous créez votre compte, vous connectez Google, l'IA analyse vos 50 derniers échanges et vous présente votre dashboard prêt à l'emploi." },
-  { q: "L'IA peut-elle envoyer des emails à ma place sans validation ?", a: "Jamais. L'IA propose, vous décidez. Toute réponse, tout mandat, toute action est éditable et requiert votre validation explicite avant envoi." },
-  { q: "Quels modules sont inclus dans la bêta ?", a: "Tout : Dashboard, Inbox IA, Agenda, Mémoire client, Documents IA, Estimation IA, Radar prospection et Copilote stratégique. Vous avez accès à la plateforme complète." },
-  { q: "Puis-je modifier les contenus générés par l'IA ?", a: "Absolument. Mandats, annonces, réponses email, dossiers d'estimation : tout est éditable. L'IA est une assistante, vous restez maître de votre business." },
-  { q: "Quelles données utilise l'IA pour les estimations ?", a: "L'IA s'appuie sur les données réelles du marché immobilier local : transactions vérifiées, indicateurs de tension, démographie, historique de votre zone. Toutes les sources sont affichées dans chaque rapport pour transparence totale." },
-  { q: "L'outil fonctionne-t-il pour les agents indépendants comme pour les agences ?", a: "Oui. Chaque compte est isolé : un agent indépendant gère ses prospects, une agence peut équiper plusieurs collaborateurs (chaque agent a son espace privé)." },
-  { q: "Outlook sera-t-il supporté ?", a: "Oui, le connecteur Outlook arrive très prochainement. La bêta démarre avec Google, Outlook suivra dans les semaines à venir." },
-  { q: "Que se passe-t-il si je quitte la plateforme ?", a: "Vous exportez toutes vos données (clients, mandats, estimations) en JSON ou PDF. Vos données sont supprimées sous 30 jours conformément au RGPD." },
-  { q: "Est-ce que ça remplace mon CRM actuel ?", a: "Pour la majorité de nos utilisateurs, oui. Estate IA combine CRM + boîte mail intelligente + générateur de documents + copilote stratégique. Mais l'outil cohabite très bien avec un CRM existant." },
-  { q: "Comment l'IA priorise-t-elle mes actions ?", a: "Elle croise plusieurs signaux : urgence du message, score du prospect, taux de signature estimé, valeur potentielle du mandat et délai depuis le dernier contact. Chaque action est expliquée et ajustable." },
+  { q: "Combien de temps pour être opérationnel ?", a: "3 minutes. Vous créez votre compte, vous complétez l'onboarding et vous lancez votre première analyse Radar dans la foulée." },
+  { q: "L'IA peut-elle agir à ma place sans validation ?", a: "Jamais. L'IA propose, vous décidez. Toute action (mandat, annonce, contact) est éditable et requiert votre validation explicite." },
+  { q: "Quels modules sont inclus dans la bêta ?", a: "Tout : Dashboard, Chasseur de mandats (Radar + Pige), Valorisation IA (Estimation + Expertise), Studio IA et Copilote stratégique. Vous avez accès à la plateforme complète." },
+  { q: "Puis-je modifier les contenus générés par l'IA ?", a: "Absolument. Mandats, annonces, dossiers d'estimation, rapports d'expertise : tout est éditable. L'IA est une assistante, vous restez maître de votre business." },
+  { q: "Quelles données utilise l'IA pour les estimations ?", a: "L'IA s'appuie sur les données réelles du marché immobilier local : DVF (transactions vérifiées), INSEE, ADEME, observatoires des loyers. Toutes les sources sont affichées dans chaque rapport pour transparence totale." },
+  { q: "L'outil fonctionne-t-il pour les agents indépendants comme pour les agences ?", a: "Oui. Chaque compte est isolé : un agent indépendant gère ses analyses, une agence peut équiper plusieurs collaborateurs (chaque agent a son espace privé)." },
+  { q: "Que se passe-t-il si je quitte la plateforme ?", a: "Vous exportez toutes vos données (analyses, mandats, estimations, rapports) en JSON ou PDF. Vos données sont supprimées sous 30 jours conformément au RGPD." },
+  { q: "Comment l'IA priorise-t-elle mes actions ?", a: "Elle croise plusieurs signaux : score d'opportunité Radar, signaux vendeurs détectés en Pige, fraîcheur des données et potentiel de mandat. Chaque action est expliquée et ajustable." },
   { q: "Combien coûte la plateforme après la bêta ?", a: "Le tarif sera communiqué aux bêta-testeurs en priorité, avec un avantage tarifaire à vie pour ceux qui rejoignent la première vague." },
 ];
 
