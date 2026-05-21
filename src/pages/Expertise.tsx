@@ -232,10 +232,7 @@ export default function Expertise() {
               <CardTitle className="text-sm flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-primary" />
                 Paramètres de l'expertise
-                <Button size="sm" variant="outline" className="ml-auto h-7" onClick={lancerPrefillIA} disabled={loadingPrefill}>
-                  {loadingPrefill ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />}
-                  Pré-remplir
-                </Button>
+                {loadingPrefill && <Loader2 className="h-3.5 w-3.5 ml-auto animate-spin text-primary" />}
               </CardTitle>
               {prefillNote && (
                 <p className="text-[10px] text-muted-foreground italic flex items-start gap-1">
