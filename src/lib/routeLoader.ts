@@ -3,9 +3,6 @@ import { lazy, type ComponentType } from "react";
 type RouteModule = { default: ComponentType };
 type RouteLoader = () => Promise<RouteModule>;
 
-const CHUNK_RELOAD_KEY = "__estate_ai_chunk_reload_at__";
-const RELOAD_GUARD_MS = 10_000;
-
 export const routeLoaders = {
   forgotPassword: () => import("../pages/ForgotPassword"),
   onboarding: () => import("../pages/Onboarding"),
@@ -26,36 +23,20 @@ export const routeLoaders = {
 
 export const isChunkLoadError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error ?? "");
-
   return /Importing a module script failed|Failed to fetch dynamically imported module|Loading chunk \d+ failed|vite:preloadError/i.test(
     message
   );
 };
 
-export const recoverFromChunkLoadError = (error?: unknown) => {
-  if (error && !isChunkLoadError(error)) return false;
-  if (typeof window === "undefined") return false;
-
-  const lastReloadAt = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0);
-  const canReload = !lastReloadAt || Date.now() - lastReloadAt > RELOAD_GUARD_MS;
-
-  if (!canReload) return false;
-
-  sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
-  window.location.reload();
-  return true;
-};
-
-export const resetChunkReloadGuard = () => {
-  if (typeof window !== "undefined") {
-    sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-  }
-};
+// Backwards-compat no-op exports (former auto-reload helpers removed —
+// they caused full page refreshes that wiped sessionStorage and produced a
+// visible "flash" when switching modules).
+export const recoverFromChunkLoadError = (_error?: unknown) => false;
+export const resetChunkReloadGuard = () => {};
 
 const loadOnce = async (factory: RouteLoader): Promise<RouteModule> => {
   const mod = await factory();
   if (!mod || typeof (mod as any).default !== "function") {
-    // Chunk likely served as SPA fallback (stale deploy) — treat as chunk error
     throw new Error("Failed to fetch dynamically imported module: missing default export");
   }
   return mod;
@@ -67,13 +48,7 @@ export const lazyWithRetry = (factory: RouteLoader) =>
       return await loadOnce(factory);
     } catch (error) {
       await new Promise((resolve) => setTimeout(resolve, 300));
-
-      try {
-        return await loadOnce(factory);
-      } catch (retryError) {
-        recoverFromChunkLoadError(retryError);
-        throw retryError;
-      }
+      return await loadOnce(factory);
     }
   });
 
@@ -85,12 +60,25 @@ export const preloadRoute = Object.fromEntries(
     () => {
       const routeKey = key as keyof typeof routeLoaders;
       if (preloadedRoutes.has(routeKey)) return;
-
       preloadedRoutes.add(routeKey);
-      loader().catch((error) => {
+      loader().catch(() => {
         preloadedRoutes.delete(routeKey);
-        recoverFromChunkLoadError(error);
       });
     },
   ])
 ) as Record<keyof typeof routeLoaders, () => void>;
+
+/**
+ * Preload every app route in the background after first paint, so navigating
+ * between modules feels instant (no Suspense flash). Called once from App.tsx.
+ */
+export const preloadAllRoutes = () => {
+  if (typeof window === "undefined") return;
+  const run = () => Object.values(preloadRoute).forEach((p) => p());
+  // Defer to idle so it never competes with the first render
+  if ("requestIdleCallback" in window) {
+    (window as any).requestIdleCallback(run, { timeout: 2000 });
+  } else {
+    setTimeout(run, 800);
+  }
+};
