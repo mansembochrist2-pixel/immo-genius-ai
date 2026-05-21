@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Sparkles, Loader2, Download, Save, FileText, Wand2, Info,
+  Sparkles, Loader2, Download, Save, FileText, Info,
   TrendingUp, Calculator, FileDown,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
