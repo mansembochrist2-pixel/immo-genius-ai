@@ -88,14 +88,16 @@ export default function Expertise() {
   const [narrative, setNarrative] = useState<NarrativeReport | null>(null);
   const [prefillNote, setPrefillNote] = useState<string>("");
 
-  // Clear the prefill key only AFTER mount (so a Suspense remount during chunk
-  // load still finds it). Toast once if we did consume one.
+  // Auto-import + auto-prefill quand on arrive depuis Valorisation IA.
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       sessionStorage.removeItem(STORAGE_KEY);
-      toast.success("Données importées depuis Valorisation IA — complétez et lancez l'analyse.");
+      toast.success("Données importées — pré-remplissage IA en cours…");
+      // Auto-lance le prefill : pas besoin de cliquer
+      setTimeout(() => { lancerPrefillIA(); }, 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const results: ExpertiseResults = useMemo(() => computeExpertise(inputs), [inputs]);
