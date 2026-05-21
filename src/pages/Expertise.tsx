@@ -42,18 +42,41 @@ export default function Expertise() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [inputs, setInputs] = useState<ExpertiseInputs>({
-    type_bien: "appartement",
-    adresse: "",
-    surface: 0,
-    pieces: 0,
-    annee_construction: undefined,
-    etat: "bon",
-    dpe: "D",
-    prix_acquisition: 0,
-    loyer_mensuel: 0,
-    ...DEFAULT_INPUTS,
-  } as ExpertiseInputs);
+  // Prefill from Valorisation IA (sessionStorage) — consumed during initial
+  // render so even an immediate remount keeps the data. We then clear the key
+  // in a useEffect once mounted (so React StrictMode double-invoke is safe).
+  const [inputs, setInputs] = useState<ExpertiseInputs>(() => {
+    const base: ExpertiseInputs = {
+      type_bien: "appartement",
+      adresse: "",
+      surface: 0,
+      pieces: 0,
+      annee_construction: undefined,
+      etat: "bon",
+      dpe: "D",
+      prix_acquisition: 0,
+      loyer_mensuel: 0,
+      ...DEFAULT_INPUTS,
+    } as ExpertiseInputs;
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return base;
+      const data = JSON.parse(raw);
+      return {
+        ...base,
+        adresse: data.adresse || base.adresse,
+        type_bien: data.type_bien || base.type_bien,
+        surface: Number(data.surface) || base.surface,
+        pieces: Number(data.pieces) || base.pieces,
+        annee_construction: data.annee_construction ? Number(data.annee_construction) : base.annee_construction,
+        etat: data.etat || base.etat,
+        dpe: data.dpe || base.dpe,
+        prix_acquisition: Number(data.prix_acquisition) || base.prix_acquisition,
+      };
+    } catch {
+      return base;
+    }
+  });
 
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [loadingNarrative, setLoadingNarrative] = useState(false);
@@ -61,26 +84,14 @@ export default function Expertise() {
   const [narrative, setNarrative] = useState<NarrativeReport | null>(null);
   const [prefillNote, setPrefillNote] = useState<string>("");
 
-  // Pré-remplissage depuis Valorisation IA (sessionStorage)
+  // Clear the prefill key only AFTER mount (so a Suspense remount during chunk
+  // load still finds it). Toast once if we did consume one.
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const data = JSON.parse(raw);
-      setInputs((prev) => ({
-        ...prev,
-        adresse: data.adresse || prev.adresse,
-        type_bien: data.type_bien || prev.type_bien,
-        surface: Number(data.surface) || prev.surface,
-        pieces: Number(data.pieces) || prev.pieces,
-        annee_construction: data.annee_construction ? Number(data.annee_construction) : prev.annee_construction,
-        etat: data.etat || prev.etat,
-        dpe: data.dpe || prev.dpe,
-        prix_acquisition: Number(data.prix_acquisition) || prev.prix_acquisition,
-      }));
+    if (raw) {
       sessionStorage.removeItem(STORAGE_KEY);
       toast.success("Données importées depuis Valorisation IA — complétez et lancez l'analyse.");
-    } catch {}
+    }
   }, []);
 
   const results: ExpertiseResults = useMemo(() => computeExpertise(inputs), [inputs]);

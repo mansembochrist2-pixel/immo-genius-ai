@@ -98,8 +98,7 @@ const Dashboard = () => {
         `Pige IA : ${savedCount} annonces enregistrées dans le vivier, score moyen ${savedAverageScore}/100, top ${savedTopScore}/100.`,
         `Top piges enregistrées : ${savedPige.slice(0, 5).map((p: any, i: number) => `${i + 1}. ${p.titre} (${p.score_pigeabilite || 0}/100, ${p.ville || "zone inconnue"})`).join(" | ") || "aucune"}.`,
         `Opportunités Radar : ${stats.opportunites.total} analyses sauvegardées (top ${stats.opportunites.topScore}/100).`,
-        `Modules autorisés pour les recommandations : Pige IA, Radar Prospection, Estimation IA, Studio IA, Copilote.`,
-        `Interdiction : ne pas générer d'actions liées aux anciens prospects/clients, ventes/CA, inbox, agenda IA ou mémoire client.`,
+        `Modules autorisés pour les recommandations : Pige IA, Radar Prospection, Valorisation, Studio IA, Copilote.`,
       ].join("\n");
       const { data, error } = await supabase.functions.invoke("generate-actions", { body: { businessContext } });
       if (error || data?.error) throw new Error(data?.error || error?.message);
@@ -237,11 +236,15 @@ const Dashboard = () => {
                         </div>
                         {a.risque_si_ignore && <p className="text-[10px] text-destructive/70 mt-1">⚠️ {a.risque_si_ignore}</p>}
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button size="icon" variant="default" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "lance" })}><Play className="h-3 w-3" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => actionMutation.mutate({ id: a.id, statut: "reporte" })}><SkipForward className="h-3 w-3" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg text-muted-foreground" onClick={() => actionMutation.mutate({ id: a.id, statut: "ignore" })}><X className="h-3 w-3" /></Button>
-                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive shrink-0"
+                        title="Retirer cette action"
+                        onClick={() => actionMutation.mutate({ id: a.id, statut: "ignore" })}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 ))}

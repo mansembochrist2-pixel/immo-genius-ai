@@ -8,7 +8,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Component, Suspense, type ErrorInfo, type ReactNode } from "react";
-import { isChunkLoadError, lazyWithRetry, routeLoaders } from "@/lib/routeLoader";
+import { isChunkLoadError, lazyWithRetry, preloadAllRoutes, routeLoaders } from "@/lib/routeLoader";
+
+if (typeof window !== "undefined") preloadAllRoutes();
 
 // Eager pages (landing & auth - first impression must be instant)
 import Index from "./pages/Index";
@@ -43,7 +45,9 @@ const queryClient = new QueryClient({
 });
 
 // Lightweight fallback (matches bg → no black flash between routes)
-const RouteFallback = () => <div className="min-h-screen bg-background" aria-hidden />;
+// Transparent fallback — avoids the white flash between lazy routes.
+// Once preloadAllRoutes has run, chunks resolve synchronously so this is rarely seen.
+const RouteFallback = () => null;
 
 class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };

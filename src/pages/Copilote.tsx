@@ -189,7 +189,6 @@ const Copilote = () => {
         lines.push(`\n🎯 OPPORTUNITÉS RADAR :`);
         ctxExtras.opportunities.slice(0, 5).forEach((o: any) => lines.push(`  • [${o.score}/100] ${o.titre}${o.zone ? " — " + o.zone : ""}`));
       }
-      lines.push(`\n⚠️ Contrainte produit : ne pas proposer d'actions liées aux anciens modules prospects/clients, ventes/CA, inbox, agenda IA ou mémoire client.`);
       return lines.join("\n");
     };
 
@@ -297,9 +296,6 @@ const Copilote = () => {
                   <span className="font-medium">{i.value}</span>
                 </div>
               ))}
-              <p className="text-[10px] leading-relaxed text-muted-foreground pt-2 border-t border-border/50">
-                Connecté aux modules actuels : Pige IA, Radar, Estimation et Studio. Les anciens modules clients, CA, agenda et inbox sont exclus du raisonnement.
-              </p>
             </CardContent>
           </Card>
 

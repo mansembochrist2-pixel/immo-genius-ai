@@ -25,6 +25,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { exportTextToDocx } from "@/lib/docx-export";
 import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
+import { preloadRoute } from "@/lib/routeLoader";
+import { Bot } from "lucide-react";
 
 const EstimationIA = () => {
   const { user } = useAuth();
@@ -242,7 +245,32 @@ const EstimationIA = () => {
           </CardContent>
         </Card>
 
-        {editableResult ? (
+        {loading && !editableResult ? (
+          <div className="space-y-4">
+            <AnalysisLoader
+              module={lang === "fr" ? "Estimation IA" : "AI Estimation"}
+              context={form.adresse}
+              eta={lang === "fr" ? "20 à 60 secondes" : "20 to 60 seconds"}
+              messages={lang === "fr" ? [
+                "Géolocalisation du bien et analyse de la zone…",
+                "Récupération des ventes officielles DVF (data.gouv)…",
+                "Croisement avec les biens comparables récents…",
+                "Pondération des critères (état, DPE, étage, équipements)…",
+                "Analyse de la tension de marché et de la liquidité…",
+                "Construction de la fourchette de prix recommandée…",
+                "Rédaction de l'argumentaire prix et de la conclusion…",
+              ] : [
+                "Geolocating the property and analyzing the area…",
+                "Fetching official DVF sales (data.gouv)…",
+                "Cross-checking against recent comparable sales…",
+                "Weighing condition, EPC, floor, amenities…",
+                "Analyzing market tension and liquidity…",
+                "Building the recommended price range…",
+                "Drafting the price argument and conclusion…",
+              ]}
+            />
+          </div>
+        ) : editableResult ? (
           <div className="space-y-4">
             <Card className="bg-card/60 border-primary/20 glow-border">
               <CardHeader className="pb-2">
@@ -375,7 +403,9 @@ const EstimationIA = () => {
             <div className="flex flex-wrap gap-2">
               <Button
                 className="flex-1 min-w-[200px] bg-primary text-primary-foreground hover:bg-primary/90"
+                onMouseEnter={() => preloadRoute.expertise()}
                 onClick={() => {
+                  preloadRoute.expertise();
                   sessionStorage.setItem("expertise_prefill", JSON.stringify({
                     adresse: form.adresse,
                     type_bien: form.type_bien,
@@ -399,9 +429,22 @@ const EstimationIA = () => {
                   surface: form.surface,
                   description: `${form.type_bien} ${form.pieces ? form.pieces + " pièces" : ""}${form.etage ? ", étage " + form.etage : ""}, état ${form.etat}${form.dpe ? ", DPE " + form.dpe : ""}. ${[form.parking && "Parking", form.cave && "Cave", form.balcon && "Balcon/Terrasse", form.ascenseur && "Ascenseur", form.gardien && "Gardien"].filter(Boolean).join(", ")}. ${form.details_supplementaires || ""}`.trim(),
                 }));
-                toast.success(lang === "fr" ? "Estimation envoyée vers Documents" : "Estimation sent to Documents");
-                navigate("/documents");
+                toast.success(lang === "fr" ? "Estimation envoyée vers le Studio" : "Estimation sent to Studio");
+                navigate("/studio");
               }}><Wand2 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</Button>
+              <Button
+                variant="outline"
+                className="flex-1 min-w-[160px] border-primary/30 hover:bg-primary/5 hover:text-primary"
+                onMouseEnter={() => preloadRoute.copilote()}
+                onClick={() => {
+                  const summary = `Voici une estimation à analyser stratégiquement avec moi :\n\n📍 ${form.adresse}\n🏠 ${form.type_bien}${form.surface ? " · " + form.surface + " m²" : ""}${form.pieces ? " · " + form.pieces + " pièces" : ""}${form.dpe ? " · DPE " + form.dpe : ""}\n💶 Prix estimé : ${editableResult.prix_moyen?.toLocaleString("fr-FR")} € (fourchette ${editableResult.prix_min?.toLocaleString("fr-FR")} – ${editableResult.prix_max?.toLocaleString("fr-FR")} €)\n🎯 Recommandation : ${editableResult.recommandation_prix?.toLocaleString("fr-FR")} €\n\nDonne-moi un plan d'action : positionnement, argumentaire vendeur, et 3 prochaines étapes pour décrocher le mandat.`;
+                  sessionStorage.setItem("copilote_prefill", summary);
+                  toast.success(lang === "fr" ? "Estimation transmise au Copilote" : "Estimation sent to Copilot");
+                  navigate("/copilote");
+                }}
+              >
+                <Bot className="h-4 w-4 mr-2" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
+              </Button>
             </div>
           </div>
         ) : (
