@@ -69,8 +69,8 @@ const CATEGORIES: FAQCategory[] = [
     label: "Copilote stratégique",
     icon: Bot,
     items: [
-      { q: "Qu'est-ce que le Copilote stratégique ?", a: "Votre directeur commercial IA. Il a accès en temps réel à toutes vos données (clients, agenda, inbox, opportunités) et vous suggère la meilleure action au bon moment.", tags: ["copilote", "fonctionnement"] },
-      { q: "Comment le Copilote utilise-t-il mes données ?", a: "Lecture seule, dans votre navigateur. Aucune donnée n'est partagée avec d'autres utilisateurs. Le Copilote se base sur : agenda du jour, clients récents, opportunités, urgences inbox.", tags: ["confidentialite", "donnees"] },
+      { q: "Qu'est-ce que le Copilote stratégique ?", a: "Votre directeur commercial IA. Il a accès en temps réel à vos analyses Radar, vos pige IA, vos estimations et vos audits Studio, et vous suggère la meilleure action au bon moment.", tags: ["copilote", "fonctionnement"] },
+      { q: "Comment le Copilote utilise-t-il mes données ?", a: "Lecture seule, dans votre navigateur. Aucune donnée n'est partagée avec d'autres utilisateurs. Le Copilote se base sur : analyses Radar récentes, annonces piges enregistrées, estimations actives, audits réseaux sociaux.", tags: ["confidentialite", "donnees"] },
       { q: "Puis-je sauvegarder mes conversations ?", a: "Oui, automatiquement. Chaque conversation est sauvegardée dans la sidebar gauche, renommable et supprimable. Recherche disponible.", tags: ["sauvegarde", "historique"] },
       { q: "Le Copilote peut-il agir à ma place ?", a: "Non. Il propose, vous décidez. Toute action (email, mandat, RDV) requiert votre validation explicite. Le Copilote est un conseiller, pas un exécutant autonome.", tags: ["autonomie", "validation"] },
     ],
@@ -82,7 +82,7 @@ const CATEGORIES: FAQCategory[] = [
     items: [
       { q: "Mes données sont-elles sécurisées ?", a: "Oui : chiffrement en transit (TLS) et au repos (AES-256), isolation stricte par compte (Row Level Security), hébergement européen (RGPD), authentification OAuth officielle.", tags: ["securite", "chiffrement"] },
       { q: "Qui peut voir mes données ?", a: "Vous seul. Chaque agent a son espace privé totalement isolé. Aucun autre utilisateur, ni notre équipe, n'accède à vos données clients.", tags: ["isolation", "confidentialite"] },
-      { q: "Comment exporter toutes mes données ?", a: "Paramètres → RGPD → Exporter mes données. Vous recevez un fichier JSON complet (clients, mandats, estimations, agenda, inbox).", tags: ["export", "rgpd"] },
+      { q: "Comment exporter toutes mes données ?", a: "Paramètres → RGPD → Exporter mes données. Vous recevez un fichier JSON complet (analyses Radar, piges, estimations, rapports d'expertise, audits Studio).", tags: ["export", "rgpd"] },
       { q: "Comment supprimer mon compte ?", a: "Paramètres → RGPD → Supprimer mon compte. Suppression définitive sous 30 jours conformément au RGPD. Vous pouvez exporter vos données avant suppression.", tags: ["suppression", "rgpd"] },
     ],
   },
