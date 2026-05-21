@@ -314,118 +314,180 @@ export const RadarInner = () => {
           )}
 
           {analyseResult && (
-            <div className="mt-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" /> Résultat — {adresse}
-                </h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {analyseResult.niveau_global && (
-                    <Badge variant="outline" className="text-[10px] uppercase">{analyseResult.niveau_global}</Badge>
-                  )}
-                  {analyseResult.classification && (
-                    <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-[10px] uppercase">
-                      Opp {analyseResult.score_opportunite ?? "?"} / Risk {analyseResult.score_risque ?? "?"}
-                    </Badge>
-                  )}
-                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1"
-                    onClick={() => sendToCopilote({ zone: adresse, type: analyseResult.classification, donnees: analyseResult }, adresse)}>
-                    <Bot className="h-3 w-3" /> Envoyer au Copilote
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => { setAnalyseResult(null); setAdresse(""); }}>
-                    Fermer ✕
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {analyseResult.prix_m2_moyen && <div><p className="text-[10px] text-muted-foreground uppercase">Prix/m²</p><p className="font-bold text-sm">{analyseResult.prix_m2_moyen}</p></div>}
-                {analyseResult.tendance && <div><p className="text-[10px] text-muted-foreground uppercase">Tendance</p><p className="font-bold text-sm">{analyseResult.tendance}</p></div>}
-                {analyseResult.delai_vente && <div><p className="text-[10px] text-muted-foreground uppercase">Délai vente</p><p className="font-bold text-sm">{analyseResult.delai_vente}</p></div>}
-                {analyseResult.volume_ventes && <div><p className="text-[10px] text-muted-foreground uppercase">Volume ventes</p><p className="font-bold text-sm">{analyseResult.volume_ventes}</p></div>}
-                {analyseResult.liquidite && <div><p className="text-[10px] text-muted-foreground uppercase">Liquidité</p><p className="font-bold text-sm">{analyseResult.liquidite}</p></div>}
-                {analyseResult.nb_biens_estimes && <div><p className="text-[10px] text-muted-foreground uppercase">Biens estimés</p><p className="font-bold text-sm">{analyseResult.nb_biens_estimes}</p></div>}
-              </div>
-              {analyseResult.fraicheur_donnees && (
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{analyseResult.fraicheur_donnees}</p>
-              )}
-              {analyseResult.justification_score && <p className="text-xs text-muted-foreground italic">{analyseResult.justification_score}</p>}
-              {analyseResult.analyse_strategique && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-primary/10">
-                  {Object.entries(analyseResult.analyse_strategique).map(([k, v]: any) => (
-                    <div key={k} className="bg-muted/10 rounded p-2">
-                      <p className="text-[9px] uppercase text-muted-foreground mb-0.5">{k.replace(/_/g, " ")}</p>
-                      <p className="text-xs">{v}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {analyseResult.plan_action && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-primary/10">
-                  <div>
-                    <p className="text-[10px] text-success uppercase font-semibold mb-1">✓ Si opportunité</p>
-                    <ul className="space-y-1">{(analyseResult.plan_action.si_opportunite || []).map((a: string, i: number) => <li key={i} className="text-xs flex gap-1"><span className="text-success">→</span>{a}</li>)}</ul>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-destructive uppercase font-semibold mb-1">⚠ Si risque</p>
-                    <ul className="space-y-1">{(analyseResult.plan_action.si_risque || []).map((a: string, i: number) => <li key={i} className="text-xs flex gap-1"><span className="text-destructive">→</span>{a}</li>)}</ul>
-                  </div>
-                </div>
-              )}
-              {(analyseResult.score_vendeur != null || analyseResult.signaux_vendeurs?.length > 0) && (
-                <div className="pt-2 border-t border-primary/10 space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-[10px] uppercase font-semibold text-primary">🎯 Détection vendeurs potentiels</p>
-                    {analyseResult.score_vendeur != null && (
-                      <Badge className="bg-primary text-primary-foreground text-[10px]">Score vendeur : {analyseResult.score_vendeur}/100</Badge>
-                    )}
-                    {analyseResult.confiance_vendeur && (
-                      <Badge variant="outline" className="text-[10px]">Confiance {analyseResult.confiance_vendeur}</Badge>
+            <div className="mt-6 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+              {/* Header rapport */}
+              <div className="px-6 py-5 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+                <div className="flex items-start justify-between flex-wrap gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Rapport d'analyse Radar</p>
+                    <h3 className="text-lg font-semibold flex items-center gap-2 truncate">
+                      <BarChart3 className="h-5 w-5 text-primary shrink-0" />
+                      <span className="truncate">{adresse}</span>
+                    </h3>
+                    {analyseResult.fraicheur_donnees && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1.5">
+                        <Clock className="h-3 w-3" /> {analyseResult.fraicheur_donnees}
+                      </p>
                     )}
                   </div>
-                  {analyseResult.signaux_vendeurs?.length > 0 && (
-                    <ul className="space-y-1">
-                      {analyseResult.signaux_vendeurs.map((s: string, i: number) => (
-                        <li key={i} className="text-xs flex gap-1"><span className="text-primary">•</span>{s}</li>
-                      ))}
-                    </ul>
-                  )}
+                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    {analyseResult.niveau_global && (
+                      <Badge variant="outline" className="text-xs">{analyseResult.niveau_global}</Badge>
+                    )}
+                    {analyseResult.classification && (
+                      <Badge variant={analyseResult.classification === "risque" ? "destructive" : "default"} className="text-xs">
+                        Opp {analyseResult.score_opportunite ?? "?"} · Risk {analyseResult.score_risque ?? "?"}
+                      </Badge>
+                    )}
+                    <Button size="sm" variant="outline" className="gap-1.5"
+                      onClick={() => sendToCopilote({ zone: adresse, type: analyseResult.classification, donnees: analyseResult }, adresse)}>
+                      <Bot className="h-3.5 w-3.5" /> Envoyer au Copilote
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setAnalyseResult(null); setAdresse(""); }}>
+                      Fermer ✕
+                    </Button>
+                  </div>
                 </div>
-              )}
-              {analyseResult.micro_secteurs?.length > 0 && (
-                <div className="pt-2 border-t border-primary/10 space-y-2">
-                  <p className="text-[10px] uppercase font-semibold">🗺 Micro-secteurs prioritaires</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {analyseResult.micro_secteurs.map((m: any, i: number) => (
-                      <div key={i} className="bg-muted/10 rounded p-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-xs font-semibold">{m.nom}</p>
-                          <Badge variant="outline" className="text-[9px]">{m.niveau_opportunite}</Badge>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* KPIs marché */}
+                <section>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">Indicateurs marché</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    {[
+                      { label: "Prix/m²", value: analyseResult.prix_m2_moyen },
+                      { label: "Tendance", value: analyseResult.tendance },
+                      { label: "Délai vente", value: analyseResult.delai_vente },
+                      { label: "Volume ventes", value: analyseResult.volume_ventes },
+                      { label: "Liquidité", value: analyseResult.liquidite },
+                      { label: "Biens estimés", value: analyseResult.nb_biens_estimes },
+                    ]
+                      .filter((k) => k.value)
+                      .map((k) => (
+                        <div key={k.label} className="rounded-lg border border-border bg-background p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{k.label}</p>
+                          <p className="font-semibold text-sm leading-tight">{k.value}</p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground">{m.justification}</p>
-                      </div>
-                    ))}
+                      ))}
                   </div>
-                </div>
-              )}
-              {analyseResult.profils_vendeurs_probables?.length > 0 && (
-                <div className="pt-2 border-t border-primary/10 space-y-2">
-                  <p className="text-[10px] uppercase font-semibold">👤 Profils vendeurs probables</p>
-                  <div className="space-y-2">
-                    {analyseResult.profils_vendeurs_probables.map((p: any, i: number) => (
-                      <div key={i} className="bg-muted/10 rounded p-2 space-y-1">
-                        <p className="text-xs font-semibold">{p.type_bien}</p>
-                        <p className="text-[11px] text-muted-foreground"><span className="font-medium">Situation probable :</span> {p.situation_probable}</p>
-                        <p className="text-[11px] text-primary"><span className="font-medium">Approche :</span> {p.argument_approche}</p>
+                  {analyseResult.justification_score && (
+                    <p className="text-xs text-muted-foreground italic mt-3 leading-relaxed">{analyseResult.justification_score}</p>
+                  )}
+                </section>
+
+                {/* Analyse stratégique */}
+                {analyseResult.analyse_strategique && (
+                  <section>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">Analyse stratégique</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Object.entries(analyseResult.analyse_strategique).map(([k, v]: any) => (
+                        <div key={k} className="rounded-lg border border-border bg-background p-4">
+                          <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1.5">{k.replace(/_/g, " ")}</p>
+                          <p className="text-sm leading-relaxed text-foreground/90">{v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Plans d'action */}
+                {analyseResult.plan_action && (
+                  <section>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">Plan d'action</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-success/30 bg-success/5 p-4">
+                        <p className="text-xs uppercase tracking-wider text-success font-semibold mb-2 flex items-center gap-1.5">
+                          <TrendingUp className="h-3.5 w-3.5" /> Si opportunité
+                        </p>
+                        <ul className="space-y-2">
+                          {(analyseResult.plan_action.si_opportunite || []).map((a: string, i: number) => (
+                            <li key={i} className="text-sm flex gap-2 leading-relaxed"><span className="text-success font-bold shrink-0">→</span><span>{a}</span></li>
+                          ))}
+                        </ul>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {analyseResult.sources?.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {analyseResult.sources.map((s: string) => <Badge key={s} variant="outline" className="text-[9px]">{s}</Badge>)}
-                </div>
-              )}
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                        <p className="text-xs uppercase tracking-wider text-destructive font-semibold mb-2 flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5" /> Si risque
+                        </p>
+                        <ul className="space-y-2">
+                          {(analyseResult.plan_action.si_risque || []).map((a: string, i: number) => (
+                            <li key={i} className="text-sm flex gap-2 leading-relaxed"><span className="text-destructive font-bold shrink-0">→</span><span>{a}</span></li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {/* Détection vendeurs */}
+                {(analyseResult.score_vendeur != null || analyseResult.signaux_vendeurs?.length > 0) && (
+                  <section className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <div className="flex items-center gap-2 flex-wrap mb-3">
+                      <p className="text-xs uppercase tracking-wider text-primary font-semibold flex items-center gap-1.5">
+                        <Target className="h-3.5 w-3.5" /> Détection vendeurs potentiels
+                      </p>
+                      {analyseResult.score_vendeur != null && (
+                        <Badge className="bg-primary text-primary-foreground text-xs">Score {analyseResult.score_vendeur}/100</Badge>
+                      )}
+                      {analyseResult.confiance_vendeur && (
+                        <Badge variant="outline" className="text-xs">Confiance {analyseResult.confiance_vendeur}</Badge>
+                      )}
+                    </div>
+                    {analyseResult.signaux_vendeurs?.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {analyseResult.signaux_vendeurs.map((s: string, i: number) => (
+                          <li key={i} className="text-sm flex gap-2 leading-relaxed"><span className="text-primary shrink-0">•</span><span>{s}</span></li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+
+                {/* Micro-secteurs */}
+                {analyseResult.micro_secteurs?.length > 0 && (
+                  <section>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">Micro-secteurs prioritaires</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {analyseResult.micro_secteurs.map((m: any, i: number) => (
+                        <div key={i} className="rounded-lg border border-border bg-background p-3">
+                          <div className="flex items-center justify-between mb-1.5 gap-2">
+                            <p className="text-sm font-semibold">{m.nom}</p>
+                            <Badge variant="outline" className="text-[10px] shrink-0">{m.niveau_opportunite}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{m.justification}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Profils vendeurs */}
+                {analyseResult.profils_vendeurs_probables?.length > 0 && (
+                  <section>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">Profils vendeurs probables</p>
+                    <div className="space-y-2">
+                      {analyseResult.profils_vendeurs_probables.map((p: any, i: number) => (
+                        <div key={i} className="rounded-lg border border-border bg-background p-4 space-y-1.5">
+                          <p className="text-sm font-semibold">{p.type_bien}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed"><span className="font-medium text-foreground/80">Situation :</span> {p.situation_probable}</p>
+                          <p className="text-xs text-primary leading-relaxed"><span className="font-medium">Approche :</span> {p.argument_approche}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Sources */}
+                {analyseResult.sources?.length > 0 && (
+                  <section className="pt-4 border-t border-border">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Sources</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {analyseResult.sources.map((s: string) => <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>)}
+                    </div>
+                  </section>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
