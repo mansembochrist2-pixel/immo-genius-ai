@@ -86,12 +86,20 @@ export interface ExpertiseResults {
     plus_value_estimee_apres_n_ans: number;
   };
 
-  tri_simplifie: number;
+  tri_simplifie: number; // alias historique = tri_10_ans
+  tri_10_ans: number;
+  capital_restant_du_n: number;
+  impot_plus_value_n: number;
+  effort_epargne_mensuel: number; // -cashflow si négatif, 0 sinon
   plus_value_estimee_apres_n_ans: number;
   prix_revente_estime: number;
 
   warnings: string[];
 }
+
+const INFLATION_LOYERS = 0.015; // +1,5%/an
+const INFLATION_PRIX = 0.02;    // +2%/an par défaut si revalorisation_annuelle_pct=0
+const FRAIS_AGENCE_REVENTE_PCT = 0.05;
 
 const PRELEVEMENTS_SOCIAUX = 0.172;
 
@@ -251,17 +259,39 @@ export function computeExpertise(i: ExpertiseInputs): ExpertiseResults {
     impotPost / 12;
 
   // === Plus-value à la revente ===
-  const n = Math.max(1, i.duree_detention_annees);
-  const rev = i.revalorisation_annuelle_pct / 100;
+  const n = Math.max(10, i.duree_detention_annees); // projection minimum 10 ans
+  const rev = (i.revalorisation_annuelle_pct || INFLATION_PRIX * 100) / 100;
   const prixReventeEstime = i.prix_acquisition * Math.pow(1 + rev, n);
   const plusValueBase = prixReventeEstime - i.prix_acquisition;
   const prixReventePost = (i.prix_acquisition + coutNetTravaux) * Math.pow(1 + rev, n);
   const plusValuePost = prixReventePost - (i.prix_acquisition + coutNetTravaux);
 
-  // TRI simplifié (bissection)
-  const investissementInitial = i.apport + fraisNotaire + i.frais_agence;
-  const cfAnnuel = cashFlowAnnuel;
-  const flux = [-investissementInitial, ...Array(n - 1).fill(cfAnnuel), cfAnnuel + plusValueBase * 0.7];
+  // Capital restant dû après n années
+  const crd = calcCapitalRestantDu(capitalEmprunte, i.taux_credit, i.duree_credit_annees, n);
+
+  // Impôt sur la plus-value des particuliers (location nue/meublée non-pro)
+  // Abattement IR : 6%/an de 6 à 21 ans + 4% la 22e
+  // Abattement PS : 1.65%/an de 6 à 21 ans + 1.6% la 22e + 9%/an 23-30
+  const ivp = calcImpotPlusValue(plusValueBase, n);
+
+  // === TRI réel sur n ans (flux complets, inflation loyers +1,5%/an) ===
+  const investissementInitial = i.apport + fraisNotaire + (i.frais_agence || 0) + coutNetTravaux;
+  const flux: number[] = [-investissementInitial];
+  for (let t = 1; t <= n; t++) {
+    const facteurLoyer = Math.pow(1 + INFLATION_LOYERS, t - 1);
+    const cfYear =
+      i.loyer_mensuel * 12 * (1 - tauxVacance) * facteurLoyer -
+      chargesTotales -
+      mensualite * 12 -
+      impot;
+    if (t < n) {
+      flux.push(cfYear);
+    } else {
+      const fraisAgenceRevente = prixReventeEstime * FRAIS_AGENCE_REVENTE_PCT;
+      const valeurTerminale = prixReventeEstime - crd - ivp - fraisAgenceRevente;
+      flux.push(cfYear + valeurTerminale);
+    }
+  }
   const tri = calcTRI(flux);
 
   return {
@@ -289,10 +319,51 @@ export function computeExpertise(i: ExpertiseInputs): ExpertiseResults {
       plus_value_estimee_apres_n_ans: plusValuePost,
     },
     tri_simplifie: tri,
+    tri_10_ans: tri,
+    capital_restant_du_n: crd,
+    impot_plus_value_n: ivp,
+    effort_epargne_mensuel: cashFlowMensuel < 0 ? -cashFlowMensuel : 0,
     plus_value_estimee_apres_n_ans: plusValueBase,
     prix_revente_estime: prixReventeEstime,
     warnings,
   };
+}
+
+export function calcCapitalRestantDu(
+  capital: number,
+  tauxAnnuel: number,
+  dureeTotaleAnnees: number,
+  apresAnnees: number
+): number {
+  if (capital <= 0 || dureeTotaleAnnees <= 0) return 0;
+  if (apresAnnees >= dureeTotaleAnnees) return 0;
+  const i = tauxAnnuel / 100 / 12;
+  const N = dureeTotaleAnnees * 12;
+  const n = apresAnnees * 12;
+  if (i === 0) return capital * (1 - n / N);
+  const M = (capital * i) / (1 - Math.pow(1 + i, -N));
+  // CRD = M * (1 - (1+i)^-(N-n)) / i
+  return (M * (1 - Math.pow(1 + i, -(N - n)))) / i;
+}
+
+export function calcImpotPlusValue(plusValue: number, annees: number): number {
+  if (plusValue <= 0) return 0;
+  // Abattement IR
+  let abIR = 0;
+  if (annees > 5) abIR += Math.min(annees - 5, 16) * 0.06;
+  if (annees >= 22) abIR += 0.04;
+  if (annees >= 22) abIR = 1;
+  abIR = Math.min(abIR, 1);
+  // Abattement PS
+  let abPS = 0;
+  if (annees > 5) abPS += Math.min(annees - 5, 16) * 0.0165;
+  if (annees >= 22) abPS += 0.016;
+  if (annees > 22) abPS += Math.min(annees - 22, 8) * 0.09;
+  if (annees >= 30) abPS = 1;
+  abPS = Math.min(abPS, 1);
+  const baseIR = plusValue * (1 - abIR);
+  const basePS = plusValue * (1 - abPS);
+  return baseIR * 0.19 + basePS * PRELEVEMENTS_SOCIAUX;
 }
 
 function calcTRI(flux: number[]): number {
@@ -540,6 +611,136 @@ export function suggestOptimizations(
       delta_cashflow_mensuel: 0,
       patch: {},
     });
+  }
+
+  // 7. Passage location nue → meublée LMNP
+  if (i.type_location === "nue" && i.loyer_mensuel > 0) {
+    const loyerMeuble = Math.round(i.loyer_mensuel * 1.15);
+    const d = simulate({
+      type_location: "meublee_lmnp",
+      regime_fiscal: "reel_bic",
+      loyer_mensuel: loyerMeuble,
+    });
+    if (d > 20) {
+      proposals.push({
+        id: "switch_meuble",
+        label: "Passer en location meublée (LMNP Réel)",
+        description: `Loyer +15 % en moyenne sur le marché meublé + amortissement fiscal qui annule l'IR.`,
+        delta_cashflow_mensuel: d,
+        patch: { type_location: "meublee_lmnp", regime_fiscal: "reel_bic", loyer_mensuel: loyerMeuble },
+      });
+    }
+  }
+
+  // 8. Renégociation GLI (souvent 2,5 % loyers → mutualisée 2 %)
+  if (i.assurance_gli > i.loyer_mensuel * 12 * 0.02) {
+    const newGli = Math.round(i.loyer_mensuel * 12 * 0.02);
+    const d = simulate({ assurance_gli: newGli });
+    if (d > 3) {
+      proposals.push({
+        id: "gli",
+        label: `Renégocier la GLI à ${newGli.toLocaleString("fr-FR")} €/an (2 % des loyers)`,
+        description: `Les courtiers spécialisés (Smartloc, Luko) descendent à 2 % vs 2,5 % chez les acteurs traditionnels.`,
+        delta_cashflow_mensuel: d,
+        patch: { assurance_gli: newGli },
+      });
+    }
+  }
+
+  // 9. Réduire frais de gestion (mandat à 7 % → autogestion ou agence low-cost à 4,5 %)
+  if (i.frais_gestion_pct > 4.5) {
+    const d = simulate({ frais_gestion_pct: 4.5 });
+    if (d > 5) {
+      proposals.push({
+        id: "gestion",
+        label: "Passer la gestion locative à 4,5 % (vs 7 %)",
+        description: `Acteurs en ligne (Flatlooker, Bevouac, Manda) ou autogestion partielle. Économie directe sur cash-flow.`,
+        delta_cashflow_mensuel: d,
+        patch: { frais_gestion_pct: 4.5 },
+      });
+    }
+  }
+
+  // 10. Réduire la vacance locative (mise en location pro / annonce optimisée)
+  if (i.vacance_locative_pct > 4) {
+    const d = simulate({ vacance_locative_pct: Math.max(3, i.vacance_locative_pct - 3) });
+    if (d > 5) {
+      proposals.push({
+        id: "vacance",
+        label: `Réduire la vacance à ${Math.max(3, i.vacance_locative_pct - 3)} %`,
+        description: `Photos pro, annonce optimisée, sélection rapide locataire → vacance ramenée à la moyenne du marché.`,
+        delta_cashflow_mensuel: d,
+        patch: { vacance_locative_pct: Math.max(3, i.vacance_locative_pct - 3) },
+      });
+    }
+  }
+
+  // 11. Bascule courte durée (Airbnb) si loyer faible et zone touristique potentielle
+  if (i.type_location !== "courte_duree" && i.loyer_mensuel > 0) {
+    const loyerCD = Math.round(i.loyer_mensuel * 1.6);
+    const d = simulate({
+      type_location: "courte_duree",
+      loyer_mensuel: loyerCD,
+      vacance_locative_pct: Math.max(20, i.vacance_locative_pct),
+      frais_gestion_pct: Math.max(20, i.frais_gestion_pct),
+    });
+    if (d > 50) {
+      proposals.push({
+        id: "courte_duree",
+        label: "Tester la location courte durée (Airbnb)",
+        description: `Revenus potentiels +60 % mais vacance ~25 % et gestion ~20 %. Vérifier réglementation locale (mairie, copro).`,
+        delta_cashflow_mensuel: d,
+        patch: {
+          type_location: "courte_duree",
+          loyer_mensuel: loyerCD,
+          vacance_locative_pct: Math.max(20, i.vacance_locative_pct),
+          frais_gestion_pct: Math.max(20, i.frais_gestion_pct),
+        },
+      });
+    }
+  }
+
+  // 12. Travaux énergétiques rentables (si DPE F/G et travaux non saisis)
+  if (["F", "G", "E"].includes(i.dpe) && i.cout_travaux === 0) {
+    const coutEstime = i.surface * 600; // ~600 €/m² pour passage E/F/G → C
+    const aides = Math.round(coutEstime * 0.35); // MPR + CEE ~35%
+    const gain = Math.round(i.loyer_mensuel * 0.08); // +8 % loyer post DPE C
+    const d = simulate({
+      cout_travaux: coutEstime,
+      aides_renovation: aides,
+      gain_loyer_post_travaux: gain,
+      economie_charges_post_travaux: 600,
+      dpe_cible: "C",
+    });
+    if (d > -50) {
+      proposals.push({
+        id: "renovation_energetique",
+        label: `Lancer une rénovation énergétique (~${coutEstime.toLocaleString("fr-FR")} €)`,
+        description: `Passage DPE ${i.dpe} → C : ~${aides.toLocaleString("fr-FR")} € d'aides (MPR + CEE), +${gain} €/mois de loyer, valeur verte +5 à 10 % à la revente. Évite l'interdiction de location 2025-2034.`,
+        delta_cashflow_mensuel: d,
+        patch: {
+          cout_travaux: coutEstime,
+          aides_renovation: aides,
+          gain_loyer_post_travaux: gain,
+          economie_charges_post_travaux: 600,
+          dpe_cible: "C",
+        },
+      });
+    }
+  }
+
+  // 13. Frais de notaire réduits (négociation ou bien neuf)
+  if (i.frais_notaire_pct >= 7) {
+    const d = simulate({ frais_notaire_pct: 2.5 });
+    if (d > 3) {
+      proposals.push({
+        id: "notaire_neuf",
+        label: "Cibler du neuf / VEFA (notaire à 2,5 % vs 7,5 %)",
+        description: `Économie immédiate sur frais d'acquisition, moindre amortissement mais TVA récupérable en LMP. Pertinent si stratégie patrimoniale long terme.`,
+        delta_cashflow_mensuel: d,
+        patch: { frais_notaire_pct: 2.5 },
+      });
+    }
   }
 
   return proposals

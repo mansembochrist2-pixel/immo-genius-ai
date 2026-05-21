@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Sparkles, Loader2, Download, Save, FileText, Wand2, Info,
+  Sparkles, Loader2, Download, Save, FileText, Info,
   TrendingUp, Calculator, FileDown,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -30,6 +30,9 @@ import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { SourceHint, DISCLAIMER_TEXT } from "@/components/valorisation/SourceHint";
 import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
 import { FiscalOptimizer } from "@/components/valorisation/FiscalOptimizer";
+import { PremiumKpis } from "@/components/valorisation/PremiumKpis";
+import { ConseilStrategique } from "@/components/valorisation/ConseilStrategique";
+import { StrategeIA } from "@/components/valorisation/StrategeIA";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 const fmtEur = (n?: number) =>
@@ -85,14 +88,16 @@ export default function Expertise() {
   const [narrative, setNarrative] = useState<NarrativeReport | null>(null);
   const [prefillNote, setPrefillNote] = useState<string>("");
 
-  // Clear the prefill key only AFTER mount (so a Suspense remount during chunk
-  // load still finds it). Toast once if we did consume one.
+  // Auto-import + auto-prefill quand on arrive depuis Valorisation IA.
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       sessionStorage.removeItem(STORAGE_KEY);
-      toast.success("Données importées depuis Valorisation IA — complétez et lancez l'analyse.");
+      toast.success("Données importées — pré-remplissage IA en cours…");
+      // Auto-lance le prefill : pas besoin de cliquer
+      setTimeout(() => { lancerPrefillIA(); }, 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const results: ExpertiseResults = useMemo(() => computeExpertise(inputs), [inputs]);
@@ -227,10 +232,7 @@ export default function Expertise() {
               <CardTitle className="text-sm flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-primary" />
                 Paramètres de l'expertise
-                <Button size="sm" variant="outline" className="ml-auto h-7" onClick={lancerPrefillIA} disabled={loadingPrefill}>
-                  {loadingPrefill ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />}
-                  Pré-remplir
-                </Button>
+                {loadingPrefill && <Loader2 className="h-3.5 w-3.5 ml-auto animate-spin text-primary" />}
               </CardTitle>
               {prefillNote && (
                 <p className="text-[10px] text-muted-foreground italic flex items-start gap-1">
@@ -432,18 +434,16 @@ export default function Expertise() {
                 eta="15 à 40 secondes"
               />
             )}
-            {/* KPIs principaux */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Kpi label="Rentabilité brute" value={fmtPct(results.rentabilite_brute)} />
-              <Kpi label="Rentabilité nette" value={fmtPct(results.rentabilite_nette)} />
-              <Kpi label="Nette-nette" value={fmtPct(results.rentabilite_nette_nette)} highlight />
-              <Kpi label="Cash-flow / mois" value={fmtEur(results.cash_flow_mensuel)} highlight={results.cash_flow_mensuel >= 0} negative={results.cash_flow_mensuel < 0} />
-            </div>
+            {/* KPIs Premium en haut */}
+            <PremiumKpis results={results} />
+
+            {/* Conseil IA dynamique (instantané, déterministe) */}
+            <ConseilStrategique inputs={inputs} results={results} />
 
             {/* Graphiques "Effet Wow" */}
             <ExpertiseCharts inputs={inputs} results={results} />
 
-            {/* Intelligence fiscale & optimisation */}
+            {/* Intelligence fiscale & optimisation (déterministe) */}
             <FiscalOptimizer
               inputs={inputs}
               results={results}
@@ -452,6 +452,10 @@ export default function Expertise() {
                 toast.success("Paramètre appliqué — résultats mis à jour.");
               }}
             />
+
+            {/* Stratège IA — leviers avancés (LLM) */}
+            <StrategeIA inputs={inputs} results={results} />
+
 
 
 
