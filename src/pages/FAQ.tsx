@@ -69,8 +69,8 @@ const CATEGORIES: FAQCategory[] = [
     label: "Copilote stratégique",
     icon: Bot,
     items: [
-      { q: "Qu'est-ce que le Copilote stratégique ?", a: "Votre directeur commercial IA. Il a accès en temps réel à toutes vos données (clients, agenda, inbox, opportunités) et vous suggère la meilleure action au bon moment.", tags: ["copilote", "fonctionnement"] },
-      { q: "Comment le Copilote utilise-t-il mes données ?", a: "Lecture seule, dans votre navigateur. Aucune donnée n'est partagée avec d'autres utilisateurs. Le Copilote se base sur : agenda du jour, clients récents, opportunités, urgences inbox.", tags: ["confidentialite", "donnees"] },
+      { q: "Qu'est-ce que le Copilote stratégique ?", a: "Votre directeur commercial IA. Il a accès en temps réel à vos analyses Radar, vos pige IA, vos estimations et vos audits Studio, et vous suggère la meilleure action au bon moment.", tags: ["copilote", "fonctionnement"] },
+      { q: "Comment le Copilote utilise-t-il mes données ?", a: "Lecture seule, dans votre navigateur. Aucune donnée n'est partagée avec d'autres utilisateurs. Le Copilote se base sur : analyses Radar récentes, annonces piges enregistrées, estimations actives, audits réseaux sociaux.", tags: ["confidentialite", "donnees"] },
       { q: "Puis-je sauvegarder mes conversations ?", a: "Oui, automatiquement. Chaque conversation est sauvegardée dans la sidebar gauche, renommable et supprimable. Recherche disponible.", tags: ["sauvegarde", "historique"] },
       { q: "Le Copilote peut-il agir à ma place ?", a: "Non. Il propose, vous décidez. Toute action (email, mandat, RDV) requiert votre validation explicite. Le Copilote est un conseiller, pas un exécutant autonome.", tags: ["autonomie", "validation"] },
     ],
