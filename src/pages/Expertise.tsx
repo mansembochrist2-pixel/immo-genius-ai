@@ -29,6 +29,7 @@ import { exportExpertisePDF, exportExpertiseDocx, NarrativeReport } from "@/lib/
 import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { SourceHint, DISCLAIMER_TEXT } from "@/components/valorisation/SourceHint";
 import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
+import { FiscalOptimizer } from "@/components/valorisation/FiscalOptimizer";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 const fmtEur = (n?: number) =>
@@ -441,6 +442,17 @@ export default function Expertise() {
 
             {/* Graphiques "Effet Wow" */}
             <ExpertiseCharts inputs={inputs} results={results} />
+
+            {/* Intelligence fiscale & optimisation */}
+            <FiscalOptimizer
+              inputs={inputs}
+              results={results}
+              onApply={(patch) => {
+                setInputs((prev) => ({ ...prev, ...patch }));
+                toast.success("Paramètre appliqué — résultats mis à jour.");
+              }}
+            />
+
 
 
             {results.warnings.length > 0 && (
