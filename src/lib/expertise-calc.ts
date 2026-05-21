@@ -86,12 +86,20 @@ export interface ExpertiseResults {
     plus_value_estimee_apres_n_ans: number;
   };
 
-  tri_simplifie: number;
+  tri_simplifie: number; // alias historique = tri_10_ans
+  tri_10_ans: number;
+  capital_restant_du_n: number;
+  impot_plus_value_n: number;
+  effort_epargne_mensuel: number; // -cashflow si négatif, 0 sinon
   plus_value_estimee_apres_n_ans: number;
   prix_revente_estime: number;
 
   warnings: string[];
 }
+
+const INFLATION_LOYERS = 0.015; // +1,5%/an
+const INFLATION_PRIX = 0.02;    // +2%/an par défaut si revalorisation_annuelle_pct=0
+const FRAIS_AGENCE_REVENTE_PCT = 0.05;
 
 const PRELEVEMENTS_SOCIAUX = 0.172;
 
