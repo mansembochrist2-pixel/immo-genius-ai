@@ -15,7 +15,7 @@ import { streamChat } from "@/lib/ai-stream";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
-import { VoiceButton } from "@/components/VoiceButton";
+import { VoiceTextarea } from "@/components/VoiceTextarea";
 import { Switch } from "@/components/ui/switch";
 import { Wand2 } from "lucide-react";
 import { toast } from "sonner";
@@ -398,10 +398,9 @@ const Copilote = () => {
 
           <div className="p-4 border-t border-border">
             <div className="flex gap-2">
-              <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[60px] max-h-48 resize-none bg-secondary border-border text-[15px]"
+              <VoiceTextarea value={input} onChange={e => setInput(e.target.value)} onTranscript={(text) => setInput(prev => (prev + " " + text).trim())} voiceDisabled={isLoading} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[60px] max-h-48 resize-none bg-secondary border-border text-[15px]"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
               />
-              <VoiceButton onTranscript={(text) => setInput(prev => prev + " " + text)} disabled={isLoading} />
               <Button onClick={() => envoyer()} disabled={isLoading || !input.trim()} size="icon" className="shrink-0"><Send className="h-4 w-4" /></Button>
             </div>
           </div>
