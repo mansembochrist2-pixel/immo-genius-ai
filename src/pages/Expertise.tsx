@@ -29,7 +29,7 @@ import { exportExpertisePDF, exportExpertiseDocx, NarrativeReport } from "@/lib/
 import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { SourceHint, DISCLAIMER_TEXT } from "@/components/valorisation/SourceHint";
 import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
-import { FiscalOptimizer } from "@/components/valorisation/FiscalOptimizer";
+
 import { PremiumKpis } from "@/components/valorisation/PremiumKpis";
 import { ConseilStrategique } from "@/components/valorisation/ConseilStrategique";
 import { StrategeIA } from "@/components/valorisation/StrategeIA";
@@ -443,18 +443,13 @@ export default function Expertise() {
             {/* Graphiques "Effet Wow" */}
             <ExpertiseCharts inputs={inputs} results={results} />
 
-            {/* Intelligence fiscale & optimisation (déterministe) */}
-            <FiscalOptimizer
+            {/* Stratège IA — cerveau central d'optimisation (déterministe + LLM + Apply temps réel) */}
+            <StrategeIA
               inputs={inputs}
               results={results}
-              onApply={(patch) => {
-                setInputs((prev) => ({ ...prev, ...patch }));
-                toast.success("Paramètre appliqué — résultats mis à jour.");
-              }}
+              onApply={(patch) => setInputs((prev) => ({ ...prev, ...patch }))}
             />
 
-            {/* Stratège IA — leviers avancés (LLM) */}
-            <StrategeIA inputs={inputs} results={results} />
 
 
 
