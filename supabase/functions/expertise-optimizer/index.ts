@@ -41,14 +41,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5.5",
+    const callModel = async (model: string, withReasoning: boolean) => {
+      const body: any = {
+        model,
         messages: [
           { role: "system", content: SYSTEM },
           {
@@ -56,11 +51,25 @@ serve(async (req) => {
             content: `DOSSIER :\n${JSON.stringify(inputs, null, 2)}\n\nRÉSULTATS CALCULÉS :\n${JSON.stringify(results, null, 2)}\n\nPropose les 3 à 6 leviers PATRIMONIAUX AVANCÉS les plus impactants pour CE dossier précis (n'évoque pas les leviers basiques comme "allonger le crédit" ou "augmenter l'apport" — déjà traités). JSON only.`,
           },
         ],
-        reasoning: { effort: "medium" },
-      }),
-    });
+      };
+      if (withReasoning) body.reasoning = { effort: "medium" };
+      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    };
+
+    let resp = await callModel("openai/gpt-5", true);
+    if (!resp.ok && resp.status !== 429 && resp.status !== 402) {
+      const errText = await resp.text();
+      console.error("Primary model failed:", resp.status, errText);
+      resp = await callModel("google/gemini-2.5-pro", false);
+    }
 
     if (!resp.ok) {
+      const errText = await resp.text();
+      console.error("AI gateway error:", resp.status, errText);
       if (resp.status === 429)
         return new Response(JSON.stringify({ error: "Trop de requêtes." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -69,7 +78,9 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Crédits IA épuisés." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-      throw new Error("Erreur du service IA");
+      return new Response(JSON.stringify({ error: "Erreur du service IA", detail: errText }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     const data = await resp.json();
     let content: string = data.choices?.[0]?.message?.content || "";
