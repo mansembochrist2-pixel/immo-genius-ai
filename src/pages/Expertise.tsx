@@ -443,15 +443,12 @@ export default function Expertise() {
             {/* Graphiques "Effet Wow" */}
             <ExpertiseCharts inputs={inputs} results={results} />
 
-            {/* Section 1 — Optimisations rapides (Apply 1 clic, recalcul temps réel) */}
-            <QuickOptimizations
+            {/* Stratégies IA applicables : les leviers modifient les paramètres et recalculent les KPIs */}
+            <StrategeIA
               inputs={inputs}
               results={results}
               onApply={(patch) => setInputs((prev) => ({ ...prev, ...patch }))}
             />
-
-            {/* Section 2 — Stratégies patrimoniales avancées (Étudier / Simuler — pas d'auto-apply) */}
-            <StrategeIA inputs={inputs} results={results} />
 
 
 
