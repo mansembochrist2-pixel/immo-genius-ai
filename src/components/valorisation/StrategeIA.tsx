@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, Brain, Info, BookOpen, FlaskConical, Scale } from "lucide-react";
-import { useState } from "react";
+import { Sparkles, Brain, Info, BookOpen, FlaskConical, Scale, CheckCircle2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { ExpertiseInputs, ExpertiseResults } from "@/lib/expertise-calc";
+import { computeExpertise, suggestOptimizations, type ExpertiseInputs, type ExpertiseResults } from "@/lib/expertise-calc";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 interface LevierAI {
@@ -17,11 +17,18 @@ interface LevierAI {
   impact_estime: string;
   complexite: "facile" | "moyenne" | "élevée";
   source?: string;
+  patch?: Partial<ExpertiseInputs> | null;
+  apply_label?: string;
+  compatibilite_score?: number;
+  conditions?: string;
 }
+
+type DisplayLevier = LevierAI & { origin: "ia" | "moteur"; patch?: Partial<ExpertiseInputs> | null };
 
 interface Props {
   inputs: ExpertiseInputs;
   results: ExpertiseResults;
+  onApply: (patch: Partial<ExpertiseInputs>) => void;
 }
 
 const CAT_COLORS: Record<string, string> = {
@@ -38,11 +45,10 @@ const COMPLEX_COLORS: Record<string, string> = {
 };
 
 /**
- * Stratège IA — Stratégies patrimoniales avancées.
- * Pas d'auto-apply : montages complexes (SCI à l'IS, démembrement, holding…)
- * qui nécessitent notaire/comptable. Boutons "Étudier" / "Simuler" uniquement.
+ * Stratège IA — stratégies patrimoniales et leviers applicables.
+ * Les actions réellement modélisables modifient les paramètres d'expertise en direct.
  */
-export function StrategeIA({ inputs, results }: Props) {
+export function StrategeIA({ inputs, results, onApply }: Props) {
   const [loading, setLoading] = useState(false);
   const [diagnostic, setDiagnostic] = useState<string>("");
   const [leviersAI, setLeviersAI] = useState<LevierAI[]>([]);
@@ -58,7 +64,7 @@ export function StrategeIA({ inputs, results }: Props) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setDiagnostic(data.diagnostic || "");
-      setLeviersAI(Array.isArray(data.leviers) ? data.leviers : []);
+      setLeviersAI(Array.isArray(data.leviers) ? data.leviers.filter(isContextualLevier) : []);
       toast.success("Analyse stratégique générée");
     } catch (e: any) {
       toast.error(e.message || "Erreur de l'analyse stratégique");
@@ -70,6 +76,41 @@ export function StrategeIA({ inputs, results }: Props) {
   const openStudy = (l: LevierAI, mode: "etudier" | "simuler" | "comparer") => {
     setStudyLevier(l);
     setStudyMode(mode);
+  };
+
+  const operationalLeviers = useMemo<DisplayLevier[]>(() => {
+    if (!diagnostic && leviersAI.length === 0) return [];
+    return suggestOptimizations(inputs, results)
+      .filter((p) => p.id !== "loyer_bloque")
+      .map((p) => ({
+        titre: p.label,
+        categorie: p.id === "no_travaux" || p.id === "renovation_energetique" ? "travaux" : "financier",
+        description: p.description,
+        impact_estime: `Cash-flow ${p.delta_cashflow_mensuel >= 0 ? "+" : ""}${Math.round(p.delta_cashflow_mensuel)} €/mois`,
+        complexite: "facile",
+        source: p.source || "Moteur de calcul interne — impact recalculé sur les paramètres saisis",
+        patch: p.patch,
+        apply_label: "Appliquer",
+        origin: "moteur",
+      }));
+  }, [diagnostic, inputs, leviersAI.length, results]);
+
+  const displayLeviers = useMemo<DisplayLevier[]>(() => {
+    const ai = leviersAI.map((l) => ({ ...l, patch: sanitizePatch(l.patch) || inferPatch(l, inputs), origin: "ia" as const }));
+    return [...ai, ...operationalLeviers].filter(isContextualLevier);
+  }, [inputs, leviersAI, operationalLeviers]);
+
+  const applyLevier = (levier: DisplayLevier) => {
+    const patch = sanitizePatch(levier.patch) || inferPatch(levier, inputs);
+    if (!patch || Object.keys(patch).length === 0) {
+      openStudy(levier, "etudier");
+      toast.info("Cette stratégie doit être étudiée avec un notaire/comptable avant d'être modélisée.");
+      return;
+    }
+    onApply(patch);
+    const next = computeExpertise({ ...inputs, ...patch });
+    const delta = next.cash_flow_mensuel - results.cash_flow_mensuel;
+    toast.success(`Stratégie appliquée — cash-flow ${delta >= 0 ? "+" : ""}${Math.round(delta)} €/mois.`);
   };
 
   return (
