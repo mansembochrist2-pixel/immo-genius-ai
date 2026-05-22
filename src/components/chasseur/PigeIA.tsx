@@ -264,8 +264,7 @@ export const PigeIA = () => {
       `**Prix** : ${a.prix ? Number(a.prix).toLocaleString("fr-FR") + " €" : "N/C"}${sig.prix_m2 ? ` (${sig.prix_m2} €/m²)` : ""}`,
       ``,
       `**Vendeur** : ${contact.type || "inconnu"}${contact.agence_nom ? ` (${contact.agence_nom})` : ""}${contact.nom ? ` · ${contact.nom}` : ""}`,
-      contact.telephone ? `**Téléphone** : ${contact.telephone}` : "",
-      contact.email ? `**Email** : ${contact.email}` : "",
+      `**Coordonnées** : à récupérer directement sur l'annonce d'origine (non exposées pour respect des données personnelles)`,
       a.url ? `**Source** : ${a.url}` : "",
       ``,
       `**Score mandatabilité** : ${a.score_pigeabilite}/100 — catégorie "${a.categorie_opportunite || "moyenne"}"`,
@@ -499,9 +498,9 @@ export const PigeIA = () => {
             <span className="flex items-center gap-1"><Camera className="h-2.5 w-2.5" />{a.qualite_annonce?.nb_photos ?? 0}</span>
           </div>
           {(contact.telephone || contact.email) && (
-            <div className="flex items-center gap-2 text-[10px] text-success font-medium border-t border-border/30 pt-2">
-              {contact.telephone && <span className="flex items-center gap-1"><Phone className="h-2.5 w-2.5" />{contact.telephone}</span>}
-              {contact.email && <span className="flex items-center gap-1 truncate"><Mail className="h-2.5 w-2.5" />{contact.email}</span>}
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground border-t border-border/30 pt-2">
+              <Info className="h-2.5 w-2.5" />
+              <span>Coordonnées disponibles sur l'annonce d'origine</span>
             </div>
           )}
           <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
@@ -822,16 +821,28 @@ export const PigeIA = () => {
                   )}
                 </div>
 
-                {/* Contact vendeur */}
-                {(selected.contact_vendeur?.telephone || selected.contact_vendeur?.email || selected.contact_vendeur?.nom) && (
-                  <div className="rounded-xl border border-success/30 bg-success/5 p-4">
-                    <p className="text-[10px] uppercase tracking-wider text-success font-semibold mb-2 flex items-center gap-1">
+                {/* Contact vendeur — informations personnelles masquées pour respect RGPD */}
+                {(selected.contact_vendeur?.telephone || selected.contact_vendeur?.email || selected.contact_vendeur?.nom || selected.url) && (
+                  <div className="rounded-xl border border-border/40 bg-muted/20 p-4">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 flex items-center gap-1">
                       <Phone className="h-3 w-3" /> Contact vendeur ({selected.contact_vendeur?.type || "?"})
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
-                      {selected.contact_vendeur?.nom && <div><span className="text-muted-foreground text-xs">Nom</span><br />{selected.contact_vendeur.nom}</div>}
-                      {selected.contact_vendeur?.telephone && <div><span className="text-muted-foreground text-xs">Téléphone</span><br /><a href={`tel:${selected.contact_vendeur.telephone}`} className="text-primary font-medium">{selected.contact_vendeur.telephone}</a></div>}
-                      {selected.contact_vendeur?.email && <div><span className="text-muted-foreground text-xs">Email</span><br /><a href={`mailto:${selected.contact_vendeur.email}`} className="text-primary font-medium break-all">{selected.contact_vendeur.email}</a></div>}
+                    <div className="space-y-2 text-sm">
+                      {selected.contact_vendeur?.nom && (
+                        <div>
+                          <span className="text-muted-foreground text-xs">Nom</span><br />
+                          {selected.contact_vendeur.nom}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
+                        <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                        <span>Les coordonnées (téléphone, email) du vendeur sont disponibles directement sur l'annonce d'origine. Estate AI ne les expose pas pour respecter la confidentialité des données personnelles.</span>
+                      </p>
+                      {selected.url && (
+                        <a href={selected.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline">
+                          Voir l'annonce <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}
