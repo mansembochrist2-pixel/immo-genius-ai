@@ -275,20 +275,37 @@ export function computeExpertise(i: ExpertiseInputs): ExpertiseResults {
   const ivp = calcImpotPlusValue(plusValueBase, n);
 
   // === TRI réel sur n ans (flux complets, inflation loyers +1,5%/an) ===
+  // Lorsque des travaux sont saisis, on intègre :
+  //  - le gain de loyer post-travaux
+  //  - l'économie de charges
+  //  - la valorisation supplémentaire de l'assiette (prix + travaux nets)
+  //  - l'impôt recalculé sur la nouvelle base
+  const hasTravaux = coutNetTravaux > 0;
+  const loyerMensuelOp = i.loyer_mensuel + (hasTravaux ? i.gain_loyer_post_travaux : 0);
+  const chargesOp = hasTravaux ? chargesPostTravaux : chargesTotales;
+  const impotOp = hasTravaux ? impotPost : impot;
+  const baseRevente = i.prix_acquisition + coutNetTravaux;
+  const prixReventeOp = baseRevente * Math.pow(1 + rev, n);
+  const plusValueOp = prixReventeOp - baseRevente;
+  const ivpOp = calcImpotPlusValue(plusValueOp, n);
+
   const investissementInitial = i.apport + fraisNotaire + (i.frais_agence || 0) + coutNetTravaux;
   const flux: number[] = [-investissementInitial];
   for (let t = 1; t <= n; t++) {
     const facteurLoyer = Math.pow(1 + INFLATION_LOYERS, t - 1);
+    // Mensualités s'arrêtent une fois le crédit remboursé
+    const mensualitePayee = t <= i.duree_credit_annees ? mensualite * 12 : 0;
     const cfYear =
-      i.loyer_mensuel * 12 * (1 - tauxVacance) * facteurLoyer -
-      chargesTotales -
-      mensualite * 12 -
-      impot;
+      loyerMensuelOp * 12 * (1 - tauxVacance) * facteurLoyer -
+      chargesOp -
+      mensualitePayee -
+      impotOp;
     if (t < n) {
       flux.push(cfYear);
     } else {
-      const fraisAgenceRevente = prixReventeEstime * FRAIS_AGENCE_REVENTE_PCT;
-      const valeurTerminale = prixReventeEstime - crd - ivp - fraisAgenceRevente;
+      const crdN = calcCapitalRestantDu(capitalEmprunte, i.taux_credit, i.duree_credit_annees, n);
+      const fraisAgenceRevente = prixReventeOp * FRAIS_AGENCE_REVENTE_PCT;
+      const valeurTerminale = prixReventeOp - crdN - ivpOp - fraisAgenceRevente;
       flux.push(cfYear + valeurTerminale);
     }
   }
