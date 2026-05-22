@@ -32,6 +32,7 @@ import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
 
 import { PremiumKpis } from "@/components/valorisation/PremiumKpis";
 import { ConseilStrategique } from "@/components/valorisation/ConseilStrategique";
+import { QuickOptimizations } from "@/components/valorisation/QuickOptimizations";
 import { StrategeIA } from "@/components/valorisation/StrategeIA";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 
@@ -443,12 +444,15 @@ export default function Expertise() {
             {/* Graphiques "Effet Wow" */}
             <ExpertiseCharts inputs={inputs} results={results} />
 
-            {/* Stratège IA — cerveau central d'optimisation (déterministe + LLM + Apply temps réel) */}
-            <StrategeIA
+            {/* Section 1 — Optimisations rapides (Apply 1 clic, recalcul temps réel) */}
+            <QuickOptimizations
               inputs={inputs}
               results={results}
               onApply={(patch) => setInputs((prev) => ({ ...prev, ...patch }))}
             />
+
+            {/* Section 2 — Stratégies patrimoniales avancées (Étudier / Simuler — pas d'auto-apply) */}
+            <StrategeIA inputs={inputs} results={results} />
 
 
 
