@@ -14,7 +14,7 @@ import {
   Sparkles, Loader2, Download, Save, FileText, Info,
   TrendingUp, Calculator, FileDown,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +32,6 @@ import { ExpertiseCharts } from "@/components/valorisation/ExpertiseCharts";
 
 import { PremiumKpis } from "@/components/valorisation/PremiumKpis";
 import { ConseilStrategique } from "@/components/valorisation/ConseilStrategique";
-import { QuickOptimizations } from "@/components/valorisation/QuickOptimizations";
 import { StrategeIA } from "@/components/valorisation/StrategeIA";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 
