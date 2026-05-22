@@ -9,6 +9,8 @@ interface UseVoiceInputOptions {
 export function useVoiceInput({ onInterim, onFinal, onError }: UseVoiceInputOptions) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const lastFinalRef = useRef("");
+  const lastFinalAtRef = useRef(0);
 
   const isSafari = typeof navigator !== "undefined" && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const SR = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
@@ -21,6 +23,8 @@ export function useVoiceInput({ onInterim, onFinal, onError }: UseVoiceInputOpti
     }
 
     try {
+      lastFinalRef.current = "";
+      lastFinalAtRef.current = 0;
       const recognition = new SR();
       recognition.lang = "fr-FR";
       recognition.continuous = true;
@@ -30,7 +34,7 @@ export function useVoiceInput({ onInterim, onFinal, onError }: UseVoiceInputOpti
       recognition.onresult = (event: any) => {
         let interim = "";
         let final = "";
-        for (let i = 0; i < event.results.length; i++) {
+        for (let i = event.resultIndex ?? 0; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             final += transcript;
@@ -38,8 +42,17 @@ export function useVoiceInput({ onInterim, onFinal, onError }: UseVoiceInputOpti
             interim += transcript;
           }
         }
-        if (final) onFinal?.(final);
-        if (interim) onInterim?.(interim);
+        const cleanFinal = final.trim();
+        if (cleanFinal) {
+          const now = Date.now();
+          const isDuplicate = cleanFinal === lastFinalRef.current && now - lastFinalAtRef.current < 1800;
+          if (!isDuplicate) {
+            lastFinalRef.current = cleanFinal;
+            lastFinalAtRef.current = now;
+            onFinal?.(cleanFinal);
+          }
+        }
+        onInterim?.(interim.trim());
       };
 
       recognition.onerror = (event: any) => {
@@ -50,6 +63,7 @@ export function useVoiceInput({ onInterim, onFinal, onError }: UseVoiceInputOpti
       };
 
       recognition.onend = () => {
+        recognitionRef.current = null;
         setIsListening(false);
       };
 
