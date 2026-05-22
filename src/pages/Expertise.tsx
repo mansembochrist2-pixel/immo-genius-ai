@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Sparkles, Loader2, Download, Save, FileText, Info,
+  Sparkles, Loader2, Download, FileText, Info,
   TrendingUp, Calculator, FileDown,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -84,7 +84,6 @@ export default function Expertise() {
 
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [loadingNarrative, setLoadingNarrative] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [narrative, setNarrative] = useState<NarrativeReport | null>(null);
   const [prefillNote, setPrefillNote] = useState<string>("");
 
@@ -157,27 +156,6 @@ export default function Expertise() {
       toast.error(e.message || "Erreur de génération du rapport");
     } finally {
       setLoadingNarrative(false);
-    }
-  };
-
-  const sauvegarder = async () => {
-    if (!user || !narrative) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("expertise_reports").insert({
-        user_id: user.id,
-        adresse: inputs.adresse,
-        type_bien: inputs.type_bien,
-        inputs: inputs as any,
-        results: results as any,
-        narrative: narrative as any,
-      });
-      if (error) throw error;
-      toast.success("Dossier sauvegardé.");
-    } catch (e: any) {
-      toast.error(e.message || "Erreur de sauvegarde");
-    } finally {
-      setSaving(false);
     }
   };
 
