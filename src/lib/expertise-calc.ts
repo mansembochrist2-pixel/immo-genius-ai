@@ -712,7 +712,7 @@ export function suggestOptimizations(
       economie_charges_post_travaux: 600,
       dpe_cible: "C",
     });
-    if (d > -50) {
+    if (d > 30) {
       proposals.push({
         id: "renovation_energetique",
         label: `Lancer une rénovation énergétique (~${coutEstime.toLocaleString("fr-FR")} €)`,
@@ -725,6 +725,21 @@ export function suggestOptimizations(
           economie_charges_post_travaux: 600,
           dpe_cible: "C",
         },
+      });
+    }
+  }
+
+  // 13bis. Détection travaux destructeurs de rentabilité (avertissement)
+  if (i.cout_travaux > 0) {
+    const sansTravaux = simulate({ cout_travaux: 0, aides_renovation: 0, gain_loyer_post_travaux: 0, economie_charges_post_travaux: 0 });
+    // sansTravaux > 0 signifie que retirer les travaux améliore le cash-flow
+    if (sansTravaux > 30) {
+      proposals.push({
+        id: "no_travaux",
+        label: "⚠ Renoncer aux travaux (ROI négatif)",
+        description: `Avec ${i.cout_travaux.toLocaleString("fr-FR")} € de travaux pour seulement +${i.gain_loyer_post_travaux} €/mois de loyer, l'investissement détruit la rentabilité. Refaire un chiffrage ciblé (DPE uniquement) ou renoncer.`,
+        delta_cashflow_mensuel: sansTravaux,
+        patch: { cout_travaux: 0, aides_renovation: 0, gain_loyer_post_travaux: 0, economie_charges_post_travaux: 0 },
       });
     }
   }
@@ -744,7 +759,7 @@ export function suggestOptimizations(
   }
 
   return proposals
-    .filter((p) => p.id === "loyer_bloque" || p.delta_cashflow_mensuel > 0)
+    .filter((p) => p.id === "loyer_bloque" || p.id === "no_travaux" || p.delta_cashflow_mensuel > 0)
     .sort((a, b) => b.delta_cashflow_mensuel - a.delta_cashflow_mensuel);
 }
 
