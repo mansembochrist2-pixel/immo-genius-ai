@@ -14,7 +14,7 @@ import {
   Sparkles, Loader2, Download, Save, FileText, Info,
   TrendingUp, Calculator, FileDown,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -498,7 +498,7 @@ export default function Expertise() {
                         <CompareRow label="Prix total" a={fmtEur(results.prix_acquisition_total)} b={fmtEur(results.post_travaux.prix_acquisition_total)} />
                         <CompareRow label="Loyers/an" a={fmtEur(results.loyers_annuels_bruts)} b={fmtEur(results.post_travaux.loyers_annuels_bruts)} />
                         <CompareRow label="Charges/an" a={fmtEur(results.charges_annuelles_totales)} b={fmtEur(results.post_travaux.charges_annuelles_totales)} />
-                        <CompareRow label="Brute" a={fmtPct(results.rentabilite_brute)} b={fmtPct(results.post_travaux.rentabilite_brute)} />
+                        <CompareRow label="Brute" a={fmtPct(results.rentabilite_brute)} b={fmtPct(results.post_travaux.rentabilite_brute)} note="Le brut peut baisser si les travaux augmentent l'assiette d'investissement plus vite que le loyer, tandis que le net progresse grâce aux économies de charges ou à la fiscalité." />
                         <CompareRow label="Nette" a={fmtPct(results.rentabilite_nette)} b={fmtPct(results.post_travaux.rentabilite_nette)} />
                         <CompareRow label="Nette-nette" a={fmtPct(results.rentabilite_nette_nette)} b={fmtPct(results.post_travaux.rentabilite_nette_nette)} />
                         <CompareRow label="Cash-flow/mois" a={fmtEur(results.cash_flow_mensuel)} b={fmtEur(results.post_travaux.cash_flow_mensuel)} />
@@ -594,17 +594,6 @@ export default function Expertise() {
   );
 }
 
-function Kpi({ label, value, highlight, negative }: { label: string; value: string; highlight?: boolean; negative?: boolean }) {
-  return (
-    <Card className={`bg-card/60 border ${highlight ? "border-primary/30 shadow-sm" : "border-border/30"} ${negative ? "border-destructive/30" : ""}`}>
-      <CardContent className="pt-4 pb-3">
-        <p className="text-[10px] uppercase text-muted-foreground tracking-wider">{label}</p>
-        <p className={`text-lg font-bold mt-1 ${highlight ? "text-primary" : ""} ${negative ? "text-destructive" : ""}`}>{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 function Row({ k, v, bold }: { k: string; v: string; bold?: boolean }) {
   return (
     <div className="flex items-center justify-between py-1">
@@ -614,10 +603,20 @@ function Row({ k, v, bold }: { k: string; v: string; bold?: boolean }) {
   );
 }
 
-function CompareRow({ label, a, b }: { label: string; a: string; b: string }) {
+function CompareRow({ label, a, b, note }: { label: string; a: string; b: string; note?: string }) {
   return (
     <tr>
-      <td className="py-2 text-muted-foreground">{label}</td>
+      <td className="py-2 text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
+          {label}
+          {note && (
+            <Tooltip>
+              <TooltipTrigger asChild><button type="button"><Info className="h-3 w-3" /></button></TooltipTrigger>
+              <TooltipContent className="max-w-[300px] text-[11px] leading-relaxed">{note}</TooltipContent>
+            </Tooltip>
+          )}
+        </span>
+      </td>
       <td className="py-2 text-right">{a}</td>
       <td className="py-2 text-right font-bold text-primary">{b}</td>
     </tr>
