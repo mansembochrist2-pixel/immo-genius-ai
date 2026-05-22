@@ -137,14 +137,14 @@ export function StrategeIA({ inputs, results, onApply }: Props) {
       .filter((p) => p.id !== "loyer_bloque")
       .map((p) => ({
         titre: p.label,
-        categorie: p.id === "no_travaux" || p.id === "renovation_energetique" ? "travaux" : "financier",
+        categorie: (p.id === "no_travaux" || p.id === "renovation_energetique" ? "travaux" : "financier") as LevierAI["categorie"],
         description: p.description,
         impact_estime: `Cash-flow ${p.delta_cashflow_mensuel >= 0 ? "+" : ""}${Math.round(p.delta_cashflow_mensuel)} €/mois`,
-        complexite: "facile",
+        complexite: "facile" as const,
         source: p.source || "Moteur de calcul interne — impact recalculé sur les paramètres saisis",
         patch: p.patch,
         apply_label: "Appliquer",
-        origin: "moteur",
+        origin: "moteur" as const,
       }));
   }, [diagnostic, inputs, leviersAI.length, results]);
 
