@@ -645,18 +645,22 @@ export const PigeIA = () => {
 
       {/* Results */}
       {/* Résultats de la recherche en cours */}
-      {searching && zoneAnnoncesCount === 0 ? (
+      {searching ? (
         <AnalysisLoader
-          module="Pige IA"
-          context={zone}
+          module="Pige IA — détection d'opportunités"
+          context={zone || activeZone}
           messages={[
-            `Scan multi-sources sur ${zone}…`,
-            "Filtrage des annonces hors zone…",
-            "Détection des particuliers et des baisses de prix…",
-            "Évaluation de la qualité des annonces…",
-            "Scoring de mandatabilité par l'IA…",
-            "Hiérarchisation des opportunités…",
+            `Scan multi-sources Leboncoin · SeLoger · Bien'ici · PAP sur ${zone || activeZone}…`,
+            "Filtrage des annonces hors zone et doublons…",
+            "Extraction des données vendeur (particulier / agence)…",
+            "Détection des baisses de prix et multi-diffusions…",
+            "Évaluation qualité des annonces (photos, description)…",
+            "Recoupement avec les références DVF du secteur…",
+            "Scoring de mandatabilité par l'IA (GPT-5.5)…",
+            "Hiérarchisation des opportunités par priorité…",
+            "Cela peut prendre 1 à 2 minutes — l'IA analyse en profondeur…",
           ]}
+          eta="60 à 120 secondes — analyse complète multi-sources"
         />
       ) : isLoading ? (
         <p className="text-center text-sm text-muted-foreground py-8">Chargement…</p>
