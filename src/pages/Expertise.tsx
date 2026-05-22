@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Sparkles, Loader2, Download, Save, FileText, Info,
+  Sparkles, Loader2, Download, FileText, Info,
   TrendingUp, Calculator, FileDown,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -84,7 +84,6 @@ export default function Expertise() {
 
   const [loadingPrefill, setLoadingPrefill] = useState(false);
   const [loadingNarrative, setLoadingNarrative] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [narrative, setNarrative] = useState<NarrativeReport | null>(null);
   const [prefillNote, setPrefillNote] = useState<string>("");
 
@@ -157,27 +156,6 @@ export default function Expertise() {
       toast.error(e.message || "Erreur de génération du rapport");
     } finally {
       setLoadingNarrative(false);
-    }
-  };
-
-  const sauvegarder = async () => {
-    if (!user || !narrative) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("expertise_reports").insert({
-        user_id: user.id,
-        adresse: inputs.adresse,
-        type_bien: inputs.type_bien,
-        inputs: inputs as any,
-        results: results as any,
-        narrative: narrative as any,
-      });
-      if (error) throw error;
-      toast.success("Dossier sauvegardé.");
-    } catch (e: any) {
-      toast.error(e.message || "Erreur de sauvegarde");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -565,9 +543,6 @@ export default function Expertise() {
                     <div className="flex flex-wrap gap-2 pt-2">
                       <Button onClick={downloadPDF} className="flex-1 min-w-[140px]"><FileDown className="h-4 w-4 mr-2" /> Export PDF</Button>
                       <Button variant="secondary" onClick={downloadDocx} className="flex-1 min-w-[140px]"><Download className="h-4 w-4 mr-2" /> Export Word</Button>
-                      <Button variant="outline" onClick={sauvegarder} disabled={saving} className="flex-1 min-w-[140px]">
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />} Sauvegarder
-                      </Button>
                       <Button variant="ghost" onClick={genererRapport} disabled={loadingNarrative}>
                         <Sparkles className="h-4 w-4 mr-2" /> Régénérer
                       </Button>

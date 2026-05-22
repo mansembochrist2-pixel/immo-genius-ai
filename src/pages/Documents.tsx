@@ -22,7 +22,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { streamChat } from "@/lib/ai-stream";
 import { exportTextToDocx } from "@/lib/docx-export";
-import { VoiceButton } from "@/components/VoiceButton";
+import { VoiceTextarea } from "@/components/VoiceTextarea";
 import { readTemplateFile } from "@/lib/template-reader";
 
 const MANDAT_INFO_EXEMPLE = `══════ INFORMATIONS DU MANDANT (VENDEUR) ══════
@@ -445,26 +445,22 @@ const Studio = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat (dictée vocale ou saisie)" : "Mandate details (voice or text)"}</p>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-[10px] gap-1 text-primary hover:text-primary"
-                        onClick={() => setMandatInfo(MANDAT_INFO_EXEMPLE)}
-                        title={lang === "fr" ? "Insérer un exemple complet à modifier" : "Insert a complete example"}
-                      >
-                        <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un exemple" : "Load example"}
-                      </Button>
-                      <VoiceButton
-                        onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
-                        onInterim={(text) => setVoiceInterim(text)}
-                      />
-                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[10px] gap-1 text-primary hover:text-primary"
+                      onClick={() => setMandatInfo(MANDAT_INFO_EXEMPLE)}
+                      title={lang === "fr" ? "Insérer un exemple complet à modifier" : "Insert a complete example"}
+                    >
+                      <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un exemple" : "Load example"}
+                    </Button>
                   </div>
-                  <Textarea
+                  <VoiceTextarea
                     value={mandatInfo + (voiceInterim ? " " + voiceInterim : "")}
                     onChange={e => { setMandatInfo(e.target.value); setVoiceInterim(""); }}
+                    onTranscript={(text) => { setMandatInfo(prev => (prev + " " + text).trim()); setVoiceInterim(""); }}
+                    onInterim={(text) => setVoiceInterim(text)}
                     className="bg-muted/10 border-border/30 min-h-[200px] font-mono text-[11px] leading-relaxed"
                     placeholder={MANDAT_INFO_EXEMPLE}
                   />
@@ -573,11 +569,8 @@ const Studio = () => {
                     <NumberInput placeholder="Surface (m²)" value={annonceForm.surface} onChange={(v) => setAnnonceForm({...annonceForm, surface: v})} className="bg-muted/10 border-border/30" />
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">{lang === "fr" ? "Description du bien" : "Property description"}</p>
-                      <VoiceButton onTranscript={(text) => setAnnonceForm(f => ({ ...f, description: (f.description + " " + text).trim() }))} />
-                    </div>
-                    <Textarea placeholder={lang === "fr" ? "Description du bien (pièces, étage, vue, parking...)" : "Property description..."} value={annonceForm.description} onChange={(e) => setAnnonceForm({...annonceForm, description: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
+                    <p className="text-xs text-muted-foreground mb-1">{lang === "fr" ? "Description du bien" : "Property description"}</p>
+                    <VoiceTextarea placeholder={lang === "fr" ? "Description du bien (pièces, étage, vue, parking...)" : "Property description..."} value={annonceForm.description} onChange={(e) => setAnnonceForm({...annonceForm, description: e.target.value})} onTranscript={(text) => setAnnonceForm(f => ({ ...f, description: (f.description + " " + text).trim() }))} className="bg-muted/10 border-border/30" rows={3} />
                   </div>
                   {/* 3 tone styles */}
                   <div>
@@ -724,11 +717,8 @@ const Studio = () => {
                     <Input placeholder={lang === "fr" ? "Décrivez le type de contenu souhaité..." : "Describe desired content type..."} value={(marketingForm as any).type_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, type_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
                   )}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">{lang === "fr" ? "Bien ou sujet *" : "Property or subject *"}</p>
-                      <VoiceButton onTranscript={(text) => setMarketingForm(f => ({ ...f, bien: (f.bien + " " + text).trim() }))} />
-                    </div>
-                    <Textarea placeholder={lang === "fr" ? "Décrivez le bien ou le sujet *" : "Describe the property or subject *"} value={marketingForm.bien} onChange={(e) => setMarketingForm({...marketingForm, bien: e.target.value})} className="bg-muted/10 border-border/30" rows={3} />
+                    <p className="text-xs text-muted-foreground mb-1">{lang === "fr" ? "Bien ou sujet *" : "Property or subject *"}</p>
+                    <VoiceTextarea placeholder={lang === "fr" ? "Décrivez le bien ou le sujet *" : "Describe the property or subject *"} value={marketingForm.bien} onChange={(e) => setMarketingForm({...marketingForm, bien: e.target.value})} onTranscript={(text) => setMarketingForm(f => ({ ...f, bien: (f.bien + " " + text).trim() }))} className="bg-muted/10 border-border/30" rows={3} />
                   </div>
                   <Input placeholder={lang === "fr" ? "Cible (ex: primo-accédants...)" : "Target audience..."} value={marketingForm.cible} onChange={(e) => setMarketingForm({...marketingForm, cible: e.target.value})} className="bg-muted/10 border-border/30" />
                   <Select value={marketingForm.ton} onValueChange={(v) => setMarketingForm({...marketingForm, ton: v})}>
