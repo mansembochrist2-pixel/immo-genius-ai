@@ -44,6 +44,59 @@ const COMPLEX_COLORS: Record<string, string> = {
   élevée: "text-rose-600",
 };
 
+const ALLOWED_PATCH_KEYS = new Set<keyof ExpertiseInputs>([
+  "type_location", "loyer_mensuel", "encadrement_loyer", "loyer_plafond", "charges_copro_annuelles",
+  "taxe_fonciere_annuelle", "vacance_locative_pct", "assurance_gli", "assurance_pno", "frais_gestion_pct",
+  "entretien_pct", "dpe_cible", "cout_travaux", "aides_renovation", "gain_loyer_post_travaux",
+  "economie_charges_post_travaux", "apport", "frais_notaire_pct", "frais_agence", "taux_credit",
+  "duree_credit_annees", "regime_fiscal", "tmi", "duree_detention_annees", "revalorisation_annuelle_pct",
+]);
+
+function sanitizePatch(patch?: Partial<ExpertiseInputs> | null): Partial<ExpertiseInputs> | null {
+  if (!patch || typeof patch !== "object") return null;
+  const clean: Partial<ExpertiseInputs> = {};
+  for (const [key, value] of Object.entries(patch) as [keyof ExpertiseInputs, any][]) {
+    if (!ALLOWED_PATCH_KEYS.has(key) || value == null || value === "") continue;
+    (clean as any)[key] = typeof value === "string" && !Number.isNaN(Number(value)) ? Number(value) : value;
+  }
+  return Object.keys(clean).length ? clean : null;
+}
+
+function isContextualLevier(levier: Partial<LevierAI>): boolean {
+  const text = `${levier.titre || ""} ${levier.description || ""}`.toLowerCase();
+  if (levier.compatibilite_score != null && levier.compatibilite_score < 55) return false;
+  if (/\bvefa\b|cibler du neuf|acheter du neuf|bien neuf|frais de notaire réduits/.test(text)) return false;
+  return true;
+}
+
+function inferPatch(levier: Partial<LevierAI>, inputs: ExpertiseInputs): Partial<ExpertiseInputs> | null {
+  const text = `${levier.titre || ""} ${levier.description || ""}`.toLowerCase();
+  if (text.includes("courte durée") || text.includes("airbnb")) {
+    const factor = inputs.surface >= 18 && inputs.surface <= 65 ? 1.85 : 1.65;
+    return {
+      type_location: "courte_duree",
+      loyer_mensuel: Math.round(inputs.loyer_mensuel * factor),
+      vacance_locative_pct: Math.max(20, inputs.vacance_locative_pct),
+      frais_gestion_pct: Math.max(20, inputs.frais_gestion_pct),
+      regime_fiscal: "reel_bic",
+    };
+  }
+  if (text.includes("lmnp") || text.includes("meubl")) {
+    return { type_location: "meublee_lmnp", regime_fiscal: "reel_bic", loyer_mensuel: Math.round(inputs.loyer_mensuel * 1.15) };
+  }
+  if (text.includes("réel bic") || text.includes("reel bic") || text.includes("amortissement")) {
+    return { regime_fiscal: "reel_bic" };
+  }
+  if (text.includes("micro-bic")) return { regime_fiscal: "micro_bic" };
+  if (text.includes("déficit foncier") || text.includes("reel foncier") || text.includes("réel foncier")) {
+    return { type_location: "nue", regime_fiscal: "reel_foncier" };
+  }
+  if (text.includes("renoncer aux travaux") || text.includes("roi négatif")) {
+    return { cout_travaux: 0, aides_renovation: 0, gain_loyer_post_travaux: 0, economie_charges_post_travaux: 0 };
+  }
+  return null;
+}
+
 /**
  * Stratège IA — stratégies patrimoniales et leviers applicables.
  * Les actions réellement modélisables modifient les paramètres d'expertise en direct.
