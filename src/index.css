@@ -1,217 +1,248 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Sora:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   Estate AI — Noir Architecte
+   Dark editorial SaaS for high-end real estate professionals
+   ========================================================= */
+
 @layer base {
   :root {
-    --background: 30 20% 97%;
-    --foreground: 220 15% 15%;
+    /* Surfaces */
+    --background: 240 20% 4%;          /* #0a0a0f */
+    --foreground: 0 0% 98%;
+    --surface-1: 240 15% 8%;           /* #11111a */
+    --surface-2: 240 13% 11%;          /* #1a1a24 */
+    --surface-3: 240 10% 16%;          /* #25252f */
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    --card: 240 15% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 15% 9%;
+    --popover-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    /* Brand */
+    --primary: 217 91% 60%;            /* electric blue #3b82f6 */
+    --primary-foreground: 240 20% 4%;
+    --primary-glow: 217 100% 70%;
 
-    --primary: 217 91% 53%;
-    --primary-foreground: 0 0% 100%;
+    --accent: 38 70% 60%;              /* warm brass for real-estate hint */
+    --accent-foreground: 240 20% 4%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 15% 25%;
+    --secondary: 240 13% 13%;
+    --secondary-foreground: 0 0% 90%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 240 13% 13%;
+    --muted-foreground: 240 5% 60%;
 
-    --accent: 38 50% 60%;
-    --accent-foreground: 220 15% 15%;
-
-    --destructive: 0 72% 51%;
+    --destructive: 0 75% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 53%;
+    --success: 152 65% 50%;
+    --success-foreground: 240 20% 4%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 240 20% 4%;
+    --info: 217 91% 60%;
+    --info-foreground: 240 20% 4%;
 
-    --radius: 0.75rem;
+    --border: 240 10% 16%;
+    --input: 240 10% 16%;
+    --ring: 217 91% 60%;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 9% 46%;
-    --sidebar-primary: 217 91% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 96%;
-    --sidebar-accent-foreground: 217 91% 53%;
-    --sidebar-border: 220 13% 93%;
-    --sidebar-ring: 217 91% 53%;
-    --sidebar-muted: 220 14% 96%;
+    --radius: 1rem;
 
-    --success: 160 60% 40%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 220 15% 15%;
-    --info: 217 91% 53%;
-    --info-foreground: 0 0% 100%;
+    --sidebar-background: 240 18% 5%;
+    --sidebar-foreground: 0 0% 75%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 240 20% 4%;
+    --sidebar-accent: 240 13% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 10% 14%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar-muted: 240 13% 11%;
 
-    --chart-1: 217 91% 53%;
-    --chart-2: 160 60% 40%;
-    --chart-3: 38 50% 60%;
-    --chart-4: 0 72% 51%;
-    --chart-5: 280 60% 55%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 152 65% 50%;
+    --chart-3: 38 70% 60%;
+    --chart-4: 280 70% 65%;
+    --chart-5: 0 75% 58%;
 
-    --gold: 38 50% 60%;
+    --gold: 38 70% 60%;
+
+    /* Gradients & effects (re-usable) */
+    --gradient-brand: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 100% 70%) 100%);
+    --gradient-radial-glow: radial-gradient(circle at 50% 0%, hsl(217 91% 60% / 0.18), transparent 60%);
+    --gradient-mesh:
+      radial-gradient(at 20% 10%, hsl(217 91% 60% / 0.18) 0px, transparent 50%),
+      radial-gradient(at 85% 20%, hsl(280 70% 65% / 0.12) 0px, transparent 50%),
+      radial-gradient(at 75% 80%, hsl(38 70% 60% / 0.10) 0px, transparent 50%),
+      radial-gradient(at 10% 90%, hsl(217 91% 60% / 0.10) 0px, transparent 55%);
+    --shadow-glow: 0 0 0 1px hsl(217 91% 60% / 0.15), 0 10px 40px -10px hsl(217 91% 60% / 0.35);
+    --shadow-elevated: 0 30px 60px -20px hsl(240 50% 0% / 0.5), 0 0 0 1px hsl(240 10% 16% / 0.6);
   }
 
-  .dark {
-    --background: 30 20% 97%;
-    --foreground: 220 15% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
-    --primary: 217 91% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 15% 25%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 38 50% 60%;
-    --accent-foreground: 220 15% 15%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 53%;
-    --radius: 0.75rem;
+  .dark { /* identical — single source of truth, always dark */
+    color-scheme: dark;
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+
+  html, body { background: hsl(var(--background)); }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    letter-spacing: -0.01em;
+    @apply text-foreground antialiased;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.011em;
+    background-image:
+      radial-gradient(ellipse at 50% -20%, hsl(217 91% 60% / 0.12), transparent 55%),
+      radial-gradient(ellipse at 90% 110%, hsl(280 80% 60% / 0.08), transparent 50%);
+    background-attachment: fixed;
   }
 
-  h1, h2, h3 {
-    font-family: 'Sora', system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: hsl(220 15% 15%);
+  h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    color: hsl(0 0% 100%);
   }
+
+  ::selection { background: hsl(var(--primary) / 0.35); color: white; }
 }
 
 @layer components {
+  /* ===== Cards & surfaces ===== */
   .stat-card {
-    @apply bg-card rounded-2xl border border-border p-6 transition-all duration-300 ease-out;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    @apply relative rounded-2xl border border-border/70 p-6 transition-all duration-300 ease-out overflow-hidden;
+    background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--surface-2)) 100%);
+    box-shadow: var(--shadow-elevated);
   }
-  .stat-card:hover {
-    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.06), 0 8px 10px -6px rgb(0 0 0 / 0.04);
-    transform: translateY(-2px);
-  }
-
-  .page-header {
-    @apply mb-10;
-  }
-
-  .page-title {
-    @apply text-2xl font-bold;
-    font-family: 'Sora', system-ui, sans-serif;
-    letter-spacing: -0.04em;
-    color: hsl(220 15% 15%);
-  }
-
-  .page-subtitle {
-    @apply text-sm mt-1.5;
-    font-family: 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.01em;
-    color: hsl(220 9% 46%);
-  }
+  .stat-card:hover { transform: translateY(-2px); border-color: hsl(var(--primary) / 0.3); }
 
   .glass-card {
-    background: hsl(0 0% 100% / 0.85);
-    backdrop-filter: blur(16px);
-    border: 1px solid hsl(220 13% 91%);
+    background: hsl(var(--surface-1) / 0.7);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid hsl(var(--border) / 0.7);
   }
 
+  .page-header { @apply mb-10; }
+  .page-title {
+    @apply text-3xl font-semibold;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    letter-spacing: -0.04em;
+  }
+  .page-subtitle {
+    @apply text-sm mt-2 text-muted-foreground;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  /* ===== Typography helpers ===== */
   .gradient-text {
-    background: linear-gradient(135deg, hsl(217 91% 53%), hsl(38 50% 60%));
+    background: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(217 100% 80%) 60%, hsl(217 91% 60%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+  .text-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] font-medium text-muted-foreground;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* ===== Buttons interaction ===== */
+  button, [role="button"] { transition: all .2s cubic-bezier(.4,0,.2,1); }
+  button:active:not(:disabled), [role="button"]:active:not(:disabled) { transform: scale(.97); }
 
   .glow-border {
-    border: 1px solid hsl(217 91% 53% / 0.2);
-    box-shadow: 0 0 20px hsl(217 91% 53% / 0.04);
+    border: 1px solid hsl(var(--primary) / 0.25);
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(255 100% 100% / 0.03);
   }
 
-  /* Premium card hover shimmer */
-  .card-shimmer {
-    @apply relative overflow-hidden;
+  /* ===== Background scene (landing / app) ===== */
+  /* Cadastral grid + isometric building lines, pure CSS, fixed */
+  .scene-grid {
+    position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background-color: hsl(var(--background));
+    background-image:
+      linear-gradient(hsl(217 91% 60% / 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(217 91% 60% / 0.06) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 75%);
   }
-  .card-shimmer::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      105deg,
-      transparent 40%,
-      hsl(217 91% 53% / 0.03) 45%,
-      hsl(217 91% 53% / 0.06) 50%,
-      hsl(217 91% 53% / 0.03) 55%,
-      transparent 60%
-    );
-    transform: translateX(-100%);
-    transition: transform 0.8s ease;
-    pointer-events: none;
-  }
-  .card-shimmer:hover::after {
-    transform: translateX(100%);
+  .scene-mesh {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--gradient-mesh);
   }
 
-  /* Smooth button transitions */
-  button, [role="button"] {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  button:active:not(:disabled), [role="button"]:active:not(:disabled) {
-    transform: scale(0.97);
+  /* Marquee ticker */
+  .ticker { display: flex; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  .ticker-track { display: flex; gap: 3rem; animation: ticker-scroll 40s linear infinite; min-width: max-content; }
+  @keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
   }
 
-  /* Real estate background */
-  .real-estate-bg {
-    position: relative;
-  }
+  /* Real-estate background helper kept for AppLayout */
   .real-estate-bg::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: var(--bg-image);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    filter: blur(8px);
-    opacity: 0.08;
-    z-index: -2;
-    pointer-events: none;
+    content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background-color: hsl(var(--background));
+    background-image:
+      linear-gradient(hsl(217 91% 60% / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(217 91% 60% / 0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 40%, transparent 80%);
   }
   .real-estate-bg::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: linear-gradient(180deg, hsl(30 20% 97% / 0.92) 0%, hsl(30 20% 97% / 0.96) 100%);
-    z-index: -1;
-    pointer-events: none;
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse at 50% -10%, hsl(217 91% 60% / 0.18), transparent 60%);
   }
 
   /* AI action bar */
   .ai-action-bar {
-    @apply bg-card rounded-2xl border border-border p-6;
-    box-shadow: 0 4px 20px -2px rgb(0 0 0 / 0.06);
+    @apply rounded-2xl border border-border/70 p-6;
+    background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--surface-2)) 100%);
+    box-shadow: var(--shadow-elevated);
   }
+
+  /* Floating tag chip */
+  .chip {
+    @apply inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border;
+    background: hsl(var(--surface-1) / 0.7);
+    border-color: hsl(var(--border));
+    backdrop-filter: blur(10px);
+  }
+
+  /* KPI card */
+  .kpi {
+    @apply rounded-2xl border border-border/60 p-5 transition-all;
+    background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--surface-2)) 100%);
+  }
+  .kpi:hover { border-color: hsl(var(--primary) / 0.35); transform: translateY(-2px); }
+}
+
+@layer utilities {
+  .bg-surface-1 { background-color: hsl(var(--surface-1)); }
+  .bg-surface-2 { background-color: hsl(var(--surface-2)); }
+  .bg-surface-3 { background-color: hsl(var(--surface-3)); }
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  /* Custom keyframes registered via plain CSS so Tailwind utilities aren't needed */
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  .animate-spin-slow { animation: spin-slow 40s linear infinite; }
+
+  @keyframes float-y { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+  .animate-float { animation: float-y 6s ease-in-out infinite; }
+
+  @keyframes glow { 0%,100%{box-shadow:0 0 20px hsl(217 91% 60% / .15)} 50%{box-shadow:0 0 40px hsl(217 91% 60% / .35)} }
+  .animate-glow { animation: glow 4s ease-in-out infinite; }
+
+  @keyframes grid-pulse {
+    0%,100% { opacity: .35; }
+    50%     { opacity: .8; }
+  }
+  .animate-grid-pulse { animation: grid-pulse 4s ease-in-out infinite; }
 }
