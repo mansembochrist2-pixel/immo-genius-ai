@@ -22,7 +22,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { streamChat } from "@/lib/ai-stream";
 import { exportTextToDocx } from "@/lib/docx-export";
-import { VoiceButton } from "@/components/VoiceButton";
+import { VoiceTextarea } from "@/components/VoiceTextarea";
 import { readTemplateFile } from "@/lib/template-reader";
 
 const MANDAT_INFO_EXEMPLE = `══════ INFORMATIONS DU MANDANT (VENDEUR) ══════
@@ -445,26 +445,22 @@ const Studio = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground">{lang === "fr" ? "Informations du mandat (dictée vocale ou saisie)" : "Mandate details (voice or text)"}</p>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-[10px] gap-1 text-primary hover:text-primary"
-                        onClick={() => setMandatInfo(MANDAT_INFO_EXEMPLE)}
-                        title={lang === "fr" ? "Insérer un exemple complet à modifier" : "Insert a complete example"}
-                      >
-                        <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un exemple" : "Load example"}
-                      </Button>
-                      <VoiceButton
-                        onTranscript={(text) => { setMandatInfo(prev => prev + " " + text); setVoiceInterim(""); }}
-                        onInterim={(text) => setVoiceInterim(text)}
-                      />
-                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[10px] gap-1 text-primary hover:text-primary"
+                      onClick={() => setMandatInfo(MANDAT_INFO_EXEMPLE)}
+                      title={lang === "fr" ? "Insérer un exemple complet à modifier" : "Insert a complete example"}
+                    >
+                      <Sparkles className="h-3 w-3" /> {lang === "fr" ? "Charger un exemple" : "Load example"}
+                    </Button>
                   </div>
-                  <Textarea
+                  <VoiceTextarea
                     value={mandatInfo + (voiceInterim ? " " + voiceInterim : "")}
                     onChange={e => { setMandatInfo(e.target.value); setVoiceInterim(""); }}
+                    onTranscript={(text) => { setMandatInfo(prev => (prev + " " + text).trim()); setVoiceInterim(""); }}
+                    onInterim={(text) => setVoiceInterim(text)}
                     className="bg-muted/10 border-border/30 min-h-[200px] font-mono text-[11px] leading-relaxed"
                     placeholder={MANDAT_INFO_EXEMPLE}
                   />
