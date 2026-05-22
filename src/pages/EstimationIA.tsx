@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
-import { VoiceButton } from "@/components/VoiceButton";
+import { VoiceTextarea } from "@/components/VoiceTextarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -225,13 +225,11 @@ const EstimationIA = () => {
 
               {/* Details supplementaires */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Label className="text-xs">{lang === "fr" ? "Détails supplémentaires" : "Additional details"}</Label>
-                  <VoiceButton onTranscript={(text) => setForm(f => ({ ...f, details_supplementaires: (f.details_supplementaires + " " + text).trim() }))} />
-                </div>
-                <Textarea
+                <Label className="text-xs mb-1 block">{lang === "fr" ? "Détails supplémentaires" : "Additional details"}</Label>
+                <VoiceTextarea
                   value={form.details_supplementaires}
                   onChange={e => setForm({ ...form, details_supplementaires: e.target.value })}
+                  onTranscript={(text) => setForm(f => ({ ...f, details_supplementaires: (f.details_supplementaires + " " + text).trim() }))}
                   className="mt-1 bg-muted/10 border-border/30"
                   rows={3}
                   placeholder={lang === "fr" ? "Vue dégagée, double exposition, travaux récents, proximité métro..." : "Clear view, dual aspect, recent works, near subway..."}
