@@ -375,7 +375,9 @@ const cell = (text: string, width: number, opts: { bold?: boolean; bg?: string; 
       new Paragraph({
         alignment: opts.align,
         spacing: { after: 0, line: 260 },
-        children: [new TextRun({ text, bold: opts.bold, color: opts.color ?? "334155", size: 19, font: "Arial" })],
+        children: text.split("\n").flatMap((line, index) => [
+          new TextRun({ text: line, bold: opts.bold || index > 0, color: opts.color ?? "334155", size: index > 0 ? 21 : 19, font: "Arial", break: index === 0 ? 0 : 1 }),
+        ]),
       }),
     ],
   });
