@@ -23,6 +23,8 @@ interface NumberInputProps extends Omit<React.ComponentProps<"input">, "value" |
 export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
   ({ value, onChange, allowDecimal = true, format = "thousands", className, inputMode, ...rest }, ref) => {
     const raw = value == null ? "" : String(value);
+    const [draft, setDraft] = React.useState<string | null>(null);
+    const displayRaw = draft ?? raw;
 
     const formatDisplay = (v: string): string => {
       if (!v) return "";
@@ -54,8 +56,17 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         ref={ref}
         type="text"
         inputMode={inputMode ?? (allowDecimal ? "decimal" : "numeric")}
-        value={formatDisplay(raw)}
-        onChange={(e) => onChange(sanitize(e.target.value))}
+        value={formatDisplay(displayRaw)}
+        onChange={(e) => {
+          const next = sanitize(e.target.value);
+          setDraft(next);
+          onChange(next);
+        }}
+        onFocus={() => setDraft(raw)}
+        onBlur={(e) => {
+          setDraft(null);
+          rest.onBlur?.(e);
+        }}
         className={cn(className)}
         autoComplete="off"
         {...rest}
