@@ -21,7 +21,7 @@ interface NumberInputProps extends Omit<React.ComponentProps<"input">, "value" |
  *   - tolerates pasted values containing spaces, commas, currency symbols
  */
 export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
-  ({ value, onChange, allowDecimal = true, format = "thousands", className, inputMode, ...rest }, ref) => {
+  ({ value, onChange, allowDecimal = true, format = "thousands", className, inputMode, onBlur, ...rest }, ref) => {
     const raw = value == null ? "" : String(value);
     const [draft, setDraft] = React.useState<string | null>(null);
     const displayRaw = draft ?? raw;
@@ -65,7 +65,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         onFocus={() => setDraft(raw)}
         onBlur={(e) => {
           setDraft(null);
-          rest.onBlur?.(e);
+          onBlur?.(e);
         }}
         className={cn(className)}
         autoComplete="off"
