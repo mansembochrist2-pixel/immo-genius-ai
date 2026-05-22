@@ -180,10 +180,9 @@ export function StrategeIA({ inputs, results, onApply }: Props) {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-[340px] text-[11px] leading-relaxed">
-                Montages patrimoniaux avancés (SCI à l'IS, démembrement, déficit foncier,
-                holding, dispositifs fiscaux…). Ces stratégies nécessitent un notaire,
-                un comptable ou un avocat fiscaliste — pas de bouton "Appliquer" automatique,
-                uniquement "Étudier" / "Simuler" / "Comparer".
+                Les leviers modélisables peuvent être appliqués aux paramètres d'expertise :
+                loyers, fiscalité, financement, charges ou travaux. Les montages juridiques lourds
+                restent à valider avec notaire, expert-comptable ou avocat fiscaliste.
               </TooltipContent>
             </Tooltip>
             <Badge variant="outline" className="ml-auto text-[10px]">Estate AI</Badge>
@@ -227,14 +226,14 @@ export function StrategeIA({ inputs, results, onApply }: Props) {
             </>
           )}
 
-          {!loading && leviersAI.length > 0 && (
+          {!loading && displayLeviers.length > 0 && (
             <div className="space-y-3">
               {diagnostic && (
                 <p className="text-sm font-medium text-foreground/90 italic border-l-2 border-primary pl-3 py-1">
                   {diagnostic}
                 </p>
               )}
-              {leviersAI.map((l, i) => (
+              {displayLeviers.map((l, i) => (
                 <div key={i} className="rounded-lg border border-border/30 bg-background/70 p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <p className="text-sm font-semibold">{l.titre}</p>
@@ -253,6 +252,9 @@ export function StrategeIA({ inputs, results, onApply }: Props) {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/20 flex-wrap">
+                    <Button size="sm" className="h-7 text-[11px]" onClick={() => applyLevier(l)}>
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> {l.patch ? (l.apply_label || "Appliquer") : "Appliquer / étudier"}
+                    </Button>
                     <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openStudy(l, "etudier")}>
                       <BookOpen className="h-3 w-3 mr-1" /> Étudier
                     </Button>
