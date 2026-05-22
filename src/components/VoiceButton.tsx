@@ -4,15 +4,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { toast } from "sonner";
 import { useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 interface VoiceButtonProps {
   onInterim?: (text: string) => void;
   onTranscript: (text: string) => void;
   disabled?: boolean;
   size?: "default" | "sm" | "icon";
+  className?: string;
 }
 
-export function VoiceButton({ onTranscript, onInterim, disabled, size = "icon" }: VoiceButtonProps) {
+export function VoiceButton({ onTranscript, onInterim, disabled, size = "icon", className }: VoiceButtonProps) {
   const handleError = useCallback((type: "denied" | "unsupported") => {
     if (type === "denied") toast.error("Autorisez l'accès au microphone dans votre navigateur");
     else toast.error("La saisie vocale nécessite Chrome ou Edge");
@@ -46,7 +48,7 @@ export function VoiceButton({ onTranscript, onInterim, disabled, size = "icon" }
           size={size}
           onClick={toggle}
           disabled={disabled}
-          className={`shrink-0 ${isListening ? "animate-pulse" : ""}`}
+          className={cn("shrink-0", isListening && "animate-pulse", className)}
         >
           {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </Button>
