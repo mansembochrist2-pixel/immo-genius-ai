@@ -396,13 +396,29 @@ const Copilote = () => {
             )}
           </div>
 
-          <div className="p-4 border-t border-border">
-            <div className="flex gap-2">
-              <VoiceTextarea value={input} onChange={e => setInput(e.target.value)} onTranscript={(text) => setInput(prev => (prev + " " + text).trim())} voiceDisabled={isLoading} placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."} className="min-h-[60px] max-h-48 resize-none bg-secondary border-border text-[15px]"
+          <div className="p-4 border-t border-border bg-card/50">
+            <div className="relative">
+              <VoiceTextarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onTranscript={(text) => setInput(prev => (prev ? prev + " " : "") + text)}
+                voiceDisabled={isLoading}
+                placeholder={lang === "fr" ? "Posez une question à votre copilote..." : "Ask your copilot a question..."}
+                className="min-h-[72px] max-h-48 pr-16"
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
               />
-              <Button onClick={() => envoyer()} disabled={isLoading || !input.trim()} size="icon" className="shrink-0"><Send className="h-4 w-4" /></Button>
+              <Button
+                onClick={() => envoyer()}
+                disabled={isLoading || !input.trim()}
+                size="icon"
+                className="absolute top-2 right-3 h-9 w-9 rounded-xl shadow-sm"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
+            <p className="text-[11px] text-muted-foreground mt-2 px-1">
+              {lang === "fr" ? "Entrée pour envoyer · Maj+Entrée pour une nouvelle ligne" : "Enter to send · Shift+Enter for a new line"}
+            </p>
           </div>
         </Card>
       </div>
