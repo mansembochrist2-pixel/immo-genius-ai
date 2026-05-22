@@ -510,6 +510,7 @@ export interface OptimizationProposal {
   description: string;
   delta_cashflow_mensuel: number;
   patch: Partial<ExpertiseInputs>;
+  source?: string;
 }
 
 export function suggestOptimizations(
@@ -694,7 +695,8 @@ export function suggestOptimizations(
 
   // 11. Bascule courte durée (Airbnb) si loyer faible et zone touristique potentielle
   if (i.type_location !== "courte_duree" && i.loyer_mensuel > 0) {
-    const loyerCD = Math.round(i.loyer_mensuel * 1.6);
+    const surfaceFactor = i.surface >= 18 && i.surface <= 65 ? 1.85 : 1.65;
+    const loyerCD = Math.round(i.loyer_mensuel * surfaceFactor);
     const d = simulate({
       type_location: "courte_duree",
       loyer_mensuel: loyerCD,
@@ -704,8 +706,8 @@ export function suggestOptimizations(
     if (d > 50) {
       proposals.push({
         id: "courte_duree",
-        label: "Tester la location courte durée (Airbnb)",
-        description: `Revenus potentiels +60 % mais vacance ~25 % et gestion ~20 %. Vérifier réglementation locale (mairie, copro).`,
+        label: "Tester la location courte durée",
+        description: `Revenus potentiels +${Math.round((surfaceFactor - 1) * 100)} % sur petite/moyenne surface bien placée, avec vacance ≥20 % et gestion ≥20 %. Vérifier mairie, copropriété et compensation avant décision.`,
         delta_cashflow_mensuel: d,
         patch: {
           type_location: "courte_duree",
@@ -757,20 +759,6 @@ export function suggestOptimizations(
         description: `Avec ${i.cout_travaux.toLocaleString("fr-FR")} € de travaux pour seulement +${i.gain_loyer_post_travaux} €/mois de loyer, l'investissement détruit la rentabilité. Refaire un chiffrage ciblé (DPE uniquement) ou renoncer.`,
         delta_cashflow_mensuel: sansTravaux,
         patch: { cout_travaux: 0, aides_renovation: 0, gain_loyer_post_travaux: 0, economie_charges_post_travaux: 0 },
-      });
-    }
-  }
-
-  // 13. Frais de notaire réduits (négociation ou bien neuf)
-  if (i.frais_notaire_pct >= 7) {
-    const d = simulate({ frais_notaire_pct: 2.5 });
-    if (d > 3) {
-      proposals.push({
-        id: "notaire_neuf",
-        label: "Cibler du neuf / VEFA (notaire à 2,5 % vs 7,5 %)",
-        description: `Économie immédiate sur frais d'acquisition, moindre amortissement mais TVA récupérable en LMP. Pertinent si stratégie patrimoniale long terme.`,
-        delta_cashflow_mensuel: d,
-        patch: { frais_notaire_pct: 2.5 },
       });
     }
   }

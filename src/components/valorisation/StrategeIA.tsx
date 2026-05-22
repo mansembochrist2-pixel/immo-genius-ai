@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, Brain, Info, BookOpen, FlaskConical, Scale } from "lucide-react";
-import { useState } from "react";
+import { Sparkles, Brain, Info, BookOpen, FlaskConical, Scale, CheckCircle2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { ExpertiseInputs, ExpertiseResults } from "@/lib/expertise-calc";
+import { computeExpertise, suggestOptimizations, type ExpertiseInputs, type ExpertiseResults } from "@/lib/expertise-calc";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 
 interface LevierAI {
@@ -17,11 +17,18 @@ interface LevierAI {
   impact_estime: string;
   complexite: "facile" | "moyenne" | "élevée";
   source?: string;
+  patch?: Partial<ExpertiseInputs> | null;
+  apply_label?: string;
+  compatibilite_score?: number;
+  conditions?: string;
 }
+
+type DisplayLevier = LevierAI & { origin: "ia" | "moteur"; patch?: Partial<ExpertiseInputs> | null };
 
 interface Props {
   inputs: ExpertiseInputs;
   results: ExpertiseResults;
+  onApply: (patch: Partial<ExpertiseInputs>) => void;
 }
 
 const CAT_COLORS: Record<string, string> = {
@@ -37,12 +44,64 @@ const COMPLEX_COLORS: Record<string, string> = {
   élevée: "text-rose-600",
 };
 
+const ALLOWED_PATCH_KEYS = new Set<keyof ExpertiseInputs>([
+  "type_location", "loyer_mensuel", "encadrement_loyer", "loyer_plafond", "charges_copro_annuelles",
+  "taxe_fonciere_annuelle", "vacance_locative_pct", "assurance_gli", "assurance_pno", "frais_gestion_pct",
+  "entretien_pct", "dpe_cible", "cout_travaux", "aides_renovation", "gain_loyer_post_travaux",
+  "economie_charges_post_travaux", "apport", "frais_notaire_pct", "frais_agence", "taux_credit",
+  "duree_credit_annees", "regime_fiscal", "tmi", "duree_detention_annees", "revalorisation_annuelle_pct",
+]);
+
+function sanitizePatch(patch?: Partial<ExpertiseInputs> | null): Partial<ExpertiseInputs> | null {
+  if (!patch || typeof patch !== "object") return null;
+  const clean: Partial<ExpertiseInputs> = {};
+  for (const [key, value] of Object.entries(patch) as [keyof ExpertiseInputs, any][]) {
+    if (!ALLOWED_PATCH_KEYS.has(key) || value == null || value === "") continue;
+    (clean as any)[key] = typeof value === "string" && !Number.isNaN(Number(value)) ? Number(value) : value;
+  }
+  return Object.keys(clean).length ? clean : null;
+}
+
+function isContextualLevier(levier: Partial<LevierAI>): boolean {
+  const text = `${levier.titre || ""} ${levier.description || ""}`.toLowerCase();
+  if (levier.compatibilite_score != null && levier.compatibilite_score < 55) return false;
+  if (/\bvefa\b|cibler du neuf|acheter du neuf|bien neuf|frais de notaire réduits/.test(text)) return false;
+  return true;
+}
+
+function inferPatch(levier: Partial<LevierAI>, inputs: ExpertiseInputs): Partial<ExpertiseInputs> | null {
+  const text = `${levier.titre || ""} ${levier.description || ""}`.toLowerCase();
+  if (text.includes("courte durée") || text.includes("airbnb")) {
+    const factor = inputs.surface >= 18 && inputs.surface <= 65 ? 1.85 : 1.65;
+    return {
+      type_location: "courte_duree",
+      loyer_mensuel: Math.round(inputs.loyer_mensuel * factor),
+      vacance_locative_pct: Math.max(20, inputs.vacance_locative_pct),
+      frais_gestion_pct: Math.max(20, inputs.frais_gestion_pct),
+      regime_fiscal: "reel_bic",
+    };
+  }
+  if (text.includes("lmnp") || text.includes("meubl")) {
+    return { type_location: "meublee_lmnp", regime_fiscal: "reel_bic", loyer_mensuel: Math.round(inputs.loyer_mensuel * 1.15) };
+  }
+  if (text.includes("réel bic") || text.includes("reel bic") || text.includes("amortissement")) {
+    return { regime_fiscal: "reel_bic" };
+  }
+  if (text.includes("micro-bic")) return { regime_fiscal: "micro_bic" };
+  if (text.includes("déficit foncier") || text.includes("reel foncier") || text.includes("réel foncier")) {
+    return { type_location: "nue", regime_fiscal: "reel_foncier" };
+  }
+  if (text.includes("renoncer aux travaux") || text.includes("roi négatif")) {
+    return { cout_travaux: 0, aides_renovation: 0, gain_loyer_post_travaux: 0, economie_charges_post_travaux: 0 };
+  }
+  return null;
+}
+
 /**
- * Stratège IA — Stratégies patrimoniales avancées.
- * Pas d'auto-apply : montages complexes (SCI à l'IS, démembrement, holding…)
- * qui nécessitent notaire/comptable. Boutons "Étudier" / "Simuler" uniquement.
+ * Stratège IA — stratégies patrimoniales et leviers applicables.
+ * Les actions réellement modélisables modifient les paramètres d'expertise en direct.
  */
-export function StrategeIA({ inputs, results }: Props) {
+export function StrategeIA({ inputs, results, onApply }: Props) {
   const [loading, setLoading] = useState(false);
   const [diagnostic, setDiagnostic] = useState<string>("");
   const [leviersAI, setLeviersAI] = useState<LevierAI[]>([]);
@@ -58,7 +117,7 @@ export function StrategeIA({ inputs, results }: Props) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setDiagnostic(data.diagnostic || "");
-      setLeviersAI(Array.isArray(data.leviers) ? data.leviers : []);
+      setLeviersAI(Array.isArray(data.leviers) ? data.leviers.filter(isContextualLevier) : []);
       toast.success("Analyse stratégique générée");
     } catch (e: any) {
       toast.error(e.message || "Erreur de l'analyse stratégique");
@@ -70,6 +129,41 @@ export function StrategeIA({ inputs, results }: Props) {
   const openStudy = (l: LevierAI, mode: "etudier" | "simuler" | "comparer") => {
     setStudyLevier(l);
     setStudyMode(mode);
+  };
+
+  const operationalLeviers = useMemo<DisplayLevier[]>(() => {
+    if (!diagnostic && leviersAI.length === 0) return [];
+    return suggestOptimizations(inputs, results)
+      .filter((p) => p.id !== "loyer_bloque")
+      .map((p) => ({
+        titre: p.label,
+        categorie: (p.id === "no_travaux" || p.id === "renovation_energetique" ? "travaux" : "financier") as LevierAI["categorie"],
+        description: p.description,
+        impact_estime: `Cash-flow ${p.delta_cashflow_mensuel >= 0 ? "+" : ""}${Math.round(p.delta_cashflow_mensuel)} €/mois`,
+        complexite: "facile" as const,
+        source: p.source || "Moteur de calcul interne — impact recalculé sur les paramètres saisis",
+        patch: p.patch,
+        apply_label: "Appliquer",
+        origin: "moteur" as const,
+      }));
+  }, [diagnostic, inputs, leviersAI.length, results]);
+
+  const displayLeviers = useMemo<DisplayLevier[]>(() => {
+    const ai = leviersAI.map((l) => ({ ...l, patch: sanitizePatch(l.patch) || inferPatch(l, inputs), origin: "ia" as const }));
+    return [...ai, ...operationalLeviers].filter(isContextualLevier);
+  }, [inputs, leviersAI, operationalLeviers]);
+
+  const applyLevier = (levier: DisplayLevier) => {
+    const patch = sanitizePatch(levier.patch) || inferPatch(levier, inputs);
+    if (!patch || Object.keys(patch).length === 0) {
+      openStudy(levier, "etudier");
+      toast.info("Cette stratégie doit être étudiée avec un notaire/comptable avant d'être modélisée.");
+      return;
+    }
+    onApply(patch);
+    const next = computeExpertise({ ...inputs, ...patch });
+    const delta = next.cash_flow_mensuel - results.cash_flow_mensuel;
+    toast.success(`Stratégie appliquée — cash-flow ${delta >= 0 ? "+" : ""}${Math.round(delta)} €/mois.`);
   };
 
   return (
@@ -86,10 +180,9 @@ export function StrategeIA({ inputs, results }: Props) {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-[340px] text-[11px] leading-relaxed">
-                Montages patrimoniaux avancés (SCI à l'IS, démembrement, déficit foncier,
-                holding, dispositifs fiscaux…). Ces stratégies nécessitent un notaire,
-                un comptable ou un avocat fiscaliste — pas de bouton "Appliquer" automatique,
-                uniquement "Étudier" / "Simuler" / "Comparer".
+                Les leviers modélisables peuvent être appliqués aux paramètres d'expertise :
+                loyers, fiscalité, financement, charges ou travaux. Les montages juridiques lourds
+                restent à valider avec notaire, expert-comptable ou avocat fiscaliste.
               </TooltipContent>
             </Tooltip>
             <Badge variant="outline" className="ml-auto text-[10px]">Estate AI</Badge>
@@ -133,14 +226,14 @@ export function StrategeIA({ inputs, results }: Props) {
             </>
           )}
 
-          {!loading && leviersAI.length > 0 && (
+          {!loading && displayLeviers.length > 0 && (
             <div className="space-y-3">
               {diagnostic && (
                 <p className="text-sm font-medium text-foreground/90 italic border-l-2 border-primary pl-3 py-1">
                   {diagnostic}
                 </p>
               )}
-              {leviersAI.map((l, i) => (
+              {displayLeviers.map((l, i) => (
                 <div key={i} className="rounded-lg border border-border/30 bg-background/70 p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <p className="text-sm font-semibold">{l.titre}</p>
@@ -159,6 +252,9 @@ export function StrategeIA({ inputs, results }: Props) {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/20 flex-wrap">
+                    <Button size="sm" className="h-7 text-[11px]" onClick={() => applyLevier(l)}>
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> {l.patch ? (l.apply_label || "Appliquer") : "Appliquer / étudier"}
+                    </Button>
                     <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openStudy(l, "etudier")}>
                       <BookOpen className="h-3 w-3 mr-1" /> Étudier
                     </Button>
