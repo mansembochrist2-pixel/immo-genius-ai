@@ -5,6 +5,7 @@ type RouteLoader = () => Promise<RouteModule>;
 
 export const routeLoaders = {
   forgotPassword: () => import("../pages/ForgotPassword"),
+  resetPassword: () => import("../pages/ResetPassword"),
   onboarding: () => import("../pages/Onboarding"),
   dashboard: () => import("../pages/Dashboard"),
   chasseur: () => import("../pages/Chasseur"),

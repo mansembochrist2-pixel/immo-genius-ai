@@ -19,6 +19,7 @@ import Signup from "./pages/Signup";
 
 // Lazy-loaded app modules (split per route for instant inter-module switch)
 const ForgotPassword = lazyWithRetry(routeLoaders.forgotPassword);
+const ResetPassword = lazyWithRetry(routeLoaders.resetPassword);
 const Onboarding = lazyWithRetry(routeLoaders.onboarding);
 const Dashboard = lazyWithRetry(routeLoaders.dashboard);
 const Chasseur = lazyWithRetry(routeLoaders.chasseur);
@@ -89,6 +90,7 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
