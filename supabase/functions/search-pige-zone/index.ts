@@ -285,7 +285,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { zone, user_id: bodyUserId } = body || {};
+    const { zone } = body || {};
     if (!zone || typeof zone !== "string" || zone.trim().length < 2) {
       return j({ error: "Zone requise (ville, quartier, code postal)" }, 400);
     }
@@ -295,16 +295,17 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return j({ error: "LOVABLE_API_KEY manquant" }, 500);
     if (!FIRECRAWL_API_KEY) return j({ error: "FIRECRAWL_API_KEY manquant — connectez Firecrawl" }, 500);
 
-    let user_id: string | null = bodyUserId || null;
+    // --- Auth: verify JWT signature server-side ---
     const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      try {
-        const token = authHeader.replace("Bearer ", "");
-        const payload = JSON.parse(atob(token.split(".")[1] || ""));
-        if (payload?.sub) user_id = payload.sub;
-      } catch (_) {}
-    }
-    if (!user_id) return j({ error: "user_id requis" }, 400);
+    if (!authHeader) return j({ error: "Unauthorized" }, 401);
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: authData, error: authError } = await authClient.auth.getUser();
+    if (authError || !authData?.user) return j({ error: "Unauthorized" }, 401);
+    const user_id = authData.user.id;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

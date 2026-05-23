@@ -232,6 +232,22 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+
+    // --- Auth check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const _authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: _authData, error: _authError } = await _authClient.auth.getUser();
+    if (_authError || !_authData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    // --- end auth ---
     const { url, plateforme } = await req.json();
     if (!url || !plateforme) {
       return new Response(JSON.stringify({ error: "url et plateforme requis" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
