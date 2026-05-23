@@ -308,6 +308,11 @@ Deno.serve(async (req) => {
     if (authError || !authData?.user) return j({ error: "Unauthorized" }, 401);
     const user_id = authData.user.id;
 
+    // --- rate limit / quota ---
+    const _rl = await consumeAiCredit(user_id, "search-pige-zone", 5);
+    if (!_rl.ok) return j({ error: _rl.error }, _rl.status);
+
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
