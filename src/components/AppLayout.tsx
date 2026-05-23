@@ -22,9 +22,10 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               </div>
             </div>
           </header>
-          <div className="flex-1 p-6 lg:p-8 relative">
+          <div key={typeof window !== "undefined" ? window.location.pathname : "page"} className="flex-1 p-6 lg:p-8 relative animate-page-in">
             {children}
           </div>
+
         </main>
       </div>
     </SidebarProvider>
