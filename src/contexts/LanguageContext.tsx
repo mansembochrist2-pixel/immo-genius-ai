@@ -52,7 +52,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "copilote.placeholder": "Posez une question à votre copilote...",
     "copilote.welcome": "Bonjour, je suis votre Copilote Stratégique",
     "copilote.welcome_sub": "Posez-moi n'importe quelle question sur votre activité, vos clients, ou votre stratégie.",
-    "copilote.model": "GPT-5.2",
+    "copilote.model": "ImmoGenius AI",
     // Inbox
     "inbox.title": "Inbox",
     "inbox.intelligence": "Intelligence",
@@ -157,7 +157,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "copilote.placeholder": "Ask your copilot a question...",
     "copilote.welcome": "Hello, I'm your Strategic Copilot",
     "copilote.welcome_sub": "Ask me anything about your business, clients, or strategy.",
-    "copilote.model": "GPT-5.2",
+    "copilote.model": "ImmoGenius AI",
     // Inbox
     "inbox.title": "Inbox",
     "inbox.intelligence": "Intelligence",
