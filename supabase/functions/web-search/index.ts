@@ -1,6 +1,8 @@
 // Edge function: recherche web grounding via Lovable AI Gateway (Gemini)
 // Retourne réponse + sources citées
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { consumeAiCredit } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -22,6 +24,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     // --- end auth ---
+    // --- rate limit / quota ---
+    const _rl = await consumeAiCredit(_authData.user.id, "web-search");
+    if (!_rl.ok) {
+      const headers: Record<string, string> = { ...corsHeaders, "Content-Type": "application/json" };
+      if (_rl.retry_after_seconds) headers["Retry-After"] = String(_rl.retry_after_seconds);
+      return new Response(JSON.stringify({ error: _rl.error }), { status: _rl.status, headers });
+    }
+    // --- end rate limit ---
     const { query, context } = await req.json();
     if (!query || typeof query !== "string") {
       return new Response(JSON.stringify({ error: "query required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
