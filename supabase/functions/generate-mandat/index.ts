@@ -40,7 +40,7 @@ RÈGLES GÉNÉRALES
 - Inclus toutes les clauses légales obligatoires (sauf si template perso)
 - Aucun bullet point, aucun style IA visible
 - Le document doit sembler rédigé par un notaire ou un juriste
-- Termine par une mention discrète : "Document généré par Estate AI — à vérifier par un professionnel."
+- Termine par une mention discrète : "Document généré par ImmoGenius AI — à vérifier par un professionnel."
 
 STRUCTURE par défaut (uniquement si AUCUN template personnalisé n'est fourni) :
 

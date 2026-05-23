@@ -17,7 +17,7 @@ async function geocode(adresse: string): Promise<Response> {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const res = await fetch(`${base}/?q=${encodeURIComponent(adresse)}&limit=1`, {
-          headers: { "User-Agent": "EstateAI/1.0 (contact@estateai.app)", "Accept": "application/json" },
+          headers: { "User-Agent": "ImmoGenius AI/1.0 (contact@estateai.app)", "Accept": "application/json" },
         });
         if (res.ok) return res;
         lastErr = new Error(`${base} -> ${res.status}`);
