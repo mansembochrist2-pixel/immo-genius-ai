@@ -18,7 +18,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               <NotificationBell />
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/70 bg-surface-1/60">
                 <Building2 className="h-3.5 w-3.5 text-primary" />
-                <span className="text-xs font-display font-medium tracking-tight">Estate<span className="text-primary">AI</span></span>
+                <span className="text-xs font-display font-medium tracking-tight">ImmoGenius<span className="text-primary"> AI</span></span>
               </div>
             </div>
           </header>

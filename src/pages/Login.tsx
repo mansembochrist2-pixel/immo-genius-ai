@@ -37,7 +37,7 @@ const Login = () => {
             <div className="h-9 w-9 rounded-lg border border-primary/40 grid place-items-center bg-primary/10">
               <Building2 className="h-4 w-4 text-primary" />
             </div>
-            <span className="text-lg font-display font-semibold tracking-tight">Estate<span className="text-primary">AI</span></span>
+            <span className="text-lg font-display font-semibold tracking-tight">ImmoGenius<span className="text-primary"> AI</span></span>
           </Link>
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -63,7 +63,7 @@ const Login = () => {
             <div className="h-8 w-8 rounded-lg border border-primary/40 grid place-items-center bg-primary/10">
               <Building2 className="h-4 w-4 text-primary" />
             </div>
-            <span className="font-display font-semibold">Estate<span className="text-primary">AI</span></span>
+            <span className="font-display font-semibold">ImmoGenius<span className="text-primary"> AI</span></span>
           </Link>
 
           <div className="rounded-2xl border border-border/70 bg-surface-1/80 backdrop-blur-2xl p-8 shadow-[var(--shadow-elevated)]">
