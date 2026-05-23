@@ -836,7 +836,7 @@ export const PigeIA = () => {
                       )}
                       <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
                         <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                        <span>Les coordonnées (téléphone, email) du vendeur sont disponibles directement sur l'annonce d'origine. Estate AI ne les expose pas pour respecter la confidentialité des données personnelles.</span>
+                        <span>Les coordonnées (téléphone, email) du vendeur sont disponibles directement sur l'annonce d'origine. ImmoGenius AI ne les expose pas pour respecter la confidentialité des données personnelles.</span>
                       </p>
                       {selected.url && (
                         <a href={selected.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline">

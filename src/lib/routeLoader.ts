@@ -17,6 +17,7 @@ export const routeLoaders = {
   mentionsLegales: () => import("../pages/MentionsLegales"),
   politiqueConfidentialite: () => import("../pages/PolitiqueConfidentialite"),
   cgu: () => import("../pages/CGU"),
+  legal: () => import("../pages/Legal"),
   faq: () => import("../pages/FAQ"),
   notFound: () => import("../pages/NotFound"),
 } satisfies Record<string, RouteLoader>;

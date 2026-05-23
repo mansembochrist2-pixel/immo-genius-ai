@@ -3,7 +3,7 @@ import { LegalLayout } from "@/components/LegalLayout";
 const PolitiqueConfidentialite = () => (
   <LegalLayout title="Politique de confidentialité — RGPD">
     <h3>1. Responsable du traitement</h3>
-    <p>Estate AI — [Adresse du siège]<br />Email : contact@estate-ai.fr</p>
+    <p>ImmoGenius AI — [Adresse du siège]<br />Email : contact@estate-ai.fr</p>
 
     <h3>2. Données collectées</h3>
     <ul>

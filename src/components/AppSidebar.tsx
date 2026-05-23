@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Bot, LogOut, Settings, FileText, Shield, ScrollText,
+  LayoutDashboard, Bot, LogOut, Settings, Shield,
   TrendingUp, HelpCircle, Crosshair, Palette,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -25,16 +25,14 @@ export function AppSidebar() {
   ];
 
   const legalItems = [
-    { title: "Mentions légales", url: "/mentions-legales", icon: FileText },
-    { title: "Confidentialité", url: "/politique-confidentialite", icon: Shield },
-    { title: "CGU", url: "/cgu", icon: ScrollText },
+    { title: "Légal & RGPD", url: "/legal", icon: Shield },
   ];
 
   return (
     <TooltipProvider delayDuration={300}>
     <Sidebar className="border-r border-border">
       <div className="p-5 border-b border-border">
-        <h1 className="text-lg font-bold font-display tracking-tight gradient-text">Estate AI</h1>
+        <h1 className="text-lg font-bold font-display tracking-tight gradient-text">ImmoGenius AI</h1>
         <p className="text-xs mt-0.5 text-muted-foreground">{displayName}</p>
       </div>
       <SidebarContent>

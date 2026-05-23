@@ -107,7 +107,7 @@ export async function exportTextToDocx(
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: `Document généré par Estate AI — ${new Date().toLocaleDateString("fr-FR")}`,
+          text: `Document généré par ImmoGenius AI — ${new Date().toLocaleDateString("fr-FR")}`,
           italics: true,
           size: 18,
           color: "999999",
@@ -117,7 +117,7 @@ export async function exportTextToDocx(
   );
 
   const doc = new Document({
-    creator: "Estate AI",
+    creator: "ImmoGenius AI",
     title: meta?.title || filename,
     styles: {
       default: { document: { run: { font: "Calibri", size: 22 } } },

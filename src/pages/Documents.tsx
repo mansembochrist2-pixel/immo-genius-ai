@@ -194,7 +194,7 @@ const Studio = () => {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Erreur réseau" }));
         let msg = err.error || `Erreur ${resp.status}`;
-        if (resp.status === 402) msg = "💳 Crédits IA bêta épuisés. Contactez l'équipe Estate AI.";
+        if (resp.status === 402) msg = "💳 Crédits IA bêta épuisés. Contactez l'équipe ImmoGenius AI.";
         else if (resp.status === 429) msg = "⏱️ Trop de requêtes — patientez quelques secondes.";
         throw new Error(msg);
       }
@@ -239,7 +239,7 @@ const Studio = () => {
         `${mandatType.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.docx`,
         {
           title: mandatType,
-          subtitle: `Document généré le ${new Date().toLocaleDateString("fr-FR")} — Estate AI`,
+          subtitle: `Document généré le ${new Date().toLocaleDateString("fr-FR")} — ImmoGenius AI`,
         }
       );
       toast.success(lang === "fr" ? "Mandat .docx téléchargé" : "Mandate .docx downloaded");
@@ -403,7 +403,7 @@ const Studio = () => {
               <CardContent className="space-y-4">
                 {/* Template selector with visual cards */}
                 <div>
-                  <p className="text-xs text-muted-foreground mb-3">Template officiel Estate AI</p>
+                  <p className="text-xs text-muted-foreground mb-3">Template officiel ImmoGenius AI</p>
                   <div className="grid grid-cols-1 gap-2">
                     {MANDAT_TYPES.map(mt => (
                       <div
@@ -416,7 +416,7 @@ const Studio = () => {
                             <p className="text-xs font-medium">{mt.label}</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">{mt.desc}</p>
                           </div>
-                          <Badge variant="outline" className="text-[8px] px-1.5">Estate AI</Badge>
+                          <Badge variant="outline" className="text-[8px] px-1.5">ImmoGenius AI</Badge>
                         </div>
                       </div>
                     ))}

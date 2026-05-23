@@ -15,7 +15,7 @@ const CATEGORIES: FAQCategory[] = [
     label: "Premiers pas",
     icon: Sparkles,
     items: [
-      { q: "Comment commencer avec Estate AI ?", a: "Créez votre compte, complétez l'onboarding (5 étapes — 3 minutes), connectez votre Google ou Outlook depuis Paramètres → Intégrations, puis laissez l'IA analyser vos derniers échanges. Votre dashboard est prêt immédiatement.", tags: ["onboarding", "demarrage", "compte"] },
+      { q: "Comment commencer avec ImmoGenius AI ?", a: "Créez votre compte, complétez l'onboarding (5 étapes — 3 minutes), connectez votre Google ou Outlook depuis Paramètres → Intégrations, puis laissez l'IA analyser vos derniers échanges. Votre dashboard est prêt immédiatement.", tags: ["onboarding", "demarrage", "compte"] },
       { q: "Combien de temps pour être opérationnel ?", a: "Moins de 3 minutes : création de compte, connexion email, et l'IA cartographie automatiquement vos prospects, opportunités et urgences. Vous pouvez ensuite explorer les modules un par un.", tags: ["onboarding", "demarrage"] },
       { q: "Faut-il une formation pour utiliser la plateforme ?", a: "Non. L'interface est pensée pour être intuitive. Chaque module dispose de tooltips contextuels et le Copilote stratégique peut vous guider à tout moment. Cette FAQ couvre 100% des fonctionnalités.", tags: ["formation", "aide"] },
       { q: "Puis-je annuler à tout moment ?", a: "Oui, sans engagement. Depuis Paramètres → Abonnement, vous pouvez résilier en un clic. Vos données sont conservées 30 jours puis supprimées conformément au RGPD.", tags: ["abonnement", "annulation"] },
