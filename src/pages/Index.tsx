@@ -346,6 +346,9 @@ const Index = () => {
         </div>
       </section>
 
+      {/* PRICING */}
+      <PricingSection />
+
       {/* TESTIMONIALS */}
       <section id="temoignages" className="max-w-7xl mx-auto px-6 py-24">
         <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
