@@ -195,6 +195,15 @@ serve(async (req) => {
     const user = userRes?.user;
     if (!user) return new Response(JSON.stringify({ error: "Session invalide" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    // --- rate limit / quota ---
+    const _rl = await consumeAiCredit(user.id, "copilote-agent");
+    if (!_rl.ok) {
+      const _h: Record<string, string> = { ...corsHeaders, "Content-Type": "application/json" };
+      if (_rl.retry_after_seconds) _h["Retry-After"] = String(_rl.retry_after_seconds);
+      return new Response(JSON.stringify({ error: _rl.error }), { status: _rl.status, headers: _h });
+    }
+
+
     const { messages, businessContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY manquant");
