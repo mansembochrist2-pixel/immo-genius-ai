@@ -82,6 +82,27 @@ export type Database = {
           },
         ]
       }
+      ai_usage_log: {
+        Row: {
+          created_at: string
+          function_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          function_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          function_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analyses_zone: {
         Row: {
           adresse: string
@@ -437,6 +458,8 @@ export type Database = {
         Row: {
           agency_name: string | null
           created_at: string
+          credits_remaining: number
+          credits_reset_at: string
           email: string | null
           full_name: string | null
           id: string
@@ -452,6 +475,8 @@ export type Database = {
         Insert: {
           agency_name?: string | null
           created_at?: string
+          credits_remaining?: number
+          credits_reset_at?: string
           email?: string | null
           full_name?: string | null
           id: string
@@ -467,6 +492,8 @@ export type Database = {
         Update: {
           agency_name?: string | null
           created_at?: string
+          credits_remaining?: number
+          credits_reset_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
@@ -709,7 +736,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_and_consume_ai_credit: {
+        Args: {
+          _function_name: string
+          _per_minute_limit?: number
+          _user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       prospect_statut:
