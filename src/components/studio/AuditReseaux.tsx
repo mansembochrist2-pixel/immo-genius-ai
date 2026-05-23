@@ -315,17 +315,20 @@ export const AuditReseaux = () => {
           </Card>
         </div>
 
-        {/* Audit sélectionné */}
-        {selectedAudit && (
-          <div className="space-y-2">
-            <div className="flex justify-end">
-              <Button size="sm" variant="ghost" className="text-xs h-7 gap-1" onClick={() => setSelectedAudit(null)}>
-                Fermer l'audit ✕
-              </Button>
+        {/* Audit sélectionné — Dialog plein écran pour visibilité maximale */}
+        <Dialog open={!!selectedAudit} onOpenChange={(o) => !o && setSelectedAudit(null)}>
+          <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+            <DialogHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b px-6 py-4">
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Rapport d'audit — {selectedAudit?.handle || selectedAudit?.url?.replace(/^https?:\/\//, "").slice(0, 40)}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-6">
+              {selectedAudit && <AuditDetails audit={selectedAudit} />}
             </div>
-            <AuditDetails audit={selectedAudit} />
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* Tutoriel Dialog */}
         <Dialog open={tutoOpen} onOpenChange={setTutoOpen}>

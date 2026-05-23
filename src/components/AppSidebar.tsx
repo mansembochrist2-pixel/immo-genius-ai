@@ -25,9 +25,7 @@ export function AppSidebar() {
   ];
 
   const legalItems = [
-    { title: "Mentions légales", url: "/mentions-legales", icon: FileText },
-    { title: "Confidentialité", url: "/politique-confidentialite", icon: Shield },
-    { title: "CGU", url: "/cgu", icon: ScrollText },
+    { title: "Légal & RGPD", url: "/legal", icon: Shield },
   ];
 
   return (
