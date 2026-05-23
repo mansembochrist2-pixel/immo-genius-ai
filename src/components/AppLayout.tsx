@@ -12,7 +12,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
         <div className="scene-mesh" />
         <AppSidebar />
         <main className="flex-1 flex flex-col relative">
-          <header className="h-14 flex items-center border-b border-border/70 bg-background/70 backdrop-blur-2xl px-4 sticky top-0 z-30">
+          <header className="h-14 flex items-center border-b border-border/70 bg-background/95 px-4 sticky top-0 z-30">
             <SidebarTrigger />
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell />

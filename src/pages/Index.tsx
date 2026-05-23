@@ -102,7 +102,7 @@ const Index = () => {
       <div className="scene-mesh" />
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 backdrop-blur-2xl border-b border-border/60 bg-background/60">
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/95">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2.5 group">
             <div className="relative h-8 w-8 rounded-lg border border-primary/40 grid place-items-center bg-primary/10 overflow-hidden">
