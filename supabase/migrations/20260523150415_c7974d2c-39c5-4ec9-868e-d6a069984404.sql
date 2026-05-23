@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.check_and_consume_ai_credit(uuid, text, integer) FROM authenticated;

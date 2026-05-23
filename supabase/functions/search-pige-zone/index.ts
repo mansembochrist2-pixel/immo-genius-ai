@@ -2,6 +2,7 @@
 // Pipeline : Firecrawl Search → validation → extraction IA enrichie (contact + signaux marché + qualité)
 //            → scoring détaillé pondéré → catégorisation → insert
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { consumeAiCredit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -306,6 +307,11 @@ Deno.serve(async (req) => {
     const { data: authData, error: authError } = await authClient.auth.getUser();
     if (authError || !authData?.user) return j({ error: "Unauthorized" }, 401);
     const user_id = authData.user.id;
+
+    // --- rate limit / quota ---
+    const _rl = await consumeAiCredit(user_id, "search-pige-zone", 5);
+    if (!_rl.ok) return j({ error: _rl.error }, _rl.status);
+
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

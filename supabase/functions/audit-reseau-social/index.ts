@@ -248,6 +248,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     // --- end auth ---
+    // --- rate limit / quota ---
+    const _rl = await consumeAiCredit(_authData.user.id, "audit-reseau-social");
+    if (!_rl.ok) {
+      const headers: Record<string, string> = { ...corsHeaders, "Content-Type": "application/json" };
+      if (_rl.retry_after_seconds) headers["Retry-After"] = String(_rl.retry_after_seconds);
+      return new Response(JSON.stringify({ error: _rl.error }), { status: _rl.status, headers });
+    }
+    // --- end rate limit ---
     const { url, plateforme } = await req.json();
     if (!url || !plateforme) {
       return new Response(JSON.stringify({ error: "url et plateforme requis" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

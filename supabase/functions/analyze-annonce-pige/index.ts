@@ -1,5 +1,6 @@
 // Edge function: génère stratégie/script de pige IA pour UNE annonce
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { consumeAiCredit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const callerUserId = authData.user.id;
+
+    // --- rate limit / quota ---
+    const _rl = await consumeAiCredit(callerUserId, "analyze-annonce-pige");
+    if (!_rl.ok) {
+      const headers: Record<string, string> = { ...corsHeaders, "Content-Type": "application/json" };
+      if (_rl.retry_after_seconds) headers["Retry-After"] = String(_rl.retry_after_seconds);
+      return new Response(JSON.stringify({ error: _rl.error }), { status: _rl.status, headers });
+    }
+
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
