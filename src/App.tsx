@@ -31,6 +31,7 @@ const Sauvegardes = lazyWithRetry(routeLoaders.sauvegardes);
 const MentionsLegales = lazyWithRetry(routeLoaders.mentionsLegales);
 const PolitiqueConfidentialite = lazyWithRetry(routeLoaders.politiqueConfidentialite);
 const CGU = lazyWithRetry(routeLoaders.cgu);
+const Legal = lazyWithRetry(routeLoaders.legal);
 const FAQ = lazyWithRetry(routeLoaders.faq);
 const NotFound = lazyWithRetry(routeLoaders.notFound);
 
@@ -108,6 +109,7 @@ const App = () => (
                   <Route path="/inbox" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/agenda" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/clients" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/legal" element={<Legal />} />
                   <Route path="/mentions-legales" element={<MentionsLegales />} />
                   <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
                   <Route path="/cgu" element={<CGU />} />
