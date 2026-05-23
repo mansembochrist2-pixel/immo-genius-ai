@@ -2,6 +2,7 @@
 // Pipeline : Firecrawl Search → validation → extraction IA enrichie (contact + signaux marché + qualité)
 //            → scoring détaillé pondéré → catégorisation → insert
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { consumeAiCredit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
