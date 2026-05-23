@@ -655,7 +655,7 @@ export const PigeIA = () => {
             "Détection des baisses de prix et multi-diffusions…",
             "Évaluation qualité des annonces (photos, description)…",
             "Recoupement avec les références DVF du secteur…",
-            "Scoring de mandatabilité par l'IA (GPT-5.5)…",
+            "Scoring de mandatabilité par l'IA…",
             "Hiérarchisation des opportunités par priorité…",
             "Cela peut prendre 1 à 2 minutes — l'IA analyse en profondeur…",
           ]}

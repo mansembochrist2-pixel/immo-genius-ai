@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useBusinessData } from "@/contexts/BusinessContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AnalysisLoader } from "@/components/AnalysisLoader";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const InfoTip = ({ children }: { children: React.ReactNode }) => (
   <TooltipProvider delayDuration={150}>
@@ -130,6 +132,22 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
+      <Dialog open={generatingActions}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-primary/30 [&>button]:hidden">
+          <AnalysisLoader
+            module="Actions recommandées"
+            context="analyse de vos modules actifs"
+            messages={[
+              "Lecture de votre vivier de piges enregistrées…",
+              "Croisement avec les opportunités du Radar…",
+              "Pondération par score de pertinence métier…",
+              "Identification des priorités à fort impact…",
+              "Rédaction des actions stratégiques personnalisées…",
+            ]}
+            eta="20 à 60 secondes"
+          />
+        </DialogContent>
+      </Dialog>
       <div className="page-header">
         <h1 className="page-title">Bonjour <span className="gradient-text">{displayName}</span> 👋</h1>
         <p className="page-subtitle">Votre copilote IA travaille pour vous · {(profile as any)?.zone_principale || "Configurez votre zone dans Paramètres"}</p>

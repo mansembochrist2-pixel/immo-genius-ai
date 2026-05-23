@@ -53,7 +53,7 @@ const Onboarding = () => {
               </div>
               <h2 className="text-2xl font-bold font-display">Votre arme commerciale IA</h2>
               <p className="text-sm text-muted-foreground">
-                Estate IA est votre copilote pour la conquête de mandats. Indiquez votre secteur, on s'occupe du reste.
+                ImmoGenius AI est votre copilote pour la conquête de mandats. Indiquez votre secteur, on s'occupe du reste.
               </p>
             </div>
 
@@ -75,7 +75,7 @@ const Onboarding = () => {
 
             <Button onClick={finish} disabled={saving} className="w-full">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Lancer Estate IA <ArrowRight className="h-4 w-4 ml-1" />
+              Lancer ImmoGenius AI <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </CardContent>
         </Card>
