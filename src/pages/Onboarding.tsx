@@ -42,7 +42,7 @@ const Onboarding = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
-          <span className="text-2xl font-bold font-display gradient-text">Estate AI</span>
+          <span className="text-2xl font-bold font-display gradient-text">ImmoGenius AI</span>
         </div>
 
         <Card className="bg-card/90 backdrop-blur-xl border-border/50 shadow-lg">

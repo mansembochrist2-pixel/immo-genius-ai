@@ -3,7 +3,7 @@ import { LegalLayout } from "@/components/LegalLayout";
 const MentionsLegales = () => (
   <LegalLayout title="Mentions légales">
     <h3>Éditeur du site</h3>
-    <p>Estate AI — SAS<br />Les informations légales complètes de l'éditeur seront renseignées dans les paramètres de la plateforme.</p>
+    <p>ImmoGenius AI — SAS<br />Les informations légales complètes de l'éditeur seront renseignées dans les paramètres de la plateforme.</p>
 
     <h3>Hébergement</h3>
     <p>Ce site est hébergé par Lovable Cloud.<br />Contact : support@lovable.dev</p>

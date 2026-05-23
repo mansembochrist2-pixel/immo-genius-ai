@@ -35,7 +35,7 @@ export const LegalLayout = ({ children, title }: { children: ReactNode; title: s
       </div>
       <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button onClick={handleHome} className="text-xl font-bold font-display gradient-text">Estate AI</button>
+          <button onClick={handleHome} className="text-xl font-bold font-display gradient-text">ImmoGenius AI</button>
           <Button variant="ghost" size="sm" onClick={handleBack}><ArrowLeft className="h-4 w-4 mr-1" /> Retour</Button>
         </div>
       </nav>
@@ -46,7 +46,7 @@ export const LegalLayout = ({ children, title }: { children: ReactNode; title: s
         </div>
       </main>
       <footer className="border-t border-border mt-16 py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Estate AI · <button onClick={handleHome} className="hover:text-foreground transition-colors">{isAuthenticated ? "Retour au dashboard" : "Retour à l'accueil"}</button>
+        © {new Date().getFullYear()} ImmoGenius AI · <button onClick={handleHome} className="hover:text-foreground transition-colors">{isAuthenticated ? "Retour au dashboard" : "Retour à l'accueil"}</button>
       </footer>
     </div>
   );

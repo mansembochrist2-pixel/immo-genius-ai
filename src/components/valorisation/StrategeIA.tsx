@@ -185,14 +185,14 @@ export function StrategeIA({ inputs, results, onApply }: Props) {
                 restent à valider avec notaire, expert-comptable ou avocat fiscaliste.
               </TooltipContent>
             </Tooltip>
-            <Badge variant="outline" className="ml-auto text-[10px]">Estate AI</Badge>
+            <Badge variant="outline" className="ml-auto text-[10px]">ImmoGenius AI</Badge>
           </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">
           {loading && (
             <AnalysisLoader
-              module="Stratège patrimonial Estate AI"
+              module="Stratège patrimonial ImmoGenius AI"
               context={inputs.adresse || undefined}
               inline
               messages={[
@@ -297,7 +297,7 @@ export function StrategeIA({ inputs, results, onApply }: Props) {
             <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
               <p className="text-[11px] text-amber-900 leading-relaxed">
                 <span className="font-semibold">⚠ Action recommandée :</span> cette stratégie nécessite l'accompagnement
-                d'un notaire, d'un expert-comptable ou d'un avocat fiscaliste avant toute mise en œuvre. Estate AI
+                d'un notaire, d'un expert-comptable ou d'un avocat fiscaliste avant toute mise en œuvre. ImmoGenius AI
                 fournit ici une analyse indicative, pas une décision opérationnelle.
               </p>
             </div>

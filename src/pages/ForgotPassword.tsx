@@ -35,7 +35,7 @@ const ForgotPassword = () => {
 
       <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold font-display gradient-text">Estate AI</h1>
+          <h1 className="text-3xl font-bold font-display gradient-text">ImmoGenius AI</h1>
           <p className="text-muted-foreground mt-2">Réinitialisez votre mot de passe</p>
         </div>
         <Card className="glow-border bg-card/80 backdrop-blur-xl">

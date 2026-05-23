@@ -34,7 +34,7 @@ export function AppSidebar() {
     <TooltipProvider delayDuration={300}>
     <Sidebar className="border-r border-border">
       <div className="p-5 border-b border-border">
-        <h1 className="text-lg font-bold font-display tracking-tight gradient-text">Estate AI</h1>
+        <h1 className="text-lg font-bold font-display tracking-tight gradient-text">ImmoGenius AI</h1>
         <p className="text-xs mt-0.5 text-muted-foreground">{displayName}</p>
       </div>
       <SidebarContent>

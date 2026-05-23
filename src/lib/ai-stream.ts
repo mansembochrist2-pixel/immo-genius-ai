@@ -31,7 +31,7 @@ export async function streamChat({
   if (!resp.ok) {
     const data = await resp.json().catch(() => ({ error: "Erreur réseau" }));
     let msg = data.error || `Erreur ${resp.status}`;
-    if (resp.status === 402) msg = "💳 Crédits IA bêta épuisés. Contactez l’équipe Estate AI pour recharger votre accès.";
+    if (resp.status === 402) msg = "💳 Crédits IA bêta épuisés. Contactez l’équipe ImmoGenius AI pour recharger votre accès.";
     else if (resp.status === 429) msg = "⏱️ Trop de requêtes — patientez quelques secondes.";
     else if (resp.status === 401) msg = "🔒 Session expirée. Reconnectez-vous.";
     onError(msg);

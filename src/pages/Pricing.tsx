@@ -31,7 +31,7 @@ const Pricing = () => {
           Un seul plan, tout inclus
         </h1>
         <p className="text-muted-foreground text-lg max-w-md mx-auto">
-          Accédez à l'intégralité d'Estate AI pour booster votre activité immobilière.
+          Accédez à l'intégralité d'ImmoGenius AI pour booster votre activité immobilière.
         </p>
       </div>
 
@@ -39,7 +39,7 @@ const Pricing = () => {
         <CardHeader className="text-center pb-2">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Crown className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-display font-bold">Estate AI Pro</CardTitle>
+            <CardTitle className="text-xl font-display font-bold">ImmoGenius AI Pro</CardTitle>
           </div>
           <div className="flex items-baseline justify-center gap-1">
             <span className="text-5xl font-bold tracking-tight gradient-text">79€</span>
