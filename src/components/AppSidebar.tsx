@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Bot, LogOut, Settings, FileText, Shield, ScrollText,
+  LayoutDashboard, Bot, LogOut, Settings, Shield,
   TrendingUp, HelpCircle, Crosshair, Palette,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
