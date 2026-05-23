@@ -37,6 +37,15 @@ Deno.serve(async (req) => {
     }
     const callerUserId = authData.user.id;
 
+    // --- rate limit / quota ---
+    const _rl = await consumeAiCredit(callerUserId, "analyze-annonce-pige");
+    if (!_rl.ok) {
+      const headers: Record<string, string> = { ...corsHeaders, "Content-Type": "application/json" };
+      if (_rl.retry_after_seconds) headers["Retry-After"] = String(_rl.retry_after_seconds);
+      return new Response(JSON.stringify({ error: _rl.error }), { status: _rl.status, headers });
+    }
+
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
