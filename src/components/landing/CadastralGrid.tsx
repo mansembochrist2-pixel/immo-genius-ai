@@ -45,8 +45,8 @@ export function CadastralGrid({ className = "" }: { className?: string }) {
                 fillOpacity="0.12"
                 stroke={color}
                 strokeWidth="1"
-                filter="url(#parcel-glow)"
               />
+
               {p.label && (
                 <text
                   x={p.x * 75 + 18}

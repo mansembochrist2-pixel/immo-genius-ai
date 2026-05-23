@@ -42,9 +42,12 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
       gcTime: 5 * 60_000,
       refetchOnWindowFocus: false,
+      // Keep previous data while refetching → no empty/0 flash when switching routes
+      placeholderData: (previousData: unknown) => previousData,
     },
   },
 });
+
 
 // Lightweight fallback (matches bg → no black flash between routes)
 // Transparent fallback — avoids the white flash between lazy routes.

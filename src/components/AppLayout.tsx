@@ -12,7 +12,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
         <div className="scene-mesh" />
         <AppSidebar />
         <main className="flex-1 flex flex-col relative">
-          <header className="h-14 flex items-center border-b border-border/70 bg-background/70 backdrop-blur-2xl px-4 sticky top-0 z-30">
+          <header className="h-14 flex items-center border-b border-border/70 bg-background/95 px-4 sticky top-0 z-30">
             <SidebarTrigger />
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell />
@@ -22,9 +22,10 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               </div>
             </div>
           </header>
-          <div className="flex-1 p-6 lg:p-8 relative">
+          <div key={typeof window !== "undefined" ? window.location.pathname : "page"} className="flex-1 p-6 lg:p-8 relative animate-page-in">
             {children}
           </div>
+
         </main>
       </div>
     </SidebarProvider>
