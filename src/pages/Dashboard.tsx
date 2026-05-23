@@ -133,7 +133,7 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <Dialog open={generatingActions}>
-        <DialogContent className="max-w-md p-0 overflow-hidden border-primary/30" hideClose>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-primary/30 [&>button]:hidden">
           <AnalysisLoader
             module="Actions recommandées"
             context="analyse de vos modules actifs"
