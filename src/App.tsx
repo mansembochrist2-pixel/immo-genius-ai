@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 import { CookieConsent } from "@/components/CookieConsent";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Component, Suspense, type ErrorInfo, type ReactNode } from "react";
 import { isChunkLoadError, lazyWithRetry, preloadAllRoutes, routeLoaders } from "@/lib/routeLoader";
 
@@ -42,37 +43,29 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
       gcTime: 5 * 60_000,
       refetchOnWindowFocus: false,
-      // Keep previous data while refetching → no empty/0 flash when switching routes
       placeholderData: (previousData: unknown) => previousData,
     },
   },
 });
 
-
-// Lightweight fallback (matches bg → no black flash between routes)
-// Transparent fallback — avoids the white flash between lazy routes.
-// Once preloadAllRoutes has run, chunks resolve synchronously so this is rarely seen.
 const RouteFallback = () => null;
 
 class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
-
   static getDerivedStateFromError(error: unknown) {
     return { hasError: isChunkLoadError(error) };
   }
-
   componentDidCatch(error: unknown, _info: ErrorInfo) {
     if (!isChunkLoadError(error)) throw error;
   }
-
   render() {
-    if (this.state.hasError) {
-      return <RouteFallback />;
-    }
-
+    if (this.state.hasError) return <RouteFallback />;
     return this.props.children;
   }
 }
+
+// Shorthand: wrap a lazy element in the auth guard
+const guarded = (node: ReactNode) => <ProtectedRoute>{node}</ProtectedRoute>;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -87,6 +80,7 @@ const App = () => (
             <ChunkErrorBoundary>
               <Suspense fallback={<RouteFallback />}>
                 <Routes>
+                  {/* Public */}
                   <Route path="/" element={<Index />} />
                   <Route path="/landing" element={<Index />} />
                   <Route path="/index" element={<Index />} />
@@ -94,30 +88,33 @@ const App = () => (
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/chasseur" element={<Chasseur />} />
-                  <Route path="/radar" element={<Navigate to="/chasseur?tab=radar" replace />} />
-                  <Route path="/copilote" element={<Copilote />} />
-                  <Route path="/studio" element={<Documents />} />
-                  <Route path="/documents" element={<Navigate to="/studio" replace />} />
-                  <Route path="/estimation" element={<Navigate to="/valorisation/estimation" replace />} />
-                  <Route path="/valorisation" element={<Navigate to="/valorisation/estimation" replace />} />
-                  <Route path="/valorisation/estimation" element={<EstimationIA />} />
-                  <Route path="/valorisation/expertise" element={<Expertise />} />
-                  <Route path="/expertise" element={<Navigate to="/valorisation/expertise" replace />} />
-                  <Route path="/sauvegardes" element={<Sauvegardes />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/faq" element={<FAQ />} />
-                  <Route path="/aide" element={<FAQ />} />
-                  <Route path="/inbox" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/agenda" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/clients" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/legal" element={<Legal />} />
                   <Route path="/mentions-legales" element={<MentionsLegales />} />
                   <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
                   <Route path="/cgu" element={<CGU />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/aide" element={<FAQ />} />
+
+                  {/* Authenticated */}
+                  <Route path="/onboarding" element={guarded(<Onboarding />)} />
+                  <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={guarded(<Dashboard />)} />
+                  <Route path="/chasseur" element={guarded(<Chasseur />)} />
+                  <Route path="/radar" element={<Navigate to="/chasseur?tab=radar" replace />} />
+                  <Route path="/copilote" element={guarded(<Copilote />)} />
+                  <Route path="/studio" element={guarded(<Documents />)} />
+                  <Route path="/documents" element={<Navigate to="/studio" replace />} />
+                  <Route path="/estimation" element={<Navigate to="/valorisation/estimation" replace />} />
+                  <Route path="/valorisation" element={<Navigate to="/valorisation/estimation" replace />} />
+                  <Route path="/valorisation/estimation" element={guarded(<EstimationIA />)} />
+                  <Route path="/valorisation/expertise" element={guarded(<Expertise />)} />
+                  <Route path="/expertise" element={<Navigate to="/valorisation/expertise" replace />} />
+                  <Route path="/sauvegardes" element={guarded(<Sauvegardes />)} />
+                  <Route path="/settings" element={guarded(<Settings />)} />
+                  <Route path="/inbox" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/agenda" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/clients" element={<Navigate to="/dashboard" replace />} />
+
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
