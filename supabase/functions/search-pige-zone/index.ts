@@ -304,9 +304,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: authData, error: authError } = await authClient.auth.getUser();
-    if (authError || !authData?.user) return j({ error: "Unauthorized" }, 401);
-    const user_id = authData.user.id;
+    const _token = authHeader.replace("Bearer ", "");
+    const { data: authData, error: authError } = await authClient.auth.getClaims(_token);
+    if (authError || !authData?.claims?.sub) return j({ error: "Unauthorized" }, 401);
+    const user_id = authData.claims.sub;
 
     // --- rate limit / quota ---
     const _rl = await consumeAiCredit(user_id, "search-pige-zone", 5);
