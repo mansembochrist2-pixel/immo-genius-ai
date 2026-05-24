@@ -115,10 +115,10 @@ export const RadarContent = () => {
         zone: adresse,
         description: a.strategie?.slice(0, 280) || null,
         score: Number(a.score_opportunite) || 0,
-        donnees: { analyse: a, secteur },
-        sources: (a.sources || []).map((s) => ({ name: s })),
+        donnees: { analyse: a, secteur } as any,
+        sources: (a.sources || []).map((s) => ({ name: s })) as any,
         statut: "nouvelle",
-      });
+      } as any);
       setRefreshKey((k) => k + 1);
       toast({ title: "Analyse terminée", description: "Zone enregistrée dans tes opportunités." });
     } catch (e: any) {
@@ -183,7 +183,8 @@ export const RadarContent = () => {
 
       {loading && (
         <AnalysisLoader
-          title="Analyse de zone en cours…"
+          module="Radar Prospection"
+          context={adresse}
           messages={[
             "Récupération des données DVF (Etalab)…",
             "Analyse de la tension et des prix au m²…",
