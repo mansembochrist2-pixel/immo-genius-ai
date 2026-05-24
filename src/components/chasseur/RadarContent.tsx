@@ -14,6 +14,7 @@ import {
   Radar as RadarIcon, Trash2, Play, Building2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 interface Analyse {
   prix_m2_moyen?: string;
@@ -161,12 +162,10 @@ export const RadarContent = () => {
             Analyse stratégique d'une zone de prospection
           </div>
           <div className="grid md:grid-cols-[2fr_1fr_auto] gap-3">
-            <Input
-              placeholder="Adresse ou quartier (ex : 12 rue du Bac, 75007 Paris)"
+            <AddressAutocomplete
               value={adresse}
-              onChange={(e) => setAdresse(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && lancerAnalyse()}
-              disabled={loading}
+              onChange={setAdresse}
+              placeholder="Adresse, quartier, ville..."
             />
             <Input
               placeholder="Cible (ex : appartements, maisons…)"
