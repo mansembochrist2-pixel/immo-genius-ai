@@ -263,36 +263,6 @@ export type Database = {
         }
         Relationships: []
       }
-      api_connections: {
-        Row: {
-          config: Json | null
-          created_at: string
-          derniere_sync: string | null
-          id: string
-          service: string
-          statut: string | null
-          user_id: string
-        }
-        Insert: {
-          config?: Json | null
-          created_at?: string
-          derniere_sync?: string | null
-          id?: string
-          service: string
-          statut?: string | null
-          user_id: string
-        }
-        Update: {
-          config?: Json | null
-          created_at?: string
-          derniere_sync?: string | null
-          id?: string
-          service?: string
-          statut?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       audits_reseaux: {
         Row: {
           analyse_ia: Json
@@ -497,42 +467,6 @@ export type Database = {
           preferred_language?: string
           trial_ends_at?: string
           zone_principale?: string | null
-        }
-        Relationships: []
-      }
-      workflows: {
-        Row: {
-          actif: boolean | null
-          actions: Json | null
-          created_at: string
-          declencheur: string
-          derniere_execution: string | null
-          executions: number | null
-          id: string
-          nom: string
-          user_id: string
-        }
-        Insert: {
-          actif?: boolean | null
-          actions?: Json | null
-          created_at?: string
-          declencheur: string
-          derniere_execution?: string | null
-          executions?: number | null
-          id?: string
-          nom: string
-          user_id: string
-        }
-        Update: {
-          actif?: boolean | null
-          actions?: Json | null
-          created_at?: string
-          declencheur?: string
-          derniere_execution?: string | null
-          executions?: number | null
-          id?: string
-          nom?: string
-          user_id?: string
         }
         Relationships: []
       }
