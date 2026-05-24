@@ -4,9 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface BusinessStats {
-  prospects: { total: number; nouveaux: number; chauds: number; signes: number; actifs: number };
-  sales: { total: number; montantTotal: number; ceMois: number };
-  tasks: { enCours: number; urgentes: number; enRetard: number };
   pige: { total: number; nouvelles: number; scoreMoyen: number; topScore: number };
   opportunites: { total: number; topScore: number };
 }
@@ -19,9 +16,6 @@ interface BusinessContextType {
 }
 
 const defaultStats: BusinessStats = {
-  prospects: { total: 0, nouveaux: 0, chauds: 0, signes: 0, actifs: 0 },
-  sales: { total: 0, montantTotal: 0, ceMois: 0 },
-  tasks: { enCours: 0, urgentes: 0, enRetard: 0 },
   pige: { total: 0, nouvelles: 0, scoreMoyen: 0, topScore: 0 },
   opportunites: { total: 0, topScore: 0 },
 };
@@ -53,9 +47,6 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       const last24h = new Date(Date.now() - 86400000).toISOString();
 
       setStats({
-        prospects: defaultStats.prospects,
-        sales: defaultStats.sales,
-        tasks: defaultStats.tasks,
         opportunites: {
           total: opps.length,
           topScore: opps.length ? Math.max(...opps.map((o: any) => Number(o.score) || 0)) : 0,
@@ -81,7 +72,6 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       `- Pige IA : ${s.pige.total} annonces enregistrées dans le vivier — score moyen ${s.pige.scoreMoyen}/100, top ${s.pige.topScore}/100`,
       `- Opportunités Radar : ${s.opportunites.total} analyses sauvegardées (meilleur score ${s.opportunites.topScore}/100)`,
       `- Modules actifs : Pige IA, Radar Prospection, Estimation IA, Studio IA et Copilote.`,
-      `- Modules retirés du contexte : anciens prospects/clients, agenda IA, inbox IA, mémoire client, CA/ventes.`,
     ].join("\n");
   }, [stats]);
 
