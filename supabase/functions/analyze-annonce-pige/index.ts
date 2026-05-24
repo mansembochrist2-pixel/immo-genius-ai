@@ -31,11 +31,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: authData, error: authError } = await authClient.auth.getUser();
-    if (authError || !authData?.user) {
+    const _token = authHeader.replace("Bearer ", "");
+    const { data: authData, error: authError } = await authClient.auth.getClaims(_token);
+    if (authError || !authData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const callerUserId = authData.user.id;
+    const callerUserId = authData.claims.sub;
 
     // --- rate limit / quota ---
     const _rl = await consumeAiCredit(callerUserId, "analyze-annonce-pige");
