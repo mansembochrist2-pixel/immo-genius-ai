@@ -78,6 +78,7 @@ serve(async (req) => {
     const callModel = async (model: string, withReasoning: boolean) => {
       const body: any = {
         model,
+        max_completion_tokens: 2500,
         messages: [
           { role: "system", content: SYSTEM },
           {
