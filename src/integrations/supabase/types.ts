@@ -72,15 +72,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "actions_recommandees_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "prospects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ai_usage_log: {
         Row: {
@@ -508,193 +500,6 @@ export type Database = {
         }
         Relationships: []
       }
-      prospects: {
-        Row: {
-          biens_proposes: string | null
-          budget_max: number | null
-          budget_min: number | null
-          canal_prefere: string | null
-          created_at: string
-          delai_projet: string | null
-          derniere_interaction: string | null
-          email: string | null
-          freins: string | null
-          id: string
-          motivation: string | null
-          nom: string
-          notes: string | null
-          prochain_rappel: string | null
-          prochain_rappel_note: string | null
-          provenance: string | null
-          resume_ia: string | null
-          score_ia: number | null
-          score_urgence: number | null
-          secteur_recherche: string | null
-          situation: string | null
-          source: string | null
-          statut: Database["public"]["Enums"]["prospect_statut"]
-          strategie_adaptee: string | null
-          tags: string[] | null
-          taux_signature: number | null
-          telephone: string | null
-          type_bien_recherche: string | null
-          type_projet: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          biens_proposes?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
-          canal_prefere?: string | null
-          created_at?: string
-          delai_projet?: string | null
-          derniere_interaction?: string | null
-          email?: string | null
-          freins?: string | null
-          id?: string
-          motivation?: string | null
-          nom: string
-          notes?: string | null
-          prochain_rappel?: string | null
-          prochain_rappel_note?: string | null
-          provenance?: string | null
-          resume_ia?: string | null
-          score_ia?: number | null
-          score_urgence?: number | null
-          secteur_recherche?: string | null
-          situation?: string | null
-          source?: string | null
-          statut?: Database["public"]["Enums"]["prospect_statut"]
-          strategie_adaptee?: string | null
-          tags?: string[] | null
-          taux_signature?: number | null
-          telephone?: string | null
-          type_bien_recherche?: string | null
-          type_projet?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          biens_proposes?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
-          canal_prefere?: string | null
-          created_at?: string
-          delai_projet?: string | null
-          derniere_interaction?: string | null
-          email?: string | null
-          freins?: string | null
-          id?: string
-          motivation?: string | null
-          nom?: string
-          notes?: string | null
-          prochain_rappel?: string | null
-          prochain_rappel_note?: string | null
-          provenance?: string | null
-          resume_ia?: string | null
-          score_ia?: number | null
-          score_urgence?: number | null
-          secteur_recherche?: string | null
-          situation?: string | null
-          source?: string | null
-          statut?: Database["public"]["Enums"]["prospect_statut"]
-          strategie_adaptee?: string | null
-          tags?: string[] | null
-          taux_signature?: number | null
-          telephone?: string | null
-          type_bien_recherche?: string | null
-          type_projet?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      sales: {
-        Row: {
-          created_at: string
-          date_vente: string
-          description: string | null
-          id: string
-          montant: number
-          prospect_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          date_vente?: string
-          description?: string | null
-          id?: string
-          montant?: number
-          prospect_id?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          date_vente?: string
-          description?: string | null
-          id?: string
-          montant?: number
-          prospect_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sales_prospect_id_fkey"
-            columns: ["prospect_id"]
-            isOneToOne: false
-            referencedRelation: "prospects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tasks: {
-        Row: {
-          created_at: string
-          description: string | null
-          done: boolean
-          due_date: string | null
-          id: string
-          priorite: Database["public"]["Enums"]["task_priorite"]
-          prospect_id: string | null
-          source: Database["public"]["Enums"]["task_source"]
-          titre: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          done?: boolean
-          due_date?: string | null
-          id?: string
-          priorite?: Database["public"]["Enums"]["task_priorite"]
-          prospect_id?: string | null
-          source?: Database["public"]["Enums"]["task_source"]
-          titre: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          done?: boolean
-          due_date?: string | null
-          id?: string
-          priorite?: Database["public"]["Enums"]["task_priorite"]
-          prospect_id?: string | null
-          source?: Database["public"]["Enums"]["task_source"]
-          titre?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_prospect_id_fkey"
-            columns: ["prospect_id"]
-            isOneToOne: false
-            referencedRelation: "prospects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       workflows: {
         Row: {
           actif: boolean | null
@@ -746,15 +551,7 @@ export type Database = {
       }
     }
     Enums: {
-      prospect_statut:
-        | "nouveau"
-        | "contacte"
-        | "visite"
-        | "offre"
-        | "signe"
-        | "perdu"
-      task_priorite: "basse" | "moyenne" | "haute" | "urgente"
-      task_source: "manual" | "ia"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -881,17 +678,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      prospect_statut: [
-        "nouveau",
-        "contacte",
-        "visite",
-        "offre",
-        "signe",
-        "perdu",
-      ],
-      task_priorite: ["basse", "moyenne", "haute", "urgente"],
-      task_source: ["manual", "ia"],
-    },
+    Enums: {},
   },
 } as const

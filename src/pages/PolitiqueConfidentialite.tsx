@@ -8,7 +8,7 @@ const PolitiqueConfidentialite = () => (
     <h3>2. Données collectées</h3>
     <ul>
       <li><strong>Données d'inscription :</strong> nom, email, téléphone, nom d'agence</li>
-      <li><strong>Données métier :</strong> prospects, tâches, annonces, analyses de zones</li>
+      <li><strong>Données métier :</strong> annonces, piges, opportunités, analyses de zones, expertises</li>
       <li><strong>Données techniques :</strong> logs de connexion, adresse IP, navigateur</li>
     </ul>
 

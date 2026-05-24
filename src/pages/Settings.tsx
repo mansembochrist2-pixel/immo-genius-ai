@@ -65,13 +65,24 @@ const Settings = () => {
   const exportData = async () => {
     setExporting(true);
     try {
-      const [prospects, tasks, annonces, analyses] = await Promise.all([
-        supabase.from("prospects").select("*"),
-        supabase.from("tasks").select("*"),
+      const [annonces, analyses, pige, opportunites, audits, expertises] = await Promise.all([
         supabase.from("annonces").select("*"),
         supabase.from("analyses_zone").select("*"),
+        supabase.from("annonces_pige").select("*"),
+        supabase.from("opportunites").select("*"),
+        supabase.from("audits_reseaux").select("*"),
+        supabase.from("expertise_reports").select("*"),
       ]);
-      const exportObj = { export_date: new Date().toISOString(), profile, prospects: prospects.data || [], tasks: tasks.data || [], annonces: annonces.data || [], analyses_zone: analyses.data || [] };
+      const exportObj = {
+        export_date: new Date().toISOString(),
+        profile,
+        annonces: annonces.data || [],
+        analyses_zone: analyses.data || [],
+        annonces_pige: pige.data || [],
+        opportunites: opportunites.data || [],
+        audits_reseaux: audits.data || [],
+        expertise_reports: expertises.data || [],
+      };
       const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a"); a.href = url; a.download = `estate-ai-export-${new Date().toISOString().split("T")[0]}.json`; a.click(); URL.revokeObjectURL(url);
@@ -82,12 +93,14 @@ const Settings = () => {
   const deleteAccount = async () => {
     try {
       await Promise.all([
-        supabase.from("prospects").delete().eq("user_id", user!.id),
-        supabase.from("tasks").delete().eq("user_id", user!.id),
         supabase.from("annonces").delete().eq("user_id", user!.id),
         supabase.from("analyses_zone").delete().eq("user_id", user!.id),
+        supabase.from("annonces_pige").delete().eq("user_id", user!.id),
+        supabase.from("opportunites").delete().eq("user_id", user!.id),
+        supabase.from("audits_reseaux").delete().eq("user_id", user!.id),
+        supabase.from("expertise_reports").delete().eq("user_id", user!.id),
         supabase.from("conversations").delete().eq("user_id", user!.id),
-        supabase.from("sales").delete().eq("user_id", user!.id),
+        supabase.from("actions_recommandees").delete().eq("user_id", user!.id),
       ]);
       toast.success(lang === "fr" ? "Données supprimées. Déconnexion..." : "Data deleted. Logging out...");
       setTimeout(() => logout(), 1500);
