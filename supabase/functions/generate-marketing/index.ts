@@ -61,6 +61,7 @@ Adapte le format, la longueur et le style au canal demandé.`;
       },
       body: JSON.stringify({
         model: "openai/gpt-5.2",
+        max_completion_tokens: 2000,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },

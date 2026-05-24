@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, FileText, TrendingUp, Loader2, Trash2, Eye, Download, Search, Mail, ArchiveRestore } from "lucide-react";
+import { Save, FileText, TrendingUp, Trash2, Eye, Download, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -49,10 +49,6 @@ const Sauvegardes = () => {
     enabled: !!user,
   });
 
-  const archivedMessages: any[] = [];
-  const loadingArchived = false;
-  const restoreMessageMutation = { mutate: (_id: string) => { toast.info("Fonctionnalité retirée"); } };
-  const deleteMessageMutation = { mutate: (_id: string) => { toast.info("Fonctionnalité retirée"); } };
 
   const deleteAnnonceMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -137,9 +133,6 @@ const Sauvegardes = () => {
           </TabsTrigger>
           <TabsTrigger value="estimations" className="gap-2">
             <TrendingUp className="h-3.5 w-3.5" /> Estimations ({estimations.length})
-          </TabsTrigger>
-          <TabsTrigger value="emails" className="gap-2">
-            <Mail className="h-3.5 w-3.5" /> Emails archivés ({archivedMessages.length})
           </TabsTrigger>
         </TabsList>
 
@@ -260,56 +253,6 @@ const Sauvegardes = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="emails">
-          {loadingArchived ? (
-            <GridSkeleton count={4} />
-          ) : archivedMessages.length === 0 ? (
-            <EmptyState
-              icon={Mail}
-              title="Aucun email archivé"
-              description="Vos messages archivés depuis l'Inbox apparaîtront ici. Vous pourrez les restaurer ou les supprimer définitivement."
-              actionLabel="Aller à l'Inbox"
-              onAction={() => navigate("/inbox")}
-            />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {archivedMessages.filter(filterFn).filter((m: any) => !search || m.contenu?.toLowerCase().includes(search.toLowerCase()) || m.sujet?.toLowerCase().includes(search.toLowerCase())).map((m: any) => (
-                <Card key={m.id} className="bg-card/60 border-border/30 hover:border-primary/30 transition-all">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <CardTitle className="text-sm truncate">{m.sujet || `Message ${m.canal}`}</CardTitle>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">
-                          {m.canal} · {m.direction === "entrant" ? "Reçu" : "Envoyé"}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="text-[9px] shrink-0">
-                        {new Date(m.archived_at).toLocaleDateString("fr-FR")}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{m.contenu}</p>
-                    <div className="flex gap-1.5">
-                      <Button size="sm" variant="outline" className="flex-1 text-xs gap-1 h-7"
-                        onClick={() => setPreview({ title: m.sujet || `Message ${m.canal}`, content: m.contenu })}>
-                        <Eye className="h-3 w-3" /> Aperçu
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-xs gap-1 h-7"
-                        onClick={() => restoreMessageMutation.mutate(m.id)}>
-                        <ArchiveRestore className="h-3 w-3" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive hover:text-destructive"
-                        onClick={() => deleteMessageMutation.mutate(m.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>

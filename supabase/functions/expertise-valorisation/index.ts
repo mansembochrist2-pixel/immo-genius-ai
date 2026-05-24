@@ -113,6 +113,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "openai/gpt-5.4",
+        max_completion_tokens: 2000,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

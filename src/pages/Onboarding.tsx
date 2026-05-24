@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,12 +9,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { handleApiError } from "@/lib/error-handler";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 const Onboarding = () => {
   const [zone, setZone] = useState("");
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Guard: if onboarding already completed, redirect to dashboard
+  const { data: profile } = useQuery({
+    queryKey: ["onboarding-check", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (profile?.onboarding_completed) navigate("/dashboard", { replace: true });
+  }, [profile, navigate]);
 
   const finish = async () => {
     if (!zone.trim()) {

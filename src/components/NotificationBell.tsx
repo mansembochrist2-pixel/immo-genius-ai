@@ -1,8 +1,8 @@
 import { Bell, X, Zap, AlertTriangle, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +19,7 @@ interface Alert {
 export function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
@@ -56,8 +57,23 @@ export function NotificationBell() {
       return results;
     },
     enabled: !!user,
-    refetchInterval: 60000,
+    staleTime: 30_000,
   });
+
+  // Realtime: refetch only when relevant tables change (replaces 60s polling)
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("notif-bell")
+      .on("postgres_changes", { event: "*", schema: "public", table: "annonces_pige", filter: `user_id=eq.${user.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["notifications-bell"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "opportunites", filter: `user_id=eq.${user.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["notifications-bell"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "actions_recommandees", filter: `user_id=eq.${user.id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["notifications-bell"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
 
   const visibleAlerts = alerts.filter(a => !dismissed.has(a.id));
   const count = visibleAlerts.length;
