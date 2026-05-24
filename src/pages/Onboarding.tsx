@@ -18,7 +18,7 @@ const Onboarding = () => {
   const { user } = useAuth();
 
   // Guard: if onboarding already completed, redirect to dashboard
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ["onboarding-check", user?.id],
     enabled: !!user,
     queryFn: async () => {
