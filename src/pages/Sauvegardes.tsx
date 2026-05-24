@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, FileText, TrendingUp, Loader2, Trash2, Eye, Download, Search, Mail, ArchiveRestore } from "lucide-react";
+import { Save, FileText, TrendingUp, Trash2, Eye, Download, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -49,10 +49,6 @@ const Sauvegardes = () => {
     enabled: !!user,
   });
 
-  const archivedMessages: any[] = [];
-  const loadingArchived = false;
-  const restoreMessageMutation = { mutate: (_id: string) => { toast.info("Fonctionnalité retirée"); } };
-  const deleteMessageMutation = { mutate: (_id: string) => { toast.info("Fonctionnalité retirée"); } };
 
   const deleteAnnonceMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -137,9 +133,6 @@ const Sauvegardes = () => {
           </TabsTrigger>
           <TabsTrigger value="estimations" className="gap-2">
             <TrendingUp className="h-3.5 w-3.5" /> Estimations ({estimations.length})
-          </TabsTrigger>
-          <TabsTrigger value="emails" className="gap-2">
-            <Mail className="h-3.5 w-3.5" /> Emails archivés ({archivedMessages.length})
           </TabsTrigger>
         </TabsList>
 
