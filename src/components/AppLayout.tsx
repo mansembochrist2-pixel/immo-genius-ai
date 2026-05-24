@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { CreditsBadge } from "@/components/CreditsBadge";
 import { Building2 } from "lucide-react";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
@@ -15,6 +16,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
           <header className="h-14 flex items-center border-b border-border/70 bg-background/95 px-4 sticky top-0 z-30">
             <SidebarTrigger />
             <div className="ml-auto flex items-center gap-3">
+              <CreditsBadge />
               <NotificationBell />
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/70 bg-surface-1/60">
                 <Building2 className="h-3.5 w-3.5 text-primary" />
