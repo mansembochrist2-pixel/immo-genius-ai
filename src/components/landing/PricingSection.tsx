@@ -7,7 +7,7 @@ interface Plan {
   name: string;
   tagline: string;
   price: number;
-  daily: number;
+  monthly: number;
   icon: typeof Sparkles;
   highlight?: boolean;
   perks: string[];
@@ -18,12 +18,11 @@ const PLANS: Plan[] = [
     name: "Starter",
     tagline: "Pour démarrer votre conquête de mandats",
     price: 59,
-    daily: 50,
+    monthly: 50,
     icon: Sparkles,
     perks: [
       "Accès complet à tous les modules",
-      "50 crédits rechargés chaque matin",
-      "Crédits non utilisés cumulés (rollover)",
+      "50 crédits IA par mois",
       "Pige IA + Radar + Estimation + Studio",
       "Copilote stratégique illimité en conseil",
       "Support email sous 24 h",
@@ -33,13 +32,12 @@ const PLANS: Plan[] = [
     name: "Pro",
     tagline: "Le choix des agents qui signent",
     price: 119,
-    daily: 150,
+    monthly: 150,
     icon: Zap,
     highlight: true,
     perks: [
       "Tout du plan Starter, sans limite d'usage humain",
-      "150 crédits rechargés chaque matin",
-      "Cumul mensuel jusqu'à votre rythme réel",
+      "150 crédits IA par mois",
       "Audits IA réseaux sociaux illimités",
       "Génération de mandats Hoguet / ALUR prioritaire",
       "Support prioritaire & accompagnement onboarding",
@@ -49,12 +47,11 @@ const PLANS: Plan[] = [
     name: "Expert",
     tagline: "Agences & top performers",
     price: 249,
-    daily: 500,
+    monthly: 500,
     icon: Crown,
     perks: [
       "Tout du plan Pro, conçu pour les gros volumes",
-      "500 crédits rechargés chaque matin",
-      "Rollover massif pour campagnes intensives",
+      "500 crédits IA par mois",
       "Multi-zones & multi-cibles en parallèle",
       "Accès anticipé aux nouvelles fonctionnalités",
       "Account manager dédié",
@@ -114,7 +111,7 @@ export const PricingSection = () => {
           Choisissez votre <span className="gradient-text">rythme de chasse</span>.
         </h2>
         <p className="mt-4 text-muted-foreground text-lg">
-          Toute la plateforme dans chaque plan. Seul votre quota quotidien de crédits change — et ce que vous n'utilisez pas est <span className="text-foreground font-medium">cumulé pour le lendemain</span>.
+          Toute la plateforme dans chaque plan. Seul votre quota mensuel de <span className="text-foreground font-medium">crédits IA</span> change. Le quota est remis à neuf le 1<sup>er</sup> de chaque mois.
         </p>
       </div>
 
@@ -160,14 +157,14 @@ export const PricingSection = () => {
                   <div
                     className="h-full bg-gradient-to-r from-primary to-accent rounded-full origin-left"
                     style={{
-                      width: `${(plan.daily / 500) * 100}%`,
+                      width: `${(plan.monthly / 500) * 100}%`,
                       animation: "pricing-fill 1.6s cubic-bezier(.22,.61,.36,1) both",
                     }}
                   />
                 </div>
                 <p className="mt-2 text-[11px] text-muted-foreground flex items-center gap-1.5">
                   <Building2 className="h-3 w-3 text-primary" />
-                  <span><span className="text-foreground font-semibold tabular-nums">{plan.daily}</span> crédits rechargés chaque matin · cumulables</span>
+                  <span><span className="text-foreground font-semibold tabular-nums">{plan.monthly}</span> crédits IA / mois</span>
                 </p>
               </div>
 
@@ -194,7 +191,7 @@ export const PricingSection = () => {
       </div>
 
       <p className="text-center text-xs text-muted-foreground mt-10 max-w-2xl mx-auto">
-        Tous les plans incluent <span className="text-foreground font-medium">100 % de la plateforme</span> : Pige IA, Radar, Estimation, Expertise, Studio IA, Copilote, audits réseaux sociaux. Vos crédits non utilisés sont <span className="text-foreground font-medium">automatiquement cumulés</span> sur votre solde mensuel — vous ne perdez jamais ce que vous n'avez pas consommé.
+        Tous les plans incluent <span className="text-foreground font-medium">100 % de la plateforme</span> : Pige IA, Radar, Estimation, Expertise, Studio IA, Copilote, audits réseaux sociaux. Quota IA mensuel, sans engagement, résiliable à tout moment.
       </p>
 
       <style>{`

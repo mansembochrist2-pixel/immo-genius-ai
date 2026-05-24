@@ -1,5 +1,7 @@
 // Shared AI rate-limit / credit consumption helper.
 // Calls the SECURITY DEFINER RPC `check_and_consume_ai_credit` via service role.
+// Fail-CLOSED: any infra error returns 503 — never let AI traffic through
+// uncounted, because that exposes the project to unbounded gateway costs.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 export type RateLimitOutcome =
@@ -14,9 +16,12 @@ export async function consumeAiCredit(
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceKey) {
-    // Fail-open if misconfigured, but log for visibility.
     console.error("Rate limit misconfigured: missing service role env");
-    return { ok: true, credits_remaining: -1, plan: "unknown", reset_at: "" };
+    return {
+      ok: false,
+      status: 503,
+      error: "Service IA temporairement indisponible (configuration). Réessaye dans un instant.",
+    };
   }
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
@@ -28,8 +33,11 @@ export async function consumeAiCredit(
 
   if (error) {
     console.error("rate-limit RPC error:", error);
-    // Fail-open on infra error
-    return { ok: true, credits_remaining: -1, plan: "unknown", reset_at: "" };
+    return {
+      ok: false,
+      status: 503,
+      error: "Service IA temporairement indisponible. Réessaye dans un instant.",
+    };
   }
 
   const res = data as {
@@ -64,6 +72,9 @@ export async function consumeAiCredit(
       status: 402,
       error: "Quota mensuel atteint. Mettez à niveau votre plan pour continuer.",
     };
+  }
+  if (res?.reason === "no_profile") {
+    return { ok: false, status: 403, error: "Profil utilisateur introuvable." };
   }
   return { ok: false, status: 403, error: "Accès refusé" };
 }
