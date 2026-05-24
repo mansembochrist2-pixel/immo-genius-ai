@@ -191,9 +191,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const { data: userRes } = await supabase.auth.getUser();
-    const user = userRes?.user;
-    if (!user) return new Response(JSON.stringify({ error: "Session invalide" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const _token = authHeader.replace("Bearer ", "");
+    const { data: claimsRes } = await supabase.auth.getClaims(_token);
+    const userId = claimsRes?.claims?.sub;
+    if (!userId) return new Response(JSON.stringify({ error: "Session invalide" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const user = { id: userId };
 
     // --- rate limit / quota ---
     const _rl = await consumeAiCredit(user.id, "copilote-agent");
