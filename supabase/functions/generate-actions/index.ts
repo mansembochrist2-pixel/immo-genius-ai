@@ -81,6 +81,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "openai/gpt-5.2",
+        max_completion_tokens: 2000,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Analyse ces données et génère les actions recommandées :\n\n${businessContext}` },
