@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings as SettingsIcon, User, Download, Shield, Trash2, Loader2 } from "lucide-react";
+import { Settings as SettingsIcon, User, Download, Shield, Trash2, Loader2, CreditCard, Sparkles, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -117,6 +117,7 @@ const Settings = () => {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" /> {t("settings.profile")}</TabsTrigger>
+          <TabsTrigger value="billing" className="gap-2"><CreditCard className="h-4 w-4" /> {lang === "fr" ? "Abonnement" : "Billing"}</TabsTrigger>
           <TabsTrigger value="rgpd" className="gap-2"><Shield className="h-4 w-4" /> {t("settings.rgpd")}</TabsTrigger>
         </TabsList>
 
@@ -138,6 +139,74 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="billing">
+          <div className="space-y-4 max-w-lg">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-accent" /> {lang === "fr" ? "Crédits IA" : "AI credits"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold tabular-nums">{profile?.credits_remaining ?? 0}</span>
+                  <span className="text-sm text-muted-foreground">{lang === "fr" ? "crédits restants ce mois-ci" : "credits remaining this month"}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {lang === "fr" ? "Plan actuel : " : "Current plan: "}<span className="font-medium capitalize text-foreground">{profile?.plan ?? "starter"}</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-accent" /> {lang === "fr" ? "Abonnement" : "Subscription"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {lang === "fr"
+                    ? "Souscrivez à un plan ou gérez votre abonnement, votre moyen de paiement et vos factures."
+                    : "Subscribe to a plan or manage your subscription, payment method and invoices."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const { data, error } = await supabase.functions.invoke("create-checkout");
+                        if (error) throw error;
+                        if (data?.url) window.open(data.url, "_blank");
+                      } catch (e: any) {
+                        handleApiError(e, lang === "fr" ? "Ouverture du paiement" : "Open checkout");
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {lang === "fr" ? "S'abonner / Upgrade" : "Subscribe / Upgrade"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const { data, error } = await supabase.functions.invoke("customer-portal");
+                        if (error) throw error;
+                        if (data?.url) window.open(data.url, "_blank");
+                      } catch (e: any) {
+                        handleApiError(e, lang === "fr" ? "Espace de gestion" : "Customer portal");
+                      }
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {lang === "fr" ? "Gérer mon abonnement" : "Manage subscription"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
 
         <TabsContent value="rgpd">
           <div className="space-y-4 max-w-lg">
