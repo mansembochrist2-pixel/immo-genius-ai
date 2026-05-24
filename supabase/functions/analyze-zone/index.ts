@@ -188,7 +188,7 @@ Calcule scores opportunité et risque en t'appuyant sur ces données réelles, e
       },
       body: JSON.stringify({
         model: "openai/gpt-5.2",
-        max_completion_tokens: 2000,
+        max_completion_tokens: 8000,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -309,7 +309,33 @@ Calcule scores opportunité et risque en t'appuyant sur ces données réelles, e
       });
     }
 
-    const analyse = JSON.parse(toolCall.function.arguments);
+    const rawArgs: string = toolCall.function.arguments ?? "";
+    let analyse: any;
+    try {
+      analyse = JSON.parse(rawArgs);
+    } catch (e) {
+      console.warn("Tool args JSON invalid, attempting repair. Length:", rawArgs.length);
+      let repaired = rawArgs;
+      // Close an unterminated string
+      const quotes = (repaired.match(/(?<!\\)"/g) || []).length;
+      if (quotes % 2 === 1) repaired += '"';
+      // Balance braces/brackets
+      let braces = 0, brackets = 0;
+      for (const c of repaired) {
+        if (c === "{") braces++; else if (c === "}") braces--;
+        else if (c === "[") brackets++; else if (c === "]") brackets--;
+      }
+      while (brackets-- > 0) repaired += "]";
+      while (braces-- > 0) repaired += "}";
+      try {
+        analyse = JSON.parse(repaired);
+      } catch (e2) {
+        console.error("Repair failed:", e2);
+        return new Response(JSON.stringify({ error: "Réponse IA tronquée, réessayez." }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // 4. Validation déterministe : score_global et classification
     const scoreOpp = Number(analyse.score_opportunite) || 0;
