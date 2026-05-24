@@ -140,6 +140,74 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="billing">
+          <div className="space-y-4 max-w-lg">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-accent" /> {lang === "fr" ? "Crédits IA" : "AI credits"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold tabular-nums">{profile?.credits_remaining ?? 0}</span>
+                  <span className="text-sm text-muted-foreground">{lang === "fr" ? "crédits restants ce mois-ci" : "credits remaining this month"}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {lang === "fr" ? "Plan actuel : " : "Current plan: "}<span className="font-medium capitalize text-foreground">{profile?.plan ?? "starter"}</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-accent" /> {lang === "fr" ? "Abonnement" : "Subscription"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {lang === "fr"
+                    ? "Souscrivez à un plan ou gérez votre abonnement, votre moyen de paiement et vos factures."
+                    : "Subscribe to a plan or manage your subscription, payment method and invoices."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const { data, error } = await supabase.functions.invoke("create-checkout");
+                        if (error) throw error;
+                        if (data?.url) window.open(data.url, "_blank");
+                      } catch (e: any) {
+                        handleApiError(e, lang === "fr" ? "Ouverture du paiement" : "Open checkout");
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {lang === "fr" ? "S'abonner / Upgrade" : "Subscribe / Upgrade"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const { data, error } = await supabase.functions.invoke("customer-portal");
+                        if (error) throw error;
+                        if (data?.url) window.open(data.url, "_blank");
+                      } catch (e: any) {
+                        handleApiError(e, lang === "fr" ? "Espace de gestion" : "Customer portal");
+                      }
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {lang === "fr" ? "Gérer mon abonnement" : "Manage subscription"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+
         <TabsContent value="rgpd">
           <div className="space-y-4 max-w-lg">
             <Card>
