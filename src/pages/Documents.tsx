@@ -8,10 +8,9 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Palette, FileText, Mail, Sparkles, Wand2, Copy, Save, MessageSquare,
-  Hash, Lightbulb, Loader2, Download, Send, FileSignature, Upload, Pencil, Instagram, Bot,
+  Palette, FileText, Sparkles, Wand2, Copy, Loader2, Download,
+  FileSignature, Upload, Pencil,
 } from "lucide-react";
-import { AuditReseaux } from "@/components/studio/AuditReseaux";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import { preloadRoute } from "@/lib/routeLoader";
 import { useNavigate } from "react-router-dom";
@@ -91,13 +90,8 @@ const Studio = () => {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
 
-  // Helper to push a Studio output to the Copilote
-  const sendToCopilote = (label: string, content: string) => {
-    const text = `Voici un ${label} que je viens de générer dans le Studio IA. Aide-moi à le challenger, l'améliorer et préparer la prochaine étape avec le client :\n\n---\n${content}\n---`;
-    sessionStorage.setItem("copilote_prefill", text);
-    toast.success(lang === "fr" ? "Envoyé au Copilote" : "Sent to Copilot");
-    navigate("/copilote");
-  };
+
+
 
   // --- Mandats state ---
   const [mandatType, setMandatType] = useState(MANDAT_TYPES[0].value);
@@ -157,10 +151,9 @@ const Studio = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- Marketing state ---
-  const [marketingForm, setMarketingForm] = useState({ type: "email", bien: "", cible: "", ton: "professionnel" });
-  const [marketing, setMarketing] = useState<any>(null);
-  const [loadingMarketing, setLoadingMarketing] = useState(false);
+  // --- Annonces tab is default ---
+  // (Marketing & Audit tabs removed)
+
 
   const genererMandat = async () => {
     if (!mandatInfo.trim()) { toast.error(lang === "fr" ? "Décrivez les informations du mandat" : "Describe the mandate details"); return; }
