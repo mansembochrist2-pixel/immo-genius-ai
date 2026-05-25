@@ -9,7 +9,6 @@ export const routeLoaders = {
   onboarding: () => import("../pages/Onboarding"),
   dashboard: () => import("../pages/Dashboard"),
   chasseur: () => import("../pages/Chasseur"),
-  copilote: () => import("../pages/Copilote"),
   studio: () => import("../pages/Documents"),
   estimation: () => import("../pages/EstimationIA"),
   expertise: () => import("../pages/Expertise"),
