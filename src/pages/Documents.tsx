@@ -351,7 +351,7 @@ const Studio = () => {
 
   const removeTemplate = (idx: number) => setCustomTemplates(prev => prev.filter((_, i) => i !== idx));
 
-  const typeLabels: Record<string, string> = { email: "📧 Email professionnel", post_social: "📱 Post réseaux sociaux", sms: "💬 SMS / WhatsApp", flyer: "📄 Texte flyer" };
+  
 
   return (
     <AppLayout>
@@ -367,8 +367,6 @@ const Studio = () => {
         <TabsList className="bg-card/60">
           <TabsTrigger value="mandats" className="flex items-center gap-2 text-xs"><FileSignature className="h-3.5 w-3.5" /> {t("docs.mandats")}</TabsTrigger>
           <TabsTrigger value="annonces" className="flex items-center gap-2 text-xs"><FileText className="h-3.5 w-3.5" /> {t("docs.annonces")}</TabsTrigger>
-          <TabsTrigger value="marketing" className="flex items-center gap-2 text-xs"><Mail className="h-3.5 w-3.5" /> {t("docs.marketing")}</TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-2 text-xs"><Instagram className="h-3.5 w-3.5" /> {t("docs.audit")}</TabsTrigger>
         </TabsList>
 
         {/* ===== MANDATS ===== */}
