@@ -313,21 +313,8 @@ const Studio = () => {
     }
   };
 
-  const genererMarketing = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!marketingForm.bien) { toast.error("Décrivez le bien ou le sujet"); return; }
-    setLoadingMarketing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-marketing", { body: marketingForm });
-      if (error) throw error;
-      setMarketing(data);
-      toast.success("Contenu marketing généré !");
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la génération");
-    } finally {
-      setLoadingMarketing(false);
-    }
-  };
+
+
 
   const copier = (text: string) => { navigator.clipboard.writeText(text); toast.success(t("common.copied")); };
 
