@@ -7,8 +7,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
-  Bot, Zap, TrendingUp, ArrowRight, Target, Play, SkipForward, X,
-  Crosshair, Palette, Search, FileText, BarChart3, Phone, Sparkles, Info, Loader2,
+  Bot, Zap, TrendingUp, ArrowRight, Target, X,
+  Crosshair, Palette, Search, FileText, Sparkles, Info, Loader2, Radar as RadarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -56,30 +56,24 @@ const Dashboard = () => {
         .from("actions_recommandees")
         .select("id, titre, priorite, score_pertinence, type, donnees_contexte, risque_si_ignore, objectif")
         .eq("statut", "en_attente")
-        .in("source_module", ["pige_ia", "radar", "estimation_ia", "studio_ia", "copilote"])
+        .in("source_module", ["radar", "estimation_ia", "studio_ia"])
         .order("score_pertinence", { ascending: false })
         .limit(5);
       return data ?? [];
     },
   });
 
-  const { data: savedPige = [] } = useQuery({
-    queryKey: ["dashboard-pige"],
+  const { data: topOpps = [] } = useQuery({
+    queryKey: ["dashboard-opps"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("annonces_pige")
-        .select("id, titre, ville, prix, score_pigeabilite, contact_vendeur, signaux_marche, analyse_ia, saved_to_vivier")
-        .eq("saved_to_vivier", true)
-        .order("score_pigeabilite", { ascending: false })
-        .limit(10);
+        .from("opportunites")
+        .select("id, titre, zone, score, created_at")
+        .order("score", { ascending: false })
+        .limit(5);
       return data ?? [];
     },
   });
-
-  const savedCount = savedPige.length;
-  const savedAverageScore = savedCount ? Math.round(savedPige.reduce((sum: number, p: any) => sum + (Number(p.score_pigeabilite) || 0), 0) / savedCount) : 0;
-  const savedTopScore = savedCount ? Math.max(...savedPige.map((p: any) => Number(p.score_pigeabilite) || 0)) : 0;
-  const topPige = savedPige.slice(0, 5);
 
   const actionMutation = useMutation({
     mutationFn: async ({ id, statut }: { id: string; statut: string }) => {
@@ -97,10 +91,8 @@ const Dashboard = () => {
     setGeneratingActions(true);
     try {
       const businessContext = [
-        `Pige IA : ${savedCount} annonces enregistrées dans le vivier, score moyen ${savedAverageScore}/100, top ${savedTopScore}/100.`,
-        `Top piges enregistrées : ${savedPige.slice(0, 5).map((p: any, i: number) => `${i + 1}. ${p.titre} (${p.score_pigeabilite || 0}/100, ${p.ville || "zone inconnue"})`).join(" | ") || "aucune"}.`,
         `Opportunités Radar : ${stats.opportunites.total} analyses sauvegardées (top ${stats.opportunites.topScore}/100).`,
-        `Modules autorisés pour les recommandations : Pige IA, Radar Prospection, Valorisation, Studio IA, Copilote.`,
+        `Modules autorisés pour les recommandations : Radar Prospection, Valorisation, Studio IA.`,
       ].join("\n");
       const { data, error } = await supabase.functions.invoke("generate-actions", { body: { businessContext } });
       if (error || data?.error) throw new Error(data?.error || error?.message);
@@ -123,11 +115,10 @@ const Dashboard = () => {
 
 
   const QUICK_ACTIONS = [
-    { label: "Nouvelle pige IA", icon: Phone, action: () => navigate("/chasseur?tab=pige") },
-    { label: "Analyser une zone", icon: Search, action: () => navigate("/chasseur?tab=radar") },
-    { label: "Estimer un bien", icon: TrendingUp, action: () => navigate("/estimation") },
+    { label: "Analyser une zone", icon: Search, action: () => navigate("/chasseur") },
+    { label: "Estimer un bien", icon: TrendingUp, action: () => navigate("/valorisation/estimation") },
     { label: "Créer une annonce", icon: FileText, action: () => navigate("/studio") },
-    { label: "Coaching IA", icon: BarChart3, action: () => navigate("/copilote") },
+    { label: "Expertise valorisation", icon: Crosshair, action: () => navigate("/valorisation/expertise") },
   ];
 
   return (
