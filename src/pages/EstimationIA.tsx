@@ -430,19 +430,6 @@ const EstimationIA = () => {
                 toast.success(lang === "fr" ? "Estimation envoyée vers le Studio" : "Estimation sent to Studio");
                 navigate("/studio");
               }}><Wand2 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer l'annonce" : "Generate listing"}</Button>
-              <Button
-                variant="outline"
-                className="flex-1 min-w-[160px] border-primary/30 hover:bg-primary/5 hover:text-primary"
-                onMouseEnter={() => preloadRoute.copilote()}
-                onClick={() => {
-                  const summary = `Voici une estimation à analyser stratégiquement avec moi :\n\n📍 ${form.adresse}\n🏠 ${form.type_bien}${form.surface ? " · " + form.surface + " m²" : ""}${form.pieces ? " · " + form.pieces + " pièces" : ""}${form.dpe ? " · DPE " + form.dpe : ""}\n💶 Prix estimé : ${editableResult.prix_moyen?.toLocaleString("fr-FR")} € (fourchette ${editableResult.prix_min?.toLocaleString("fr-FR")} – ${editableResult.prix_max?.toLocaleString("fr-FR")} €)\n🎯 Recommandation : ${editableResult.recommandation_prix?.toLocaleString("fr-FR")} €\n\nDonne-moi un plan d'action : positionnement, argumentaire vendeur, et 3 prochaines étapes pour décrocher le mandat.`;
-                  sessionStorage.setItem("copilote_prefill", summary);
-                  toast.success(lang === "fr" ? "Estimation transmise au Copilote" : "Estimation sent to Copilot");
-                  navigate("/copilote");
-                }}
-              >
-                <Bot className="h-4 w-4 mr-2" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
-              </Button>
             </div>
           </div>
         ) : (
