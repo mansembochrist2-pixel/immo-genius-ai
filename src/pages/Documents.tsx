@@ -514,9 +514,6 @@ const Studio = () => {
                   <div className="flex gap-2 flex-wrap">
                     <Button size="sm" className="flex-1 min-w-[140px] gap-1" onClick={downloadMandatDocx}><Download className="h-3.5 w-3.5" /> {lang === "fr" ? "Télécharger .docx" : "Download .docx"}</Button>
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => copier(mandatContent)}><Copy className="h-3.5 w-3.5" /> {t("docs.copy")}</Button>
-                    <Button size="sm" variant="outline" className="gap-1 border-primary/30 hover:bg-primary/5 hover:text-primary" onMouseEnter={() => preloadRoute.copilote()} onClick={() => sendToCopilote(lang === "fr" ? "mandat" : "mandate", mandatContent)}>
-                      <Bot className="h-3.5 w-3.5" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -658,9 +655,6 @@ const Studio = () => {
                       {annonce.hashtags.map((h: string) => (<Badge key={h} variant="secondary" className="text-[9px] cursor-pointer" onClick={() => copier(h)}>{h}</Badge>))}
                     </div>
                   )}
-                  <Button size="sm" variant="outline" className="w-full gap-1 border-primary/30 hover:bg-primary/5 hover:text-primary" onMouseEnter={() => preloadRoute.copilote()} onClick={() => sendToCopilote(lang === "fr" ? "texte d'annonce" : "listing copy", editableAnnonce[`version_${activeAnnonceFormat}`] || annonce[`version_${activeAnnonceFormat}`] || "")}>
-                    <Bot className="h-3.5 w-3.5" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
-                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -672,147 +666,6 @@ const Studio = () => {
               </Card>
             )}
           </div>
-        </TabsContent>
-
-        {/* ===== MARKETING ===== */}
-        <TabsContent value="marketing">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-card/60 border-border/30">
-              <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> {lang === "fr" ? "Générateur Marketing" : "Marketing Generator"}</CardTitle></CardHeader>
-              <CardContent>
-                <form onSubmit={genererMarketing} className="space-y-4">
-                  <Select value={marketingForm.type} onValueChange={(v) => setMarketingForm({...marketingForm, type: v})}>
-                    <SelectTrigger className="bg-muted/10 border-border/30"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">📧 Email professionnel</SelectItem>
-                      <SelectItem value="post_social">📱 Post réseaux sociaux</SelectItem>
-                      <SelectItem value="sms">💬 SMS / WhatsApp</SelectItem>
-                      <SelectItem value="flyer">📄 Texte flyer</SelectItem>
-                      <SelectItem value="autre">🔧 {lang === "fr" ? "Autre" : "Other"}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {marketingForm.type === "autre" && (
-                    <Input placeholder={lang === "fr" ? "Décrivez le type de contenu souhaité..." : "Describe desired content type..."} value={(marketingForm as any).type_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, type_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
-                  )}
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">{lang === "fr" ? "Bien ou sujet *" : "Property or subject *"}</p>
-                    <VoiceTextarea placeholder={lang === "fr" ? "Décrivez le bien ou le sujet *" : "Describe the property or subject *"} value={marketingForm.bien} onChange={(e) => setMarketingForm({...marketingForm, bien: e.target.value})} onTranscript={(text) => setMarketingForm(f => ({ ...f, bien: (f.bien + " " + text).trim() }))} className="bg-muted/10 border-border/30" rows={3} />
-                  </div>
-                  <Input placeholder={lang === "fr" ? "Cible (ex: primo-accédants...)" : "Target audience..."} value={marketingForm.cible} onChange={(e) => setMarketingForm({...marketingForm, cible: e.target.value})} className="bg-muted/10 border-border/30" />
-                  <Select value={marketingForm.ton} onValueChange={(v) => setMarketingForm({...marketingForm, ton: v})}>
-                    <SelectTrigger className="bg-muted/10 border-border/30"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="professionnel">Professionnel</SelectItem>
-                      <SelectItem value="engageant">Engageant</SelectItem>
-                      <SelectItem value="luxe">Luxe</SelectItem>
-                      <SelectItem value="decontracte">Décontracté</SelectItem>
-                      <SelectItem value="urgence">Urgence</SelectItem>
-                      <SelectItem value="autre">{lang === "fr" ? "Autre (personnalisé)" : "Other (custom)"}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {marketingForm.ton === "autre" && (
-                    <Input placeholder={lang === "fr" ? "Décrivez votre style souhaité..." : "Describe your desired style..."} value={(marketingForm as any).ton_custom || ""} onChange={(e) => setMarketingForm({...marketingForm, ton_custom: e.target.value} as any)} className="bg-muted/10 border-border/30" />
-                  )}
-                  <Button type="submit" className="w-full" disabled={loadingMarketing}>
-                    {loadingMarketing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {lang === "fr" ? "Création du contenu marketing..." : "Crafting marketing content..."}</> : <><Sparkles className="h-4 w-4 mr-2" /> {lang === "fr" ? "Générer le contenu" : "Generate content"}</>}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {loadingMarketing && !marketing ? (
-              <AnalysisLoader
-                module={lang === "fr" ? "Création du contenu marketing" : "Crafting marketing content"}
-                context={marketingForm.type}
-                eta={lang === "fr" ? "15 à 40 secondes" : "15 to 40 seconds"}
-                messages={lang === "fr" ? [
-                  "Analyse de la cible et du ton souhaité…",
-                  "Recherche d'angles d'accroche pertinents…",
-                  "Rédaction de l'objet et du corps du message…",
-                  "Optimisation du call-to-action…",
-                  "Préparation des variantes et hashtags…",
-                ] : [
-                  "Analyzing target audience and tone…",
-                  "Finding relevant hooks…",
-                  "Drafting subject and body…",
-                  "Optimizing the call-to-action…",
-                  "Preparing variants and hashtags…",
-                ]}
-              />
-            ) : marketing ? (
-              <Card className="bg-card/60 border-border/30">
-                <CardHeader><CardTitle className="text-sm flex items-center gap-2">{typeLabels[marketingForm.type] || "Contenu généré"}</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" /> {lang === "fr" ? "Objet / Titre" : "Subject / Title"}</p>
-                    <div className="flex items-center justify-between bg-muted/10 rounded px-3 py-2">
-                      <p className="text-sm font-medium">{marketing.objet}</p>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copier(marketing.objet)}><Copy className="h-3 w-3" /></Button>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">{lang === "fr" ? "Contenu principal" : "Main content"}</p>
-                    <div className="relative pr-8 bg-muted/10 rounded p-3">
-                      <p className="text-sm whitespace-pre-wrap">{marketing.contenu_principal}</p>
-                      <Button size="icon" variant="ghost" className="absolute top-2 right-2 h-6 w-6" onClick={() => copier(marketing.contenu_principal)}><Copy className="h-3 w-3" /></Button>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Call to Action</p>
-                    <div className="flex items-center justify-between bg-primary/10 rounded px-3 py-2 border border-primary/20">
-                      <p className="text-sm font-semibold text-primary">{marketing.call_to_action}</p>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copier(marketing.call_to_action)}><Copy className="h-3 w-3" /></Button>
-                    </div>
-                  </div>
-                  {marketing.variante_courte && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">{lang === "fr" ? "Version courte" : "Short version"}</p>
-                      <div className="flex items-center justify-between bg-muted/10 rounded px-3 py-2">
-                        <p className="text-xs">{marketing.variante_courte}</p>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => copier(marketing.variante_courte)}><Copy className="h-3 w-3" /></Button>
-                      </div>
-                    </div>
-                  )}
-                  {marketing.hashtags?.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Hash className="h-3 w-3" /> Hashtags</p>
-                      <div className="flex flex-wrap gap-1">
-                        {marketing.hashtags.map((h: string) => (<Badge key={h} variant="secondary" className="text-[9px] cursor-pointer" onClick={() => copier(h)}>{h}</Badge>))}
-                      </div>
-                    </div>
-                  )}
-                  {marketing.conseils?.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Lightbulb className="h-3 w-3" /> {lang === "fr" ? "Conseils" : "Tips"}</p>
-                      <ul className="space-y-1">
-                        {marketing.conseils.map((c: string, i: number) => (<li key={i} className="text-xs text-muted-foreground bg-muted/5 rounded px-2 py-1">💡 {c}</li>))}
-                      </ul>
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => copier(`${marketing.objet}\n\n${marketing.contenu_principal}\n\n${marketing.call_to_action}`)}>
-                      <Copy className="h-3 w-3 mr-2" /> {lang === "fr" ? "Copier tout" : "Copy all"}
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1 border-primary/30 hover:bg-primary/5 hover:text-primary" onMouseEnter={() => preloadRoute.copilote()} onClick={() => sendToCopilote(lang === "fr" ? "contenu marketing" : "marketing content", `${marketing.objet}\n\n${marketing.contenu_principal}\n\n${marketing.call_to_action}`)}>
-                      <Bot className="h-3 w-3 mr-2" /> {lang === "fr" ? "Envoyer au Copilote" : "Send to Copilot"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-card/60 border-border/30 flex items-center justify-center min-h-[300px]">
-                <div className="text-center space-y-2">
-                  <Mail className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-                  <p className="text-sm text-muted-foreground">{lang === "fr" ? "Votre contenu marketing apparaîtra ici" : "Your marketing content will appear here"}</p>
-                </div>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* ===== AUDIT RÉSEAUX SOCIAUX ===== */}
-        <TabsContent value="audit">
-          <AuditReseaux />
         </TabsContent>
       </Tabs>
     </AppLayout>
