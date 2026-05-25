@@ -1,71 +1,107 @@
-## Objectif
+# Plan d'exécution — ImmoGenius AI
 
-Tu as identifié 8 problèmes critiques qui se recoupent. Je propose de tout traiter en **une seule passe ciblée** plutôt que lot par lot, parce que plusieurs causes sont communes (compte démo qui switch, AnalysisLoader pas branché partout, plans IA non persistés).
+Travail en 2 grandes phases. Chaque phase sera vérifiée par compilation TypeScript avant de passer à la suivante.
 
-## Diagnostic des causes racines
+---
 
-1. **Compte Sophie Martin** : `AuthContext.tsx` auto-login systématique sur `demo@estate-ai.app`. C'est lui qui crée le switch aléatoire entre ton compte et le démo → casse les requêtes RLS et donne l'impression de "flash" entre modules.
-2. **Audit Rihanna qui plante** : `audit-reseau-social` n'a pas de timeout sur Firecrawl, pas de fallback si scraping bloqué, pas de retry. Pas de loader contextuel branché.
-3. **Plan Radar régénéré** : `openOrGeneratePlan` appelle l'IA même si `donnees.plan_attaque` existe déjà (la sauvegarde existe mais la lecture ne la priorise pas correctement).
-4. **Copilote isolé** : `copilote-agent` n'a pas accès aux tables `prospects/annonces_pige/opportunites/audits_reseaux` dans son contexte. Pas de markdown rendering → texte brutal.
-5. **DVF Estimation** : edge function `dvf-lookup` revient mais le composant `EstimationIA` n'affiche peut-être plus les sources retournées (à vérifier).
-6. **Loaders manquants** : `AnalysisLoader` existe mais n'est branché que sur Copilote + Dashboard. Manque sur Audit, Radar, Estimation, Mandat, Marketing, Annonce.
+## PHASE 1 — Suppressions
 
-## Plan d'action
+### 1.1 Copilote (suppression complète)
+- Supprimer `src/pages/Copilote.tsx`
+- Supprimer `supabase/functions/chat-copilote/` (+ delete edge function déployée)
+- Retirer la route `/copilote` dans `src/App.tsx`
+- Retirer le préload dans `src/lib/routeLoader.ts`
+- Retirer l'entrée sidebar dans `src/components/AppSidebar.tsx`
+- Chercher toute autre référence (`rg copilote`) → nettoyer
 
-### Lot A — Stabilité plateforme (priorité absolue)
-- **Désactiver l'auto-login démo** dans `AuthContext.tsx`. Si pas de session → redirect login. Plus jamais 2 comptes en parallèle.
-- Supprimer toute référence "Sophie Martin" / `demo@estate-ai.app` dans le code.
-- Ajouter un `<Suspense>` + skeleton stable sur les routes pour éliminer le flash entre modules.
+### 1.2 Pige IA (suppression complète)
+- Supprimer `src/components/chasseur/PigeIA.tsx`
+- Supprimer `supabase/functions/search-pige-zone/` et `supabase/functions/analyze-annonce-pige/` (+ delete deployées)
+- Dans `src/pages/Chasseur.tsx` : retirer les Tabs, garder uniquement `RadarContent` directement
+- Renommer "Chasseur de Mandats" → simplification visuelle (titre = "Radar de Prospection")
+- `rg pige` → nettoyer
 
-### Lot B — Loaders unifiés "messages qui tournent"
-Brancher `AnalysisLoader` (déjà créé, premium, messages rotatifs, ETA réaliste) sur tous les boutons "Générer/Analyser/Auditer" :
-- AuditReseaux (messages spécifiques scraping/IA, ETA 30-90s)
-- Radar (analyse zone)
-- EstimationIA (DVF + IA)
-- Documents (mandat, annonce, marketing)
+### 1.3 Studio IA — nettoyer
+- Lire `src/pages/Studio*` ou équivalent pour voir la structure des onglets
+- Supprimer onglets "Posts réseaux sociaux" et "Audit réseaux sociaux"
+- Supprimer `src/components/studio/AuditReseaux.tsx`
+- Supprimer `supabase/functions/audit-reseau-social/` et `supabase/functions/generate-marketing/` (+ delete déployées)
+- Garder onglets "Annonce" + "Mandat"
 
-Tous avec ETA ajusté ("30 à 90 secondes selon la charge") et messages contextuels.
+### 1.4 Sidebar — renommage
+- "Chasseur de Mandats" → "Radar" (icône `Radar` au lieu de `Crosshair`)
+- URL reste `/chasseur` (ou renommer plus tard si nécessaire) — on garde `/chasseur` pour éviter de casser des liens
+- Retirer "Copilote"
 
-### Lot C — Audit réseaux fiabilisé
-- Timeout 25s sur Firecrawl + fallback gracieux sur audit "qualitatif sans scraping" si bloqué (cas Rihanna, comptes protégés).
-- Retry 1× sur erreur réseau.
-- Filtrer la liste des audits sauvegardés **par plateforme courante** dans `AuditReseaux.tsx`.
-- Bouton "Fermer l'audit" pour cacher la carte de résultat.
+### 1.5 Vérification build
+- `bunx tsc --noEmit` → aucune erreur, aucune référence morte
 
-### Lot D — Radar fix plan persistant
-- `openOrGeneratePlan` : si `opportunite.donnees.plan_attaque` existe → ouvrir directement, **jamais** rappeler l'IA.
-- Bouton "Fermer l'analyse" pour vider la vue.
-- Bouton "Envoyer au Copilote" : push le plan via `sessionStorage` + navigate `/copilote` (corriger le handler cassé).
+---
 
-### Lot E — Copilote branché + UI Claude-like
-- `copilote-agent/index.ts` : injecter dans le system prompt un résumé live des dernières données utilisateur (prospects actifs, annonces pigées top, audits réseaux récents, opportunités radar) via requêtes Supabase server-side.
-- Rendu des réponses avec `react-markdown` (déjà installé), police Inter/system-ui large, leading-relaxed, espacement aéré entre paragraphes/listes, code blocks stylés. Style Claude.
-- Lire `sessionStorage.copilote_context` à l'ouverture pour récupérer le plan Radar envoyé.
+## PHASE 2 — Intégrations données publiques
 
-### Lot F — Estimation DVF restaurée
-- Vérifier `EstimationIA.tsx` : la section "Sources & données" doit afficher `prix_m2_median`, `tension_marche`, `ventes` retournés par `dvf-lookup`.
-- Supprimer le code mort lié à anciennes versions (Google Places non utilisé, scrappers obsolètes).
+### 2.1 Enrichir `dvf-lookup` + `analyze-zone` avec DPE ADEME
+- Dans `dvf-lookup` : après récupération section cadastrale, appeler ADEME `data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines?qs=code_insee_ban:{codeCommune}` (ou filtre `code_postal_ban`)
+- Calculer : nb DPE F, nb DPE G, % du parc, échantillon d'adresses
+- Renvoyer dans payload sous clé `dpe_degrades`
+- Dans `analyze-zone` : ajouter ces données au prompt IA pour générer la section "Pression réglementaire vendeur (DPE F/G)"
 
-### Lot G — Nettoyage code
-- Supprimer fichiers/imports inutilisés (audit rapide via ripgrep).
-- Pas de refactor risqué — uniquement suppression de dead code identifié.
+### 2.2 Edge function `loyer-reference` (nouvelle)
+- Pattern : auth JWT, pas de `consumeAiCredit` (pas d'IA)
+- Input : `{ adresse }` → géocoder via BAN → ville + code postal
+- Source : dataset `encadrement-des-loyers` (Paris + autres villes encadrées). Endpoint : `https://www.data.gouv.fr/api/1/datasets/r/...` — récupérer le CSV/JSON le plus à jour ou utiliser `tabular-api.data.gouv.fr`
+- Retour : `{ zone, loyer_ref_m2, loyer_ref_minore, loyer_ref_majore, type: 'meublé'|'nu', applicable: bool }`
+- Si zone non encadrée → `{ applicable: false }`
+- Brancher dans le Simulateur Investisseur : quand checkbox `encadrement_loyer` est cochée, fetch + auto-remplir le loyer plafond
 
-## Détails techniques
+### 2.3 Edge function `prix-marche-insee` (nouvelle)
+- Auth JWT, pas d'IA
+- Input : `{ code_commune, code_departement }`
+- API INSEE BDM : `https://api.insee.fr/series/BDM/V1/data/SERIES_BDM/...` (indices Notaires-INSEE, séries par département)
+- Note : INSEE BDM requiert souvent un token gratuit ; alternative = endpoint public `bdm.insee.fr/series/sdmx/data/...` (sans token)
+- Retour : `{ evolution_3_ans: [{annee, indice, variation_pct}], commune, departement }`
+- Utilisé par `generate-estimation` pour enrichir "tendances du marché"
 
-- **AuthContext** : retirer le bloc `signInWithPassword({email: "demo@estate-ai.app"...})`. Si `!session && !authPage` → `window.location.href = "/login"`.
-- **AnalysisLoader** : ajouter prop `messages` custom par module pour personnaliser le ton (ex: Audit → "Scrape du profil…", "Analyse du feed…", "Évaluation du branding…").
-- **copilote-agent** : utiliser `createClient` avec service role pour fetch user context, max 50 lignes par table, formaté en bullet markdown injecté avant la question.
-- **Copilote UI** : `prose prose-slate max-w-none prose-headings:font-semibold prose-p:leading-7 prose-li:my-1` + `font-feature-settings: "ss01"`.
+### 2.4 Estimation — rapport pro
+- Dans `generate-estimation` : ajouter à la réponse JSON un champ `transactions_comparables: [{ rue, date, surface, prix, prix_m2 }]` (5 dernières DVF de la zone via `dvf-lookup`)
+- Améliorer `src/lib/expertise-export.ts` (ou créer `estimation-export.ts`) pour DOCX premium :
+  - Police : Garamond / Cambria pour titres, Calibri 11 pour corps
+  - Page de garde avec logo ImmoGenius + titre + adresse + date
+  - En-tête / pied de page avec pagination
+  - Sections : Synthèse exécutive · Caractéristiques du bien · Analyse du marché local (INSEE) · Transactions comparables (tableau DVF) · DPE & cadre réglementaire · Méthodologie · Conclusion & fourchette de prix
+  - Tableau "Transactions comparables" stylé (bordures fines, en-tête bleu nuit, alternance lignes)
+  - Encadré "Sources" en fin de document
+- Idem côté PDF (si export PDF existe via `expertise-export.ts`) ou ajouter via `jsPDF` / impression
 
-## Ce que je ne touche pas
+### 2.5 Radar — heatmap Mapbox
+- Ajouter `mapbox-gl` : `bun add mapbox-gl @types/mapbox-gl`
+- Variable env : demander à l'utilisateur d'ajouter `VITE_MAPBOX_TOKEN` (instruction in-app, pas via secrets car publique côté client). Pour un build sans token, afficher fallback "Configure VITE_MAPBOX_TOKEN pour activer la carte".
+- Composant `src/components/chasseur/RadarHeatmap.tsx` : Map centrée sur la zone, points DVF colorés par prix/m² (échelle vert→orange→rouge via quantiles), couche heatmap d'intensité (`mapbox-gl` heatmap layer)
+- Affiché en haut du résultat dans `RadarContent.tsx`
 
-- Schéma DB (déjà bon)
-- Edge functions qui marchent (chat-copilote legacy, generate-mandat OK)
-- Pige IA fonctionnel (le "bug envoi IA" depuis enregistré sera regardé en passant, mais probablement résolu par la stabilité Auth)
+### 2.6 Sources citées
+- Composant `src/components/SourcesFooter.tsx` réutilisable listant : DVF (data.gouv/Etalab), DPE (ADEME), Encadrement loyers (Ministère du Logement), Prix marché (INSEE), Cadastre (IGN/Géoplateforme)
+- Inclure dans : rapport estimation (DOCX), analyse de zone (UI), expertise
 
-## Effort estimé
+---
 
-~12-15 fichiers édités, 0 migration DB, 2 edge functions modifiées (audit + copilote). Une seule grosse passe.
+## Étapes techniques
 
-OK pour lancer ?
+1. Confirmer le plan
+2. Phase 1 : suppressions en parallèle + delete des edge functions
+3. Phase 1 : build check
+4. Phase 2.1 : DPE dans dvf-lookup + analyze-zone (déploiement)
+5. Phase 2.2 : `loyer-reference` + intégration Simulateur
+6. Phase 2.3 : `prix-marche-insee` + intégration Estimation
+7. Phase 2.4 : refonte rapport DOCX Estimation
+8. Phase 2.5 : Heatmap Mapbox (demander `VITE_MAPBOX_TOKEN` à l'utilisateur)
+9. Phase 2.6 : Sources footer + intégration partout
+10. Build final + tests
+
+## Points à confirmer avant exécution
+
+- **Mapbox** : OK pour ajouter `mapbox-gl` (~200 KB gzippé) et utiliser `VITE_MAPBOX_TOKEN` côté client ? (Le token public Mapbox peut être restreint par domaine, donc c'est safe en clair.) Alternative gratuite sans clé : MapLibre + tuiles OSM — dis-moi si tu préfères.
+- **INSEE BDM** : l'API officielle nécessite un token gratuit. Veux-tu que je demande `INSEE_API_TOKEN` comme secret, ou que j'utilise les fichiers CSV publics téléchargeables sans clé (mis à jour trimestriellement) ?
+- **Encadrement loyers** : la donnée la plus à jour est par commune (Paris, Lille, Lyon, Bordeaux, Montpellier, Plaine Commune, Est Ensemble). Je télécharge le dernier dataset officiel et le cache dans la fonction edge ?
+
+Une fois ces 3 points tranchés, je peux lancer toute la chaîne d'un coup.

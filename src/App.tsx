@@ -24,7 +24,6 @@ const ResetPassword = lazyWithRetry(routeLoaders.resetPassword);
 const Onboarding = lazyWithRetry(routeLoaders.onboarding);
 const Dashboard = lazyWithRetry(routeLoaders.dashboard);
 const Chasseur = lazyWithRetry(routeLoaders.chasseur);
-const Copilote = lazyWithRetry(routeLoaders.copilote);
 const Documents = lazyWithRetry(routeLoaders.studio);
 const EstimationIA = lazyWithRetry(routeLoaders.estimation);
 const Expertise = lazyWithRetry(routeLoaders.expertise);
@@ -100,8 +99,8 @@ const App = () => (
                   <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={guarded(<Dashboard />)} />
                   <Route path="/chasseur" element={guarded(<Chasseur />)} />
-                  <Route path="/radar" element={<Navigate to="/chasseur?tab=radar" replace />} />
-                  <Route path="/copilote" element={guarded(<Copilote />)} />
+                  <Route path="/radar" element={<Navigate to="/chasseur" replace />} />
+                  <Route path="/copilote" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/studio" element={guarded(<Documents />)} />
                   <Route path="/documents" element={<Navigate to="/studio" replace />} />
                   <Route path="/estimation" element={<Navigate to="/valorisation/estimation" replace />} />

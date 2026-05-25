@@ -7,8 +7,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
-  Bot, Zap, TrendingUp, ArrowRight, Target, Play, SkipForward, X,
-  Crosshair, Palette, Search, FileText, BarChart3, Phone, Sparkles, Info, Loader2,
+  Bot, Zap, TrendingUp, ArrowRight, Target, X,
+  Crosshair, Palette, Search, FileText, Sparkles, Info, Loader2, Radar as RadarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
@@ -56,30 +56,24 @@ const Dashboard = () => {
         .from("actions_recommandees")
         .select("id, titre, priorite, score_pertinence, type, donnees_contexte, risque_si_ignore, objectif")
         .eq("statut", "en_attente")
-        .in("source_module", ["pige_ia", "radar", "estimation_ia", "studio_ia", "copilote"])
+        .in("source_module", ["radar", "estimation_ia", "studio_ia"])
         .order("score_pertinence", { ascending: false })
         .limit(5);
       return data ?? [];
     },
   });
 
-  const { data: savedPige = [] } = useQuery({
-    queryKey: ["dashboard-pige"],
+  const { data: topOpps = [] } = useQuery({
+    queryKey: ["dashboard-opps"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("annonces_pige")
-        .select("id, titre, ville, prix, score_pigeabilite, contact_vendeur, signaux_marche, analyse_ia, saved_to_vivier")
-        .eq("saved_to_vivier", true)
-        .order("score_pigeabilite", { ascending: false })
-        .limit(10);
+        .from("opportunites")
+        .select("id, titre, zone, score, created_at")
+        .order("score", { ascending: false })
+        .limit(5);
       return data ?? [];
     },
   });
-
-  const savedCount = savedPige.length;
-  const savedAverageScore = savedCount ? Math.round(savedPige.reduce((sum: number, p: any) => sum + (Number(p.score_pigeabilite) || 0), 0) / savedCount) : 0;
-  const savedTopScore = savedCount ? Math.max(...savedPige.map((p: any) => Number(p.score_pigeabilite) || 0)) : 0;
-  const topPige = savedPige.slice(0, 5);
 
   const actionMutation = useMutation({
     mutationFn: async ({ id, statut }: { id: string; statut: string }) => {
@@ -97,10 +91,8 @@ const Dashboard = () => {
     setGeneratingActions(true);
     try {
       const businessContext = [
-        `Pige IA : ${savedCount} annonces enregistrées dans le vivier, score moyen ${savedAverageScore}/100, top ${savedTopScore}/100.`,
-        `Top piges enregistrées : ${savedPige.slice(0, 5).map((p: any, i: number) => `${i + 1}. ${p.titre} (${p.score_pigeabilite || 0}/100, ${p.ville || "zone inconnue"})`).join(" | ") || "aucune"}.`,
         `Opportunités Radar : ${stats.opportunites.total} analyses sauvegardées (top ${stats.opportunites.topScore}/100).`,
-        `Modules autorisés pour les recommandations : Pige IA, Radar Prospection, Valorisation, Studio IA, Copilote.`,
+        `Modules autorisés pour les recommandations : Radar Prospection, Valorisation, Studio IA.`,
       ].join("\n");
       const { data, error } = await supabase.functions.invoke("generate-actions", { body: { businessContext } });
       if (error || data?.error) throw new Error(data?.error || error?.message);
@@ -123,11 +115,10 @@ const Dashboard = () => {
 
 
   const QUICK_ACTIONS = [
-    { label: "Nouvelle pige IA", icon: Phone, action: () => navigate("/chasseur?tab=pige") },
-    { label: "Analyser une zone", icon: Search, action: () => navigate("/chasseur?tab=radar") },
-    { label: "Estimer un bien", icon: TrendingUp, action: () => navigate("/estimation") },
+    { label: "Analyser une zone", icon: Search, action: () => navigate("/chasseur") },
+    { label: "Estimer un bien", icon: TrendingUp, action: () => navigate("/valorisation/estimation") },
     { label: "Créer une annonce", icon: FileText, action: () => navigate("/studio") },
-    { label: "Coaching IA", icon: BarChart3, action: () => navigate("/copilote") },
+    { label: "Expertise valorisation", icon: Crosshair, action: () => navigate("/valorisation/expertise") },
   ];
 
   return (
@@ -174,37 +165,26 @@ const Dashboard = () => {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur")}>
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-primary" /> Piges enregistrées
-              <InfoTip>Uniquement les annonces que vous avez enregistrées dans le vivier du module Pige IA.</InfoTip>
-            </p>
-            <p className="text-2xl font-bold mt-2 text-foreground">{savedCount}</p>
-            <p className="text-[10px] text-primary mt-2 font-medium">Voir mon vivier →</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=pige")}>
-          <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Target className="h-3.5 w-3.5 text-primary" /> Score pigeable moyen
-              <InfoTip>Moyenne des scores IA calculée uniquement sur les piges enregistrées dans votre vivier.</InfoTip>
-            </p>
-            <p className="text-2xl font-bold mt-2 text-foreground">{savedAverageScore}<span className="text-sm text-muted-foreground">/100</span></p>
-            <p className="text-[10px] text-primary mt-2 font-medium">sur {savedCount} pige{savedCount > 1 ? "s" : ""} enregistrée{savedCount > 1 ? "s" : ""} →</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/chasseur?tab=radar")}>
-          <CardContent className="p-5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Crosshair className="h-3.5 w-3.5 text-primary" /> Opportunités Radar
-              <InfoTip>Opportunités détectées sur votre secteur.</InfoTip>
+              <RadarIcon className="h-3.5 w-3.5 text-primary" /> Opportunités Radar
+              <InfoTip>Zones analysées sauvegardées sur votre secteur.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground">{stats.opportunites.total}</p>
-            <p className="text-[10px] text-primary mt-2 font-medium">Analyser →</p>
+            <p className="text-[10px] text-primary mt-2 font-medium">Analyser une zone →</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border cursor-pointer hover:shadow-md hover:border-primary/20 transition-all rounded-2xl" onClick={() => navigate("/valorisation/estimation")}>
+          <CardContent className="p-5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-primary" /> Valorisation
+              <InfoTip>Estimation DVF & expertise rentabilité.</InfoTip>
+            </p>
+            <p className="text-2xl font-bold mt-2 text-foreground"><Target className="h-5 w-5 inline text-primary" /></p>
+            <p className="text-[10px] text-primary mt-2 font-medium">Estimer →</p>
           </CardContent>
         </Card>
 
@@ -212,7 +192,7 @@ const Dashboard = () => {
           <CardContent className="p-5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Palette className="h-3.5 w-3.5 text-primary" /> Studio IA
-              <InfoTip>Annonces, posts réseaux, mandats et audits sociaux par IA.</InfoTip>
+              <InfoTip>Génération d'annonces et de mandats.</InfoTip>
             </p>
             <p className="text-2xl font-bold mt-2 text-foreground"><Sparkles className="h-5 w-5 inline text-primary" /></p>
             <p className="text-[10px] text-primary mt-2 font-medium">Créer →</p>
@@ -220,7 +200,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Actions + Top Pige */}
+      {/* Actions + Top Opportunités */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <Card className="bg-card border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-2">
@@ -274,31 +254,28 @@ const Dashboard = () => {
         <Card className="bg-card border-border rounded-2xl shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> Top piges enregistrées</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/chasseur?tab=pige")}>Toutes <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              <CardTitle className="text-sm flex items-center gap-2"><RadarIcon className="h-4 w-4 text-primary" /> Top opportunités Radar</CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs h-7 hover:text-primary" onClick={() => navigate("/chasseur")}>Toutes <ArrowRight className="h-3 w-3 ml-1" /></Button>
             </div>
           </CardHeader>
           <CardContent>
-            {topPige.length === 0 ? (
+            {topOpps.length === 0 ? (
               <div className="text-center py-6">
-                <Phone className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground italic">Aucune pige enregistrée pour l'instant.</p>
-                <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => navigate("/chasseur?tab=pige")}>Ouvrir Pige IA</Button>
+                <RadarIcon className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground italic">Aucune opportunité enregistrée.</p>
+                <Button size="sm" variant="outline" className="mt-3 text-xs" onClick={() => navigate("/chasseur")}>Ouvrir le Radar</Button>
               </div>
             ) : (
               <div className="space-y-2">
-                {topPige.map((p: any, index: number) => (
-                  <div key={p.id} className="flex items-center justify-between bg-secondary/50 rounded-xl p-3 cursor-pointer hover:bg-secondary" onClick={() => navigate("/chasseur?tab=pige")}>
+                {topOpps.map((p: any, index: number) => (
+                  <div key={p.id} className="flex items-center justify-between bg-secondary/50 rounded-xl p-3 cursor-pointer hover:bg-secondary" onClick={() => navigate("/chasseur")}>
                     <Badge variant="outline" className="mr-2 h-6 w-6 p-0 justify-center shrink-0 text-[10px]">{index + 1}</Badge>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium truncate">{p.titre}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{p.ville || "—"} {p.prix ? `· ${Number(p.prix).toLocaleString("fr-FR")} €` : ""}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">
-                        {index === 0 ? "Priorité immédiate : meilleur potentiel de mandat." : "Priorité classée par score de pigeabilité enregistré."}
-                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{p.zone || "—"}</p>
                     </div>
-                    <Badge className={`text-[10px] shrink-0 ${(p.score_pigeabilite || 0) >= 75 ? "bg-success/15 text-success border-success/30" : (p.score_pigeabilite || 0) >= 50 ? "bg-warning/15 text-warning border-warning/30" : "bg-muted text-muted-foreground"}`}>
-                      {p.score_pigeabilite || 0}/100
+                    <Badge className={`text-[10px] shrink-0 ${(p.score || 0) >= 75 ? "bg-success/15 text-success border-success/30" : (p.score || 0) >= 50 ? "bg-warning/15 text-warning border-warning/30" : "bg-muted text-muted-foreground"}`}>
+                      {p.score || 0}/100
                     </Badge>
                   </div>
                 ))}

@@ -1,6 +1,6 @@
 import {
-  LayoutDashboard, Bot, LogOut, Settings, Shield,
-  TrendingUp, HelpCircle, Crosshair, Palette,
+  LayoutDashboard, LogOut, Settings, Shield,
+  TrendingUp, HelpCircle, Radar as RadarIcon, Palette,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,11 +17,10 @@ export function AppSidebar() {
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
   const navItems = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, hint: "Vue d'ensemble : performance, pige, opportunités.", preload: preloadRoute.dashboard },
-    { title: "Chasseur de Mandats", url: "/chasseur", icon: Crosshair, hint: "Radar de prospection + Pige IA pour conquérir des mandats.", preload: preloadRoute.chasseur },
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, hint: "Vue d'ensemble : performance et opportunités.", preload: preloadRoute.dashboard },
+    { title: "Radar", url: "/chasseur", icon: RadarIcon, hint: "Radar de prospection · analyse stratégique de votre secteur.", preload: preloadRoute.chasseur },
     { title: "Valorisation", url: "/valorisation/estimation", icon: TrendingUp, hint: "Estimation DVF + Expertise rentabilité & valorisation patrimoniale.", preload: preloadRoute.estimation },
-    { title: "Studio IA", url: "/studio", icon: Palette, hint: "Annonces, posts, scripts d'appel et contenus marketing.", preload: preloadRoute.studio },
-    { title: "Copilote", url: "/copilote", icon: Bot, hint: "Coach commercial IA : pige, négociation, conquête de mandats.", preload: preloadRoute.copilote },
+    { title: "Studio IA", url: "/studio", icon: Palette, hint: "Génération d'annonces et de mandats.", preload: preloadRoute.studio },
   ];
 
   const legalItems = [
