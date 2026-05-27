@@ -231,7 +231,7 @@ export const RadarContent = () => {
                     <Button size="sm" variant="ghost" onClick={() => setAnalyse(opp.donnees?.analyse)} title="Rouvrir">
                       <Play className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => envoyerAuCopilote(opp)} title="Envoyer au Copilote">
+                    <Button size="sm" variant="ghost" onClick={() => envoyerEnEstimation(opp)} title="Lancer une estimation sur cette zone">
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => supprimer(opp.id)} title="Supprimer">
