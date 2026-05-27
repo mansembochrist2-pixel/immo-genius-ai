@@ -11,10 +11,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import {
   MapPin, TrendingUp, AlertTriangle, Sparkles, Target, ArrowRight,
-  Radar as RadarIcon, Trash2, Play, Building2,
+  Radar as RadarIcon, Trash2, Play, Building2, Flame,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { RadarHeatmap } from "@/components/chasseur/RadarHeatmap";
+import { SourcesFooter } from "@/components/SourcesFooter";
 
 interface Analyse {
   prix_m2_moyen?: string;
