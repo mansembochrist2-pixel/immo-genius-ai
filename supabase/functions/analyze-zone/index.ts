@@ -159,6 +159,18 @@ Tu dois IMPÉRATIVEMENT produire une analyse complète en mode estimation :
 - Sources alternatives à citer : "Estimations marché secteur", "Tendances marché immobilier France", "Connaissance zone".
 - INTERDIT d'écrire "donnée indisponible" ou de laisser un champ vide. Formule plutôt : "estimation basée sur données de zone (fiabilité moyenne)".`;
 
+    // DPE ADEME — pression réglementaire vendeur (passoires thermiques)
+    const dpe = dvfData?.dpe_degrades;
+    const contexteDPE = dpe && (dpe.nb_f || dpe.nb_g)
+      ? `\n\n=== DPE ADEME (parc local, échantillon API) ===
+DPE F (passoires) : ${dpe.nb_f}
+DPE G (passoires extrêmes) : ${dpe.nb_g}
+Total échantillon récupéré : ${dpe.total_echantillon || (dpe.nb_f + dpe.nb_g)}
+Adresses d'exemple : ${(dpe.sample || []).slice(0, 3).join(" · ") || "—"}
+
+INSTRUCTION : Cite ces chiffres comme signal vendeur "Pression réglementaire (DPE F/G)" — la loi Climat & Résilience interdit progressivement la location des G (2025), F (2028) et E (2034). Beaucoup de propriétaires vont vouloir vendre avant interdiction → opportunité de mandats. Ajoute "Pression DPE F/G : ${dpe.nb_f + dpe.nb_g} biens identifiés" dans signaux_vendeurs. Cite la source "DPE ADEME" dans sources.`
+      : "";
+
     let contextePrevious = "";
     if (previousAnalysis && previousDate) {
       const daysAgo = Math.max(1, Math.round((Date.now() - new Date(previousDate).getTime()) / 86400000));
@@ -176,7 +188,7 @@ INSTRUCTION : Compare ta nouvelle analyse avec la précédente. Dans ton champ "
 - Adresse / Quartier : ${adresse}
 - Secteur ciblé : ${secteur}
 
-${contexteDVF}${contextePrevious}
+${contexteDVF}${contexteDPE}${contextePrevious}
 
 Calcule scores opportunité et risque en t'appuyant sur ces données réelles, et produis un plan d'action concret.`;
 
@@ -360,12 +372,19 @@ Calcule scores opportunité et risque en t'appuyant sur ces données réelles, e
       ville: dvfData.ville,
       code_postal: dvfData.code_postal,
       ventes: dvfData.ventes,
+      heatmap_points: dvfData.heatmap_points,
+      center: dvfData.center,
       freshness,
       date_extraction: dvfData.date_extraction,
-    } : null;
+    } : (dvfData?.center ? { center: dvfData.center, ville: dvfData.ville, code_postal: dvfData.code_postal } : null);
+
+    analyse.dpe_degrades = dvfData?.dpe_degrades ?? null;
 
     if (dvfData && !dvfData.error && !analyse.sources?.includes("DVF (data.gouv.fr / Etalab)")) {
       analyse.sources = [...(analyse.sources || []), "DVF (data.gouv.fr / Etalab)"];
+    }
+    if (dvfData?.dpe_degrades && !analyse.sources?.includes("DPE ADEME")) {
+      analyse.sources = [...(analyse.sources || []), "DPE ADEME"];
     }
 
     return new Response(JSON.stringify(analyse), {

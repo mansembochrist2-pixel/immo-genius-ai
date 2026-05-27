@@ -32,14 +32,39 @@ async function geocode(adresse: string): Promise<Response> {
 }
 const CADASTRE_URL = "https://apicarto.ign.fr/api/cadastre/parcelle";
 const DVF_URL = "https://app.dvf.etalab.gouv.fr/api/mutations3";
+const ADEME_URL = "https://data.ademe.fr/data-fair/api/v1/datasets/dpe-v2-logements-existants/lines";
 
 const norm = (v: any) => (v === "None" || v === "nan" || v === null || v === undefined ? null : v);
+
+// Fetch DPE F/G stats for a commune from ADEME (best-effort, never throws)
+async function fetchDpeStats(codeCommune: string, codePostal: string) {
+  try {
+    const params = new URLSearchParams({
+      size: "1000",
+      select: "etiquette_dpe,code_postal_ban,adresse_ban",
+      qs: `(etiquette_dpe:"F" OR etiquette_dpe:"G") AND code_postal_ban:"${codePostal}"`,
+    });
+    const res = await fetch(`${ADEME_URL}?${params}`, {
+      headers: { Accept: "application/json", "User-Agent": "ImmoGenius AI/1.0" },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const items: any[] = json.results || [];
+    if (!items.length) return { nb_f: 0, nb_g: 0, sample: [] as string[] };
+    const nb_f = items.filter(i => i.etiquette_dpe === "F").length;
+    const nb_g = items.filter(i => i.etiquette_dpe === "G").length;
+    const sample = items.slice(0, 5).map(i => i.adresse_ban).filter(Boolean);
+    return { nb_f, nb_g, sample, total_echantillon: items.length };
+  } catch (e) {
+    console.warn("ADEME DPE fetch failed:", e);
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-
     // --- Auth check ---
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -55,7 +80,6 @@ serve(async (req) => {
     if (_authError || !_authData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const _userId = _authData.claims.sub;
     // --- end auth ---
     const { adresse, surface, type_bien } = await req.json();
     if (!adresse || typeof adresse !== "string") {
@@ -85,18 +109,28 @@ serve(async (req) => {
     const cadJson = await cadRes.json();
     const parcelle = cadJson.features?.[0]?.properties;
     if (!parcelle?.section) {
+      // Return geocoding + DPE even if no cadastre section
+      const dpe = await fetchDpeStats(codeCommune, codePostal);
       return new Response(JSON.stringify({
-        error: null, ville, code_postal: codePostal, ventes: [],
+        error: null, ville, code_postal: codePostal, code_commune: codeCommune,
+        center: { lat, lon }, ventes: [],
+        dpe_degrades: dpe,
         message: "Section cadastrale introuvable",
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const section = `000${parcelle.section}`;
 
-    // 3. DVF Etalab par commune+section
-    const dvfRes = await fetch(`${DVF_URL}/${codeCommune}/${section}`);
+    // 3. DVF Etalab par commune+section (+ DPE ADEME en parallèle)
+    const [dvfRes, dpeStats] = await Promise.all([
+      fetch(`${DVF_URL}/${codeCommune}/${section}`),
+      fetchDpeStats(codeCommune, codePostal),
+    ]);
+
     if (!dvfRes.ok) {
       return new Response(JSON.stringify({
-        ville, code_postal: codePostal, ventes: [],
+        ville, code_postal: codePostal, code_commune: codeCommune,
+        center: { lat, lon }, ventes: [],
+        dpe_degrades: dpeStats,
         message: `Pas de données DVF (${dvfRes.status})`,
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -119,6 +153,8 @@ serve(async (req) => {
         adresse_nom_voie: norm(m.adresse_nom_voie),
         code_postal: norm(m.code_postal),
         nom_commune: norm(m.nom_commune),
+        lat: norm(m.lat) != null ? parseFloat(m.lat) : null,
+        lon: norm(m.lon) != null ? parseFloat(m.lon) : null,
       }))
       .filter(m => {
         if (!m.valeur_fonciere || !m.surface_reelle_bati || m.surface_reelle_bati < 9) return false;
@@ -134,6 +170,17 @@ serve(async (req) => {
     const prixM2List = filtered.map(f => f.prix_m2).sort((a, b) => a - b);
     const median = prixM2List.length ? prixM2List[Math.floor(prixM2List.length / 2)] : null;
 
+    // Heatmap points: prefer real coords, fallback to centroid + jitter for visual
+    const heatmapPoints = filtered.slice(0, 50).map((m, i) => {
+      if (m.lat != null && m.lon != null) {
+        return { lat: m.lat, lon: m.lon, prix_m2: m.prix_m2, label: `${m.adresse_nom_voie || "Vente"} (${m.surface_reelle_bati}m²)` };
+      }
+      // Fallback : petit jitter visuel autour de la parcelle (~50m)
+      const jitterLat = (Math.sin(i * 1.7) * 0.0006);
+      const jitterLon = (Math.cos(i * 1.7) * 0.0008);
+      return { lat: lat + jitterLat, lon: lon + jitterLon, prix_m2: m.prix_m2, label: `${m.adresse_nom_voie || "Vente"} (${m.surface_reelle_bati}m²)`, jittered: true };
+    });
+
     // Tension : volume sur 12 derniers mois (toutes mutations)
     const oneYearAgo = new Date();
     oneYearAgo.setMonth(oneYearAgo.getMonth() - 12);
@@ -144,18 +191,23 @@ serve(async (req) => {
       source: "DVF data.gouv (Etalab)",
       url_source: "https://app.dvf.etalab.gouv.fr/",
       ville, code_postal: codePostal, code_commune: codeCommune,
+      center: { lat, lon },
       section: parcelle.section,
       ventes: top3,
+      ventes_all: filtered.slice(0, 20),
+      heatmap_points: heatmapPoints,
       nb_ventes_filtrees: filtered.length,
       prix_m2_median: median,
       tension_marche: tension,
       volume_12_mois: totalSales12m,
+      dpe_degrades: dpeStats,
       date_extraction: new Date().toISOString(),
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("dvf-lookup error:", e);
     return new Response(JSON.stringify({
       error: e instanceof Error ? e.message : "Erreur inconnue", ventes: [],
-    }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

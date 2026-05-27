@@ -11,10 +11,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import {
   MapPin, TrendingUp, AlertTriangle, Sparkles, Target, ArrowRight,
-  Radar as RadarIcon, Trash2, Play, Building2,
+  Radar as RadarIcon, Trash2, Play, Building2, Flame,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { RadarHeatmap } from "@/components/chasseur/RadarHeatmap";
+import { SourcesFooter } from "@/components/SourcesFooter";
 
 interface Analyse {
   prix_m2_moyen?: string;
@@ -43,6 +45,8 @@ interface Analyse {
   score_vendeur?: number;
   signaux_vendeurs?: string[];
   evolution_depuis_derniere?: string;
+  dvf_raw?: any;
+  dpe_degrades?: { nb_f: number; nb_g: number; sample?: string[]; total_echantillon?: number } | null;
 }
 
 interface OpportuniteRow {
@@ -139,18 +143,14 @@ export const RadarContent = () => {
     setRefreshKey((k) => k + 1);
   };
 
-  const envoyerAuCopilote = (opp: OpportuniteRow) => {
+  const envoyerEnEstimation = (opp: OpportuniteRow) => {
     sessionStorage.setItem(
-      "copilote_context",
-      JSON.stringify({
-        type: "radar_opportunite",
-        zone: opp.zone,
-        titre: opp.titre,
-        analyse: opp.donnees?.analyse ?? null,
-      }),
+      "estimation_prefill_from_radar",
+      JSON.stringify({ adresse: opp.zone, titre: opp.titre }),
     );
-    navigate("/copilote");
+    navigate("/valorisation");
   };
+
 
   return (
     <div className="space-y-6">
@@ -231,7 +231,7 @@ export const RadarContent = () => {
                     <Button size="sm" variant="ghost" onClick={() => setAnalyse(opp.donnees?.analyse)} title="Rouvrir">
                       <Play className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => envoyerAuCopilote(opp)} title="Envoyer au Copilote">
+                    <Button size="sm" variant="ghost" onClick={() => envoyerEnEstimation(opp)} title="Lancer une estimation sur cette zone">
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => supprimer(opp.id)} title="Supprimer">
@@ -278,6 +278,30 @@ const AnalyseView = ({ analyse }: { analyse: Analyse }) => {
             <p className="text-sm leading-relaxed">{analyse.strategie}</p>
           </div>
         )}
+
+        {/* Heatmap MapLibre + OSM */}
+        {analyse.dvf_raw?.center && (
+          <RadarHeatmap
+            center={analyse.dvf_raw.center}
+            points={analyse.dvf_raw.heatmap_points || []}
+            prixMedian={analyse.dvf_raw.prix_m2_median}
+          />
+        )}
+
+        {/* DPE F/G — pression réglementaire vendeur */}
+        {analyse.dpe_degrades && (analyse.dpe_degrades.nb_f > 0 || analyse.dpe_degrades.nb_g > 0) && (
+          <div className="p-3 rounded-lg border border-warning/30 bg-warning/5">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Flame className="h-4 w-4 text-warning" />
+              Pression DPE F/G (passoires thermiques)
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              <strong>{analyse.dpe_degrades.nb_f}</strong> biens DPE F · <strong>{analyse.dpe_degrades.nb_g}</strong> biens DPE G identifiés dans le secteur (source ADEME).
+              Ces propriétaires sont sous pression réglementaire (loi Climat & Résilience) — opportunité de mandats.
+            </p>
+          </div>
+        )}
+
 
         <Tabs defaultValue="actions">
           <TabsList className="grid grid-cols-4 max-w-xl">
@@ -329,6 +353,8 @@ const AnalyseView = ({ analyse }: { analyse: Analyse }) => {
             )}
           </TabsContent>
         </Tabs>
+
+        <SourcesFooter compact />
       </CardContent>
     </Card>
   );
