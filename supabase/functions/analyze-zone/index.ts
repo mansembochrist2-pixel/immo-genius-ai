@@ -188,7 +188,7 @@ INSTRUCTION : Compare ta nouvelle analyse avec la précédente. Dans ton champ "
 - Adresse / Quartier : ${adresse}
 - Secteur ciblé : ${secteur}
 
-${contexteDVF}${contextePrevious}
+${contexteDVF}${contexteDPE}${contextePrevious}
 
 Calcule scores opportunité et risque en t'appuyant sur ces données réelles, et produis un plan d'action concret.`;
 
