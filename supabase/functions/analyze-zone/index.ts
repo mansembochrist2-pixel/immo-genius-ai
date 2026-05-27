@@ -372,12 +372,19 @@ Calcule scores opportunité et risque en t'appuyant sur ces données réelles, e
       ville: dvfData.ville,
       code_postal: dvfData.code_postal,
       ventes: dvfData.ventes,
+      heatmap_points: dvfData.heatmap_points,
+      center: dvfData.center,
       freshness,
       date_extraction: dvfData.date_extraction,
-    } : null;
+    } : (dvfData?.center ? { center: dvfData.center, ville: dvfData.ville, code_postal: dvfData.code_postal } : null);
+
+    analyse.dpe_degrades = dvfData?.dpe_degrades ?? null;
 
     if (dvfData && !dvfData.error && !analyse.sources?.includes("DVF (data.gouv.fr / Etalab)")) {
       analyse.sources = [...(analyse.sources || []), "DVF (data.gouv.fr / Etalab)"];
+    }
+    if (dvfData?.dpe_degrades && !analyse.sources?.includes("DPE ADEME")) {
+      analyse.sources = [...(analyse.sources || []), "DPE ADEME"];
     }
 
     return new Response(JSON.stringify(analyse), {
