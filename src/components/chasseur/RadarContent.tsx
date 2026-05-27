@@ -143,18 +143,14 @@ export const RadarContent = () => {
     setRefreshKey((k) => k + 1);
   };
 
-  const envoyerAuCopilote = (opp: OpportuniteRow) => {
+  const envoyerEnEstimation = (opp: OpportuniteRow) => {
     sessionStorage.setItem(
-      "copilote_context",
-      JSON.stringify({
-        type: "radar_opportunite",
-        zone: opp.zone,
-        titre: opp.titre,
-        analyse: opp.donnees?.analyse ?? null,
-      }),
+      "estimation_prefill_from_radar",
+      JSON.stringify({ adresse: opp.zone, titre: opp.titre }),
     );
-    navigate("/copilote");
+    navigate("/valorisation");
   };
+
 
   return (
     <div className="space-y-6">
