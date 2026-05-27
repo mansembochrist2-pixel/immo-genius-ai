@@ -353,6 +353,8 @@ const AnalyseView = ({ analyse }: { analyse: Analyse }) => {
             )}
           </TabsContent>
         </Tabs>
+
+        <SourcesFooter compact />
       </CardContent>
     </Card>
   );
