@@ -45,6 +45,8 @@ interface Analyse {
   score_vendeur?: number;
   signaux_vendeurs?: string[];
   evolution_depuis_derniere?: string;
+  dvf_raw?: any;
+  dpe_degrades?: { nb_f: number; nb_g: number; sample?: string[]; total_echantillon?: number } | null;
 }
 
 interface OpportuniteRow {
