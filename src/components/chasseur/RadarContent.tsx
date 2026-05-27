@@ -279,6 +279,30 @@ const AnalyseView = ({ analyse }: { analyse: Analyse }) => {
           </div>
         )}
 
+        {/* Heatmap MapLibre + OSM */}
+        {analyse.dvf_raw?.center && (
+          <RadarHeatmap
+            center={analyse.dvf_raw.center}
+            points={analyse.dvf_raw.heatmap_points || []}
+            prixMedian={analyse.dvf_raw.prix_m2_median}
+          />
+        )}
+
+        {/* DPE F/G — pression réglementaire vendeur */}
+        {analyse.dpe_degrades && (analyse.dpe_degrades.nb_f > 0 || analyse.dpe_degrades.nb_g > 0) && (
+          <div className="p-3 rounded-lg border border-warning/30 bg-warning/5">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Flame className="h-4 w-4 text-warning" />
+              Pression DPE F/G (passoires thermiques)
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              <strong>{analyse.dpe_degrades.nb_f}</strong> biens DPE F · <strong>{analyse.dpe_degrades.nb_g}</strong> biens DPE G identifiés dans le secteur (source ADEME).
+              Ces propriétaires sont sous pression réglementaire (loi Climat & Résilience) — opportunité de mandats.
+            </p>
+          </div>
+        )}
+
+
         <Tabs defaultValue="actions">
           <TabsList className="grid grid-cols-4 max-w-xl">
             <TabsTrigger value="actions">Plan d'action</TabsTrigger>
