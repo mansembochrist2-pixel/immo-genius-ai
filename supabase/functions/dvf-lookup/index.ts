@@ -172,13 +172,21 @@ serve(async (req) => {
 
     // Heatmap points: prefer real coords, fallback to centroid + jitter for visual
     const heatmapPoints = filtered.slice(0, 50).map((m, i) => {
+      const adresse = [m.adresse_numero, m.adresse_nom_voie].filter(Boolean).join(" ") || "Adresse partielle";
+      const base = {
+        prix_m2: m.prix_m2,
+        adresse,
+        surface: m.surface_reelle_bati,
+        prix_total: Math.round(m.valeur_fonciere),
+        date: m.date_mutation,
+        label: `${adresse} (${m.surface_reelle_bati}m²)`,
+      };
       if (m.lat != null && m.lon != null) {
-        return { lat: m.lat, lon: m.lon, prix_m2: m.prix_m2, label: `${m.adresse_nom_voie || "Vente"} (${m.surface_reelle_bati}m²)` };
+        return { ...base, lat: m.lat, lon: m.lon };
       }
-      // Fallback : petit jitter visuel autour de la parcelle (~50m)
       const jitterLat = (Math.sin(i * 1.7) * 0.0006);
       const jitterLon = (Math.cos(i * 1.7) * 0.0008);
-      return { lat: lat + jitterLat, lon: lon + jitterLon, prix_m2: m.prix_m2, label: `${m.adresse_nom_voie || "Vente"} (${m.surface_reelle_bati}m²)`, jittered: true };
+      return { ...base, lat: lat + jitterLat, lon: lon + jitterLon, jittered: true };
     });
 
     // Tension : volume sur 12 derniers mois (toutes mutations)
