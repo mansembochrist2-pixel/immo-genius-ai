@@ -266,16 +266,25 @@ const AnalyseView = ({ analyse }: { analyse: Analyse }) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <KPI label="Opportunité" value={`${opp}/100`} cls={scoreColor(opp)} icon={<TrendingUp className="h-3.5 w-3.5" />} />
           <KPI label="Risque" value={`${risk}/100`} cls={scoreColor(100 - risk)} icon={<AlertTriangle className="h-3.5 w-3.5" />} />
+          <KPI label="Score vendeur" value={analyse.score_vendeur != null ? `${analyse.score_vendeur}/100` : "—"} cls={scoreColor(analyse.score_vendeur)} icon={<Target className="h-3.5 w-3.5" />} />
           <KPI label="Prix médian" value={analyse.prix_m2_moyen || "—"} icon={<Building2 className="h-3.5 w-3.5" />} />
           <KPI label="Liquidité" value={analyse.liquidite || "—"} icon={<TrendingUp className="h-3.5 w-3.5" />} />
         </div>
 
         {analyse.strategie && (
           <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+            <p className="text-[10px] uppercase tracking-wider text-primary/70 mb-1">Synthèse stratégique</p>
             <p className="text-sm leading-relaxed">{analyse.strategie}</p>
+          </div>
+        )}
+
+        {analyse.evolution_depuis_derniere && (
+          <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
+            <p className="text-[10px] uppercase tracking-wider text-accent mb-1">Évolution depuis la dernière analyse</p>
+            <p className="text-sm leading-relaxed">{analyse.evolution_depuis_derniere}</p>
           </div>
         )}
 
@@ -302,10 +311,23 @@ const AnalyseView = ({ analyse }: { analyse: Analyse }) => {
           </div>
         )}
 
+        {/* Signaux vendeurs */}
+        {analyse.signaux_vendeurs && analyse.signaux_vendeurs.length > 0 && (
+          <div className="p-3 rounded-lg border border-primary/20 bg-surface-1/40">
+            <p className="text-[10px] uppercase tracking-wider text-primary mb-2">Signaux vendeurs détectés</p>
+            <div className="flex flex-wrap gap-1.5">
+              {analyse.signaux_vendeurs.map((s, i) => (
+                <Badge key={i} variant="outline" className="text-[10px]">{s}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         <Tabs defaultValue="actions">
-          <TabsList className="grid grid-cols-4 max-w-xl">
+          <TabsList className="grid grid-cols-5 max-w-2xl">
             <TabsTrigger value="actions">Plan d'action</TabsTrigger>
+            <TabsTrigger value="strategie">Analyse 360°</TabsTrigger>
             <TabsTrigger value="zones">Micro-secteurs</TabsTrigger>
             <TabsTrigger value="profils">Profils vendeurs</TabsTrigger>
             <TabsTrigger value="sources">Sources</TabsTrigger>
@@ -318,6 +340,36 @@ const AnalyseView = ({ analyse }: { analyse: Analyse }) => {
             {analyse.plan_action?.si_risque?.length ? (
               <List title="Si risque — actions prudence" items={analyse.plan_action.si_risque} tone="warning" />
             ) : null}
+            {analyse.opportunites?.length ? (
+              <List title="Opportunités identifiées" items={analyse.opportunites} tone="success" />
+            ) : null}
+            {analyse.risques?.length ? (
+              <List title="Risques identifiés" items={analyse.risques} tone="warning" />
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value="strategie" className="space-y-3 mt-4">
+            {analyse.analyse_strategique?.resume_marche && (
+              <StrategicBlock title="Résumé marché" content={analyse.analyse_strategique.resume_marche} />
+            )}
+            {analyse.analyse_strategique?.positionnement && (
+              <StrategicBlock title="Positionnement" content={analyse.analyse_strategique.positionnement} />
+            )}
+            {analyse.analyse_strategique?.concurrence && (
+              <StrategicBlock title="Concurrence" content={analyse.analyse_strategique.concurrence} />
+            )}
+            {analyse.analyse_strategique?.attractivite && (
+              <StrategicBlock title="Attractivité" content={analyse.analyse_strategique.attractivite} />
+            )}
+            {analyse.justification_score && (
+              <div className="p-3 rounded-lg border border-border/70 bg-surface-1/40">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Justification scores</p>
+                <p className="text-sm leading-relaxed">{analyse.justification_score}</p>
+              </div>
+            )}
+            {!analyse.analyse_strategique && !analyse.justification_score && (
+              <p className="text-sm text-muted-foreground">Analyse stratégique non disponible.</p>
+            )}
           </TabsContent>
 
           <TabsContent value="zones" className="space-y-2 mt-4">
