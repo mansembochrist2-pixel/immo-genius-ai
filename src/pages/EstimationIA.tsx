@@ -62,29 +62,42 @@ const EstimationIA = () => {
     setInseeData(null);
     setLoadingDvf(true);
 
-    // Lance l'estimation IA, la requête DVF et l'INSEE en parallèle
-    const dvfPromise = supabase.functions
-      .invoke("dvf-lookup", {
+    // 1. DVF d'abord (l'IA en a besoin)
+    let dvf: any = null;
+    try {
+      const { data } = await supabase.functions.invoke("dvf-lookup", {
         body: { adresse: form.adresse, surface: form.surface ? Number(form.surface) : undefined, type_bien: form.type_bien },
-      })
-      .then(({ data }) => { setDvfData(data); return data; })
-      .catch((err) => { console.error("DVF lookup failed", err); return null; })
-      .finally(() => setLoadingDvf(false));
+      });
+      dvf = data;
+      setDvfData(data);
+    } catch (err) {
+      console.error("DVF lookup failed", err);
+    } finally {
+      setLoadingDvf(false);
+    }
 
-    dvfPromise.then((dvf) => {
+    // 2. INSEE (parallèle à l'IA — non bloquant pour le prompt si lent, mais on l'attend)
+    let insee: any = null;
+    try {
       const codeDept = dvf?.code_postal ? String(dvf.code_postal).slice(0, 2) : "";
-      supabase.functions
-        .invoke("prix-marche-insee", { body: { code_departement: codeDept, commune: dvf?.ville } })
-        .then(({ data }) => setInseeData(data))
-        .catch((err) => console.error("INSEE lookup failed", err));
-    });
+      const { data } = await supabase.functions.invoke("prix-marche-insee", {
+        body: { code_departement: codeDept, commune: dvf?.ville },
+      });
+      insee = data;
+      setInseeData(data);
+    } catch (err) {
+      console.error("INSEE lookup failed", err);
+    }
 
+    // 3. IA avec données réelles injectées
     try {
       const { data, error } = await supabase.functions.invoke("generate-estimation", {
         body: {
           ...form,
           surface: form.surface ? Number(form.surface) : undefined,
           pieces: form.pieces ? Number(form.pieces) : undefined,
+          dvf_data: dvf,
+          insee_data: insee,
         },
       });
       if (error) throw error;
@@ -96,7 +109,6 @@ const EstimationIA = () => {
       toast.error(e.message || (lang === "fr" ? "Erreur lors de l'estimation" : "Estimation error"));
     } finally {
       setLoading(false);
-      await dvfPromise;
     }
   };
 
