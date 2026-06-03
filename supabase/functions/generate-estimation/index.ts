@@ -69,7 +69,36 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { adresse, surface, pieces, etage, etat, dpe, annee_construction, parking, cave, balcon } = body;
+    const { adresse, surface, pieces, etage, etat, dpe, annee_construction, parking, cave, balcon, dvf_data, insee_data } = body;
+
+    // === Bloc données réelles injectées ===
+    let dataBlock = "";
+    if (dvf_data && Array.isArray(dvf_data.ventes_all) && dvf_data.ventes_all.length > 0) {
+      const ventes = dvf_data.ventes_all.slice(0, 15);
+      const lignes = ventes.map((v: any) => {
+        const addr = [v.adresse_numero, v.adresse_nom_voie].filter(Boolean).join(" ") || "Adresse partielle";
+        const d = v.date_mutation ? new Date(v.date_mutation).toLocaleDateString("fr-FR") : "?";
+        return `- ${addr} (${v.code_postal || ""} ${v.nom_commune || ""}) — ${v.surface_reelle_bati} m², ${v.nombre_pieces_principales || "?"} pièces, vendu ${Math.round(v.valeur_fonciere).toLocaleString("fr-FR")} € (${v.prix_m2?.toLocaleString("fr-FR")} €/m²) le ${d}`;
+      }).join("\n");
+      dataBlock += `\n\n=== TRANSACTIONS DVF RÉELLES (data.gouv / Etalab) ===
+Secteur : ${dvf_data.ville || ""} ${dvf_data.code_postal || ""}
+Nombre de ventes comparables analysées : ${dvf_data.nb_ventes_filtrees}
+Prix médian secteur : ${dvf_data.prix_m2_median?.toLocaleString("fr-FR")} €/m²
+Tension marché : ${dvf_data.tension_marche} (${dvf_data.volume_12_mois} ventes sur 12 mois)
+
+Ventes récentes à citer dans l'argumentaire :
+${lignes}`;
+    } else {
+      dataBlock += `\n\n=== TRANSACTIONS DVF ===
+Aucune vente DVF comparable trouvée pour cette adresse. Tu DOIS le signaler explicitement dans analyse_marche et methode_estimation.`;
+    }
+
+    if (insee_data && (insee_data.variation_3_ans != null || insee_data.dernier_indice != null)) {
+      dataBlock += `\n\n=== INDICE INSEE PRIX IMMOBILIER ===
+Dernier indice : ${insee_data.dernier_indice ?? "n/a"}
+Variation cumulée 3 ans : ${insee_data.variation_3_ans != null ? insee_data.variation_3_ans + " %" : "n/a"}
+Source : INSEE officielle. Mentionne cet indice dans tendance_12_mois.`;
+    }
 
     const userPrompt = `Estime ce bien immobilier :
 - Adresse : ${adresse}
@@ -82,8 +111,9 @@ serve(async (req) => {
 - Parking : ${parking ? "Oui" : "Non"}
 - Cave : ${cave ? "Oui" : "Non"}
 - Balcon/Terrasse : ${balcon ? "Oui" : "Non"}
+${dataBlock}
 
-Fournis une estimation détaillée basée sur les données DVF, INSEE et les observatoires locaux.
+CONSIGNE : Base ton estimation EXCLUSIVEMENT sur les transactions DVF listées et l'indice INSEE. Cite au moins 3 ventes précises (rue, surface, prix, date) dans historique_ventes et argumentaire_prix. N'invente AUCUNE transaction. Si DVF absent, signale-le clairement.
 Retourne uniquement le JSON demandé, sans markdown ni backticks.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
