@@ -434,3 +434,10 @@ const List = ({ title, items, tone }: { title: string; items: string[]; tone: "s
     </ul>
   </div>
 );
+
+const StrategicBlock = ({ title, content }: { title: string; content: string }) => (
+  <div className="p-3 rounded-lg border border-border/70 bg-surface-1/40">
+    <p className="text-[10px] uppercase tracking-wider text-primary mb-1">{title}</p>
+    <p className="text-sm leading-relaxed">{content}</p>
+  </div>
+);
