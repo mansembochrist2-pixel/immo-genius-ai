@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { exportTextToDocx } from "@/lib/docx-export";
+import { exportEstimationDocx } from "@/lib/estimation-docx";
 import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import { preloadRoute } from "@/lib/routeLoader";
@@ -38,6 +39,7 @@ const EstimationIA = () => {
   const [editableResult, setEditableResult] = useState<any>(null);
   const [dvfData, setDvfData] = useState<any>(null);
   const [loadingDvf, setLoadingDvf] = useState(false);
+  const [inseeData, setInseeData] = useState<any>(null);
   const [form, setForm] = useState({
     adresse: "", surface: "", pieces: "", etage: "", etat: "bon",
     dpe: "", annee_construction: "", parking: false, cave: false, balcon: false,
@@ -57,16 +59,25 @@ const EstimationIA = () => {
     setShowValidation(false);
     setLoading(true);
     setDvfData(null);
+    setInseeData(null);
     setLoadingDvf(true);
 
-    // Lance l'estimation IA et la requête DVF en parallèle
+    // Lance l'estimation IA, la requête DVF et l'INSEE en parallèle
     const dvfPromise = supabase.functions
       .invoke("dvf-lookup", {
         body: { adresse: form.adresse, surface: form.surface ? Number(form.surface) : undefined, type_bien: form.type_bien },
       })
-      .then(({ data }) => { setDvfData(data); })
-      .catch((err) => { console.error("DVF lookup failed", err); })
+      .then(({ data }) => { setDvfData(data); return data; })
+      .catch((err) => { console.error("DVF lookup failed", err); return null; })
       .finally(() => setLoadingDvf(false));
+
+    dvfPromise.then((dvf) => {
+      const codeDept = dvf?.code_postal ? String(dvf.code_postal).slice(0, 2) : "";
+      supabase.functions
+        .invoke("prix-marche-insee", { body: { code_departement: codeDept, commune: dvf?.ville } })
+        .then(({ data }) => setInseeData(data))
+        .catch((err) => console.error("INSEE lookup failed", err));
+    });
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-estimation", {
@@ -91,19 +102,23 @@ const EstimationIA = () => {
 
   const downloadWord = async () => {
     if (!editableResult) return;
-    const fmt = (n?: number) => (n ? n.toLocaleString("fr-FR") : "N/C");
-    const dvfBlock = dvfData?.ventes?.length
-      ? `\nDONNÉES DVF OFFICIELLES (${dvfData.ville})\nPrix m² médian : ${fmt(dvfData.prix_m2_median)} €/m²\nTension marché : ${dvfData.tension_marche || "N/C"}\nVolume 12 mois : ${dvfData.volume_12_mois || 0} ventes\n\nVentes récentes similaires :\n${dvfData.ventes.map((v: any) => `- ${[v.adresse_numero, v.adresse_nom_voie].filter(Boolean).join(" ") || v.type_local} — ${v.surface_relle_bati} m² · ${fmt(v.valeur_fonciere)} € (${fmt(v.prix_m2)} €/m²) — ${new Date(v.date_mutation).toLocaleDateString("fr-FR")}`).join("\n")}\n\nSource : DGFiP via Etalab — extraction du ${new Date(dvfData.date_extraction).toLocaleDateString("fr-FR")}\n`
-      : "";
-    const content = `RAPPORT D'ESTIMATION IMMOBILIÈRE\n\nBien estimé : ${form.adresse}\nType : ${form.type_bien}\nSurface : ${form.surface || "N/C"} m² | Pièces : ${form.pieces || "N/C"} | DPE : ${form.dpe || "N/C"}\nÉtat : ${form.etat} | Étage : ${form.etage || "N/C"} | Année : ${form.annee_construction || "N/C"}\nÉquipements : ${[form.parking && "Parking", form.cave && "Cave", form.balcon && "Balcon", form.ascenseur && "Ascenseur", form.gardien && "Gardien"].filter(Boolean).join(", ") || "Aucun"}\n\nFOURCHETTE DE PRIX\nPrix minimum : ${fmt(editableResult.prix_min)} €\nPrix moyen estimé : ${fmt(editableResult.prix_moyen)} €\nPrix maximum : ${fmt(editableResult.prix_max)} €\nPrix au m² du secteur : ${fmt(editableResult.prix_m2_secteur)} €/m²\n${dvfBlock}\nANALYSE DU MARCHÉ LOCAL\n${editableResult.analyse_marche || ""}\n\nCOMPARAISON QUARTIER\n${editableResult.comparaison_quartier || ""}\n\nHISTORIQUE DES VENTES RÉCENTES\n${editableResult.historique_ventes || ""}\n\nTENDANCE DU MARCHÉ (12 MOIS)\n${editableResult.tendance_12_mois || ""}\n\nRECOMMANDATION DE PRIX\nPrix recommandé : ${fmt(editableResult.recommandation_prix)} €\n${editableResult.argumentaire_prix || ""}\n\nMÉTHODE D'ESTIMATION\n${editableResult.methode_estimation || ""}\n\nCONCLUSION\n${editableResult.conclusion || ""}`;
     try {
-      await exportTextToDocx(
-        content,
+      await exportEstimationDocx(
+        {
+          form,
+          result: editableResult,
+          dvf: dvfData,
+          insee: inseeData,
+          agent: {
+            nom: user?.user_metadata?.full_name,
+            agence: user?.user_metadata?.agency_name,
+          },
+        },
         `Estimation_${form.adresse.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30)}.docx`,
-        { title: "Rapport d'estimation immobilière", subtitle: form.adresse }
       );
       toast.success(lang === "fr" ? "Rapport Word téléchargé" : "Word report downloaded");
     } catch (e: any) {
+      console.error(e);
       toast.error(e.message || "Erreur d'export");
     }
   };
@@ -376,6 +391,43 @@ const EstimationIA = () => {
                 )}
               </CardContent>
             </Card>
+
+            {inseeData?.evolution_3_ans?.length > 0 && (
+              <Card className="bg-card/60 border-border/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    {lang === "fr" ? "Tendance Notaires-INSEE" : "Notaires-INSEE Trend"}
+                    <Badge variant="outline" className="text-[9px] ml-auto">
+                      {inseeData.live ? "Live INSEE" : "Indice publié"}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <span className={`text-xl font-bold ${inseeData.variation_3_ans_pct >= 0 ? "text-success" : "text-destructive"}`}>
+                      {inseeData.variation_3_ans_pct >= 0 ? "+" : ""}{inseeData.variation_3_ans_pct}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {lang === "fr" ? "sur la période" : "over period"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {inseeData.evolution_3_ans.map((e: any) => (
+                      <div key={e.annee} className="bg-muted/10 rounded p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">{e.annee}</p>
+                        <p className="text-xs font-semibold">{e.indice}</p>
+                        <p className={`text-[10px] ${e.variation_pct >= 0 ? "text-success" : "text-destructive"}`}>
+                          {e.variation_pct >= 0 ? "+" : ""}{e.variation_pct}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic mt-2">{inseeData.source}</p>
+                </CardContent>
+              </Card>
+            )}
+
 
             {[
               { key: "analyse_marche", title: lang === "fr" ? "Analyse du marché local" : "Local Market Analysis", icon: BarChart3 },

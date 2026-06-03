@@ -111,16 +111,22 @@ export default function Expertise() {
     }
     setLoadingPrefill(true);
     try {
-      const { data, error } = await supabase.functions.invoke("expertise-valorisation", {
-        body: { mode: "prefill", inputs },
-      });
+      const meuble = inputs.type_location === "meublee_lmnp" || inputs.type_location === "courte_duree";
+      const [prefillRes, loyerRes] = await Promise.all([
+        supabase.functions.invoke("expertise-valorisation", { body: { mode: "prefill", inputs } }),
+        supabase.functions.invoke("loyer-reference", { body: { adresse: inputs.adresse, meuble } }).catch(() => ({ data: null, error: null })),
+      ]);
+      const { data, error } = prefillRes;
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      const loyer = (loyerRes as any)?.data;
+      const surface = Number(inputs.surface) || 0;
+      const officialPlafond = loyer?.applicable && surface > 0 ? Math.round(loyer.loyer_ref_majore * surface) : null;
       setInputs((prev) => ({
         ...prev,
         loyer_mensuel: data.loyer_mensuel ?? prev.loyer_mensuel,
-        loyer_plafond: data.loyer_plafond ?? prev.loyer_plafond,
-        encadrement_loyer: !!data.encadrement_loyer,
+        loyer_plafond: officialPlafond ?? data.loyer_plafond ?? prev.loyer_plafond,
+        encadrement_loyer: !!loyer?.applicable || !!data.encadrement_loyer,
         charges_copro_annuelles: data.charges_copro_annuelles ?? prev.charges_copro_annuelles,
         taxe_fonciere_annuelle: data.taxe_fonciere_annuelle ?? prev.taxe_fonciere_annuelle,
         cout_travaux: data.cout_travaux ?? prev.cout_travaux,
@@ -129,7 +135,10 @@ export default function Expertise() {
         economie_charges_post_travaux: data.economie_charges_post_travaux ?? prev.economie_charges_post_travaux,
         frais_notaire_pct: data.frais_notaire_pct ?? prev.frais_notaire_pct,
       }));
-      setPrefillNote(data.commentaire_sources || "Pré-remplissage basé sur DVF, ADEME et observatoires locaux.");
+      const officialNote = loyer?.applicable
+        ? ` Encadrement officiel ${loyer.ville} : ${loyer.loyer_ref_m2} €/m² (plafond ${loyer.loyer_ref_majore} €/m²).`
+        : "";
+      setPrefillNote((data.commentaire_sources || "Pré-remplissage basé sur DVF, ADEME et observatoires locaux.") + officialNote);
       toast.success("Données pré-remplies par l'IA. Vous pouvez tout modifier.");
     } catch (e: any) {
       toast.error(e.message || "Erreur lors du pré-remplissage IA");
