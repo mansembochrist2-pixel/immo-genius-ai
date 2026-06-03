@@ -1,7 +1,7 @@
 import {
-  Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
+  Document, Packer, Paragraph, TextRun, AlignmentType,
   Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, PageNumber,
-  Header, Footer, Tab,
+  Header, Footer,
 } from "docx";
 
 const NAVY = "0A2540";
