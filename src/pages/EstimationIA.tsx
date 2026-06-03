@@ -102,19 +102,23 @@ const EstimationIA = () => {
 
   const downloadWord = async () => {
     if (!editableResult) return;
-    const fmt = (n?: number) => (n ? n.toLocaleString("fr-FR") : "N/C");
-    const dvfBlock = dvfData?.ventes?.length
-      ? `\nDONNÉES DVF OFFICIELLES (${dvfData.ville})\nPrix m² médian : ${fmt(dvfData.prix_m2_median)} €/m²\nTension marché : ${dvfData.tension_marche || "N/C"}\nVolume 12 mois : ${dvfData.volume_12_mois || 0} ventes\n\nVentes récentes similaires :\n${dvfData.ventes.map((v: any) => `- ${[v.adresse_numero, v.adresse_nom_voie].filter(Boolean).join(" ") || v.type_local} — ${v.surface_relle_bati} m² · ${fmt(v.valeur_fonciere)} € (${fmt(v.prix_m2)} €/m²) — ${new Date(v.date_mutation).toLocaleDateString("fr-FR")}`).join("\n")}\n\nSource : DGFiP via Etalab — extraction du ${new Date(dvfData.date_extraction).toLocaleDateString("fr-FR")}\n`
-      : "";
-    const content = `RAPPORT D'ESTIMATION IMMOBILIÈRE\n\nBien estimé : ${form.adresse}\nType : ${form.type_bien}\nSurface : ${form.surface || "N/C"} m² | Pièces : ${form.pieces || "N/C"} | DPE : ${form.dpe || "N/C"}\nÉtat : ${form.etat} | Étage : ${form.etage || "N/C"} | Année : ${form.annee_construction || "N/C"}\nÉquipements : ${[form.parking && "Parking", form.cave && "Cave", form.balcon && "Balcon", form.ascenseur && "Ascenseur", form.gardien && "Gardien"].filter(Boolean).join(", ") || "Aucun"}\n\nFOURCHETTE DE PRIX\nPrix minimum : ${fmt(editableResult.prix_min)} €\nPrix moyen estimé : ${fmt(editableResult.prix_moyen)} €\nPrix maximum : ${fmt(editableResult.prix_max)} €\nPrix au m² du secteur : ${fmt(editableResult.prix_m2_secteur)} €/m²\n${dvfBlock}\nANALYSE DU MARCHÉ LOCAL\n${editableResult.analyse_marche || ""}\n\nCOMPARAISON QUARTIER\n${editableResult.comparaison_quartier || ""}\n\nHISTORIQUE DES VENTES RÉCENTES\n${editableResult.historique_ventes || ""}\n\nTENDANCE DU MARCHÉ (12 MOIS)\n${editableResult.tendance_12_mois || ""}\n\nRECOMMANDATION DE PRIX\nPrix recommandé : ${fmt(editableResult.recommandation_prix)} €\n${editableResult.argumentaire_prix || ""}\n\nMÉTHODE D'ESTIMATION\n${editableResult.methode_estimation || ""}\n\nCONCLUSION\n${editableResult.conclusion || ""}`;
     try {
-      await exportTextToDocx(
-        content,
+      await exportEstimationDocx(
+        {
+          form,
+          result: editableResult,
+          dvf: dvfData,
+          insee: inseeData,
+          agent: {
+            nom: user?.user_metadata?.full_name,
+            agence: user?.user_metadata?.agency_name,
+          },
+        },
         `Estimation_${form.adresse.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30)}.docx`,
-        { title: "Rapport d'estimation immobilière", subtitle: form.adresse }
       );
       toast.success(lang === "fr" ? "Rapport Word téléchargé" : "Word report downloaded");
     } catch (e: any) {
+      console.error(e);
       toast.error(e.message || "Erreur d'export");
     }
   };
