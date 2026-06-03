@@ -392,6 +392,43 @@ const EstimationIA = () => {
               </CardContent>
             </Card>
 
+            {inseeData?.evolution_3_ans?.length > 0 && (
+              <Card className="bg-card/60 border-border/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    {lang === "fr" ? "Tendance Notaires-INSEE" : "Notaires-INSEE Trend"}
+                    <Badge variant="outline" className="text-[9px] ml-auto">
+                      {inseeData.live ? "Live INSEE" : "Indice publié"}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <span className={`text-xl font-bold ${inseeData.variation_3_ans_pct >= 0 ? "text-success" : "text-destructive"}`}>
+                      {inseeData.variation_3_ans_pct >= 0 ? "+" : ""}{inseeData.variation_3_ans_pct}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {lang === "fr" ? "sur la période" : "over period"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {inseeData.evolution_3_ans.map((e: any) => (
+                      <div key={e.annee} className="bg-muted/10 rounded p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">{e.annee}</p>
+                        <p className="text-xs font-semibold">{e.indice}</p>
+                        <p className={`text-[10px] ${e.variation_pct >= 0 ? "text-success" : "text-destructive"}`}>
+                          {e.variation_pct >= 0 ? "+" : ""}{e.variation_pct}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic mt-2">{inseeData.source}</p>
+                </CardContent>
+              </Card>
+            )}
+
+
             {[
               { key: "analyse_marche", title: lang === "fr" ? "Analyse du marché local" : "Local Market Analysis", icon: BarChart3 },
               { key: "comparaison_quartier", title: lang === "fr" ? "Comparaison quartier" : "Neighborhood Comparison", icon: MapPin },
