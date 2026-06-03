@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { exportTextToDocx } from "@/lib/docx-export";
+import { exportEstimationDocx } from "@/lib/estimation-docx";
 import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import { preloadRoute } from "@/lib/routeLoader";
