@@ -38,6 +38,7 @@ const EstimationIA = () => {
   const [editableResult, setEditableResult] = useState<any>(null);
   const [dvfData, setDvfData] = useState<any>(null);
   const [loadingDvf, setLoadingDvf] = useState(false);
+  const [inseeData, setInseeData] = useState<any>(null);
   const [form, setForm] = useState({
     adresse: "", surface: "", pieces: "", etage: "", etat: "bon",
     dpe: "", annee_construction: "", parking: false, cave: false, balcon: false,
@@ -57,16 +58,25 @@ const EstimationIA = () => {
     setShowValidation(false);
     setLoading(true);
     setDvfData(null);
+    setInseeData(null);
     setLoadingDvf(true);
 
-    // Lance l'estimation IA et la requête DVF en parallèle
+    // Lance l'estimation IA, la requête DVF et l'INSEE en parallèle
     const dvfPromise = supabase.functions
       .invoke("dvf-lookup", {
         body: { adresse: form.adresse, surface: form.surface ? Number(form.surface) : undefined, type_bien: form.type_bien },
       })
-      .then(({ data }) => { setDvfData(data); })
-      .catch((err) => { console.error("DVF lookup failed", err); })
+      .then(({ data }) => { setDvfData(data); return data; })
+      .catch((err) => { console.error("DVF lookup failed", err); return null; })
       .finally(() => setLoadingDvf(false));
+
+    dvfPromise.then((dvf) => {
+      const codeDept = dvf?.code_postal ? String(dvf.code_postal).slice(0, 2) : "";
+      supabase.functions
+        .invoke("prix-marche-insee", { body: { code_departement: codeDept, commune: dvf?.ville } })
+        .then(({ data }) => setInseeData(data))
+        .catch((err) => console.error("INSEE lookup failed", err));
+    });
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-estimation", {
