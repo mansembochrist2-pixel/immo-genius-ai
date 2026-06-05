@@ -519,6 +519,7 @@ const EstimationIA = () => {
                 <BarChart3 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Analyser la Rentabilité & Valorisation" : "Analyze Rentability & Valuation"}
               </Button>
               <Button variant="outline" className="flex-1 min-w-[160px]" onClick={downloadWord}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger en Word" : "Download as Word"}</Button>
+              <Button variant="outline" className="flex-1 min-w-[160px]" onClick={sauvegarderEstimation}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
               <Button variant="default" className="flex-1 min-w-[160px] bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => {
                 sessionStorage.setItem("annonce_prefill", JSON.stringify({
                   adresse: form.adresse,
