@@ -15,17 +15,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "stripe-signature, content-type",
 };
 
+// Plan unique "ImmoGenius Pro" + variante "founder" (tarif à vie). Même quota IA.
 const PLAN_QUOTA: Record<string, number> = {
-  starter: 50,
-  pro: 150,
-  expert: 500,
+  pro: 120,
+  founder: 120,
 };
 
-// Map a Stripe price → plan code. Update this when you add Pro / Expert prices.
-function planFromPriceId(priceId?: string | null): "starter" | "pro" | "expert" {
-  if (!priceId) return "starter";
-  // For now there is a single launch price → Pro plan.
-  if (priceId === "price_1T0XIyRzj9nL3WboPqZRun7R") return "pro";
+const PRICE_PRO = "price_1Tf2FPRzj9nL3WboOW5Ct37a";
+const PRICE_FOUNDER = "price_1Tf2GYRzj9nL3Wbo9S7kmoA2";
+
+// Map a Stripe price → plan code.
+function planFromPriceId(priceId?: string | null): "pro" | "founder" {
+  if (priceId === PRICE_FOUNDER) return "founder";
   return "pro";
 }
 
