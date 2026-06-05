@@ -186,6 +186,40 @@ export default function Expertise() {
     });
   };
 
+  const queryClient = useQueryClient();
+
+  const sauvegarderRapport = async () => {
+    if (!user || !inputs.adresse) {
+      toast.error("Adresse requise pour sauvegarder");
+      return;
+    }
+    try {
+      const { error } = await supabase.from("expertise_reports").insert({
+        user_id: user.id,
+        adresse: inputs.adresse,
+        type_bien: inputs.type_bien,
+        objectif_client: inputs.type_location || null,
+        titre: inputs.adresse,
+        inputs: inputs as any,
+        results: results as any,
+        narrative: (narrative || {}) as any,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["saved-expertises-panel", user.id] });
+      toast.success("Expertise sauvegardée", {
+        action: { label: "Voir", onClick: () => navigate("/sauvegardes") },
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Erreur de sauvegarde");
+    }
+  };
+
+  const loadSavedExpertise = (row: any) => {
+    if (row.inputs) setInputs((prev) => ({ ...prev, ...row.inputs }));
+    if (row.narrative && Object.keys(row.narrative).length) setNarrative(row.narrative);
+    toast.success("Expertise chargée");
+  };
+
   const NarrativeBlock = ({
     label, value, onChange,
   }: { label: string; value: string; onChange: (v: string) => void }) => (
@@ -202,14 +236,29 @@ export default function Expertise() {
   return (
     <AppLayout>
       <div className="page-header">
-        <h1 className="page-title flex items-center gap-3">
-          <TrendingUp className="h-7 w-7 text-primary" />
-          <span className="gradient-text">Valorisation</span>
-        </h1>
-        <p className="page-subtitle">
-          Analyse financière complète : rentabilité, simulation post-rénovation, plus-value, cash-flow.
-        </p>
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="page-title flex items-center gap-3">
+              <TrendingUp className="h-7 w-7 text-primary" />
+              <span className="gradient-text">Valorisation</span>
+            </h1>
+            <p className="page-subtitle">
+              Analyse financière complète : rentabilité, simulation post-rénovation, plus-value, cash-flow.
+            </p>
+          </div>
+          <SavedItemsPanel
+            title="Mes expertises"
+            table="expertise_reports"
+            queryKey="saved-expertises-panel"
+            userId={user?.id}
+            defaultTitle={(r: any) => r.adresse || "Expertise"}
+            subtitle={(r: any) => `${r.type_bien || "—"} · ${new Date(r.created_at).toLocaleDateString("fr-FR")}`}
+            onLoad={loadSavedExpertise}
+            triggerLabel="Mes expertises"
+          />
+        </div>
       </div>
+
 
       <ValorisationTabs current="expertise" />
 
