@@ -604,10 +604,14 @@ export default function Expertise() {
                     <div className="flex flex-wrap gap-2 pt-2">
                       <Button onClick={downloadPDF} className="flex-1 min-w-[140px]"><FileDown className="h-4 w-4 mr-2" /> Export PDF</Button>
                       <Button variant="secondary" onClick={downloadDocx} className="flex-1 min-w-[140px]"><Download className="h-4 w-4 mr-2" /> Export Word</Button>
+                      <Button variant="outline" onClick={sauvegarderRapport}>
+                        <Save className="h-4 w-4 mr-2" /> Sauvegarder
+                      </Button>
                       <Button variant="ghost" onClick={genererRapport} disabled={loadingNarrative}>
                         <Sparkles className="h-4 w-4 mr-2" /> Régénérer
                       </Button>
                     </div>
+
                   </>
                 )}
               </CardContent>
