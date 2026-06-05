@@ -137,34 +137,59 @@ serve(async (req) => {
     const dvfJson = await dvfRes.json();
     const allMutations: any[] = dvfJson.mutations || [];
 
-    // Filtres
-    const eighteenMonthsAgo = new Date();
-    eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18);
+    // Filtres avec fallback progressif : on élargit la fenêtre si pas assez de ventes
     const targetType = type_bien === "maison" ? "Maison" : "Appartement";
 
-    const filtered = allMutations
-      .map(m => ({
-        date_mutation: m.date_mutation,
-        valeur_fonciere: parseFloat(norm(m.valeur_fonciere) || "0"),
-        type_local: norm(m.type_local),
-        surface_reelle_bati: parseFloat(norm(m.surface_reelle_bati) || "0"),
-        nombre_pieces_principales: norm(m.nombre_pieces_principales),
-        adresse_numero: norm(m.adresse_numero),
-        adresse_nom_voie: norm(m.adresse_nom_voie),
-        code_postal: norm(m.code_postal),
-        nom_commune: norm(m.nom_commune),
-        lat: norm(m.lat) != null ? parseFloat(m.lat) : null,
-        lon: norm(m.lon) != null ? parseFloat(m.lon) : null,
-      }))
-      .filter(m => {
-        if (!m.valeur_fonciere || !m.surface_reelle_bati || m.surface_reelle_bati < 9) return false;
-        if (new Date(m.date_mutation) < eighteenMonthsAgo) return false;
-        if (m.type_local !== targetType) return false;
-        if (surface && Math.abs(m.surface_reelle_bati - surface) / surface > 0.5) return false;
-        return true;
-      })
-      .map(m => ({ ...m, prix_m2: Math.round(m.valeur_fonciere / m.surface_reelle_bati) }))
-      .sort((a, b) => new Date(b.date_mutation).getTime() - new Date(a.date_mutation).getTime());
+    const baseFilter = (m: any) =>
+      m.valeur_fonciere &&
+      m.surface_reelle_bati &&
+      m.surface_reelle_bati >= 9 &&
+      m.type_local === targetType;
+
+    const normalized = allMutations.map(m => ({
+      date_mutation: m.date_mutation,
+      valeur_fonciere: parseFloat(norm(m.valeur_fonciere) || "0"),
+      type_local: norm(m.type_local),
+      surface_reelle_bati: parseFloat(norm(m.surface_reelle_bati) || "0"),
+      nombre_pieces_principales: norm(m.nombre_pieces_principales),
+      adresse_numero: norm(m.adresse_numero),
+      adresse_nom_voie: norm(m.adresse_nom_voie),
+      code_postal: norm(m.code_postal),
+      nom_commune: norm(m.nom_commune),
+      lat: norm(m.lat) != null ? parseFloat(m.lat) : null,
+      lon: norm(m.lon) != null ? parseFloat(m.lon) : null,
+    }));
+
+    // Stratégie de fallback : 18m → 36m → 60m → toutes années, et surface stricte → large → ignorée
+    const windows = [18, 36, 60, 240];
+    const surfaceTolerances = surface ? [0.5, 1.0, null] : [null];
+    let filtered: any[] = [];
+    let fenetreUtilisee = 0;
+    let toleranceSurfaceUtilisee: number | null = null;
+
+    outer: for (const months of windows) {
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - months);
+      for (const tol of surfaceTolerances) {
+        const candidate = normalized
+          .filter(m => baseFilter(m) && new Date(m.date_mutation) >= cutoff)
+          .filter(m => tol == null || !surface || Math.abs(m.surface_reelle_bati - surface) / surface <= tol)
+          .map(m => ({ ...m, prix_m2: Math.round(m.valeur_fonciere / m.surface_reelle_bati) }))
+          .sort((a, b) => new Date(b.date_mutation).getTime() - new Date(a.date_mutation).getTime());
+        if (candidate.length >= 3) {
+          filtered = candidate;
+          fenetreUtilisee = months;
+          toleranceSurfaceUtilisee = tol;
+          break outer;
+        }
+        if (candidate.length > filtered.length) {
+          filtered = candidate;
+          fenetreUtilisee = months;
+          toleranceSurfaceUtilisee = tol;
+        }
+      }
+    }
+
 
     const top3 = filtered.slice(0, 3);
     const prixM2List = filtered.map(f => f.prix_m2).sort((a, b) => a - b);
@@ -208,9 +233,17 @@ serve(async (req) => {
       prix_m2_median: median,
       tension_marche: tension,
       volume_12_mois: totalSales12m,
+      fenetre_recherche_mois: fenetreUtilisee,
+      tolerance_surface: toleranceSurfaceUtilisee,
+      message: filtered.length === 0
+        ? `Aucune vente comparable trouvée même sur ${fenetreUtilisee} mois — secteur très peu transactionnel.`
+        : fenetreUtilisee > 18
+          ? `Données récentes limitées : analyse étendue sur ${fenetreUtilisee} mois pour fournir des comparables fiables.`
+          : null,
       dpe_degrades: dpeStats,
       date_extraction: new Date().toISOString(),
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   } catch (e) {
     console.error("dvf-lookup error:", e);
     return new Response(JSON.stringify({
