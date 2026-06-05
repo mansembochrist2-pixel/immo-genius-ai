@@ -77,8 +77,8 @@ serve(async (req) => {
     }
   }
 
-  async function applyPlan(userId: string, plan: "starter" | "pro" | "expert") {
-    const quota = PLAN_QUOTA[plan];
+  async function applyPlan(userId: string, plan: "pro" | "founder" | "free") {
+    const quota = PLAN_QUOTA[plan] ?? 0;
     const resetAt = new Date();
     resetAt.setUTCMonth(resetAt.getUTCMonth() + 1, 1);
     resetAt.setUTCHours(0, 0, 0, 0);
@@ -98,7 +98,10 @@ serve(async (req) => {
       case "checkout.session.completed": {
         const s = event.data.object as Stripe.Checkout.Session;
         const userId = await resolveUserId(s.customer as string, (s.metadata?.supabase_user_id ?? s.client_reference_id) as string | null);
-        if (userId) await applyPlan(userId, "pro");
+        if (userId) {
+          const variant = (s.metadata?.variant === "founder") ? "founder" : "pro";
+          await applyPlan(userId, variant);
+        }
         break;
       }
       case "customer.subscription.created":
@@ -111,14 +114,14 @@ serve(async (req) => {
           const priceId = sub.items?.data?.[0]?.price?.id;
           await applyPlan(userId, planFromPriceId(priceId));
         } else {
-          await applyPlan(userId, "starter");
+          await applyPlan(userId, "free");
         }
         break;
       }
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
         const userId = await resolveUserId(sub.customer as string, sub.metadata?.supabase_user_id ?? null);
-        if (userId) await applyPlan(userId, "starter");
+        if (userId) await applyPlan(userId, "free");
         break;
       }
       default:
