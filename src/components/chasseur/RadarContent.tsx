@@ -219,6 +219,24 @@ export const RadarContent = () => {
       } as any);
       setRefreshKey((k) => k + 1);
       toast({ title: "Analyse terminée", description: "Zone enregistrée dans tes opportunités." });
+
+      // --- Veille DPE : interroge ADEME pour les F/G + détection nouveautés ---
+      try {
+        const { data: dpeData, error: dpeErr } = await supabase.functions.invoke("dpe-signals", {
+          body: { adresse, prix_m2_median: a.dvf_raw?.prix_m2_median },
+        });
+        if (!dpeErr && dpeData && Array.isArray(dpeData.items)) {
+          setAnalyse((prev) => prev ? { ...prev, dpe_signals: dpeData as DpeSignalsPayload } : prev);
+          if (dpeData.new_items?.length > 0) {
+            toast({
+              title: `${dpeData.new_items.length} nouveau${dpeData.new_items.length > 1 ? "x" : ""} signal vendeur DPE`,
+              description: "De nouveaux biens classés F ou G sont apparus sur ta zone.",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("dpe-signals failed:", e);
+      }
     } catch (e: any) {
       console.error(e);
       toast({ title: "Analyse impossible", description: e?.message || "Le service IA est temporairement indisponible.", variant: "destructive" });
