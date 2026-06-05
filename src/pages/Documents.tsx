@@ -305,16 +305,46 @@ const Studio = () => {
       const { error } = await supabase.from("annonces").insert({
         user_id: user.id, adresse: annonceForm.adresse, prix: annonceForm.prix ? Number(annonceForm.prix) : null,
         surface: annonceForm.surface ? Number(annonceForm.surface) : null, description: annonceForm.description,
+        titre: annonce?.titre_accrocheur || annonceForm.adresse,
         contenu_genere: { ...merged, format_principal: formatChoisi, contenu_principal: contenuPrincipal, style_ton: annonceForm.style },
       });
       if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["saved-annonces-panel", user?.id] });
       toast.success(lang === "fr" ? `Annonce sauvegardée (${formatChoisi})` : `Listing saved (${formatChoisi})`, {
-        action: { label: lang === "fr" ? "Voir" : "View", onClick: () => window.location.assign("/sauvegardes") },
+        action: { label: lang === "fr" ? "Voir" : "View", onClick: () => navigate("/sauvegardes") },
       });
     } catch (err: any) {
       toast.error(err.message || "Erreur de sauvegarde");
     }
   };
+
+  const loadSavedAnnonce = (row: any) => {
+    const cg = row.contenu_genere || {};
+    setAnnonceForm({
+      adresse: row.adresse || "",
+      prix: row.prix != null ? String(row.prix) : "",
+      surface: row.surface != null ? String(row.surface) : "",
+      description: row.description || "",
+      style: cg.style_ton || "professionnel",
+    });
+    setAnnonce({
+      titre_accrocheur: row.titre || cg.titre_accrocheur,
+      version_courte: cg.version_courte || "",
+      version_longue: cg.version_longue || "",
+      version_premium: cg.version_premium || "",
+      phrases_accroche: cg.phrases_accroche || [],
+      hashtags: cg.hashtags || [],
+    });
+    setEditableAnnonce({
+      version_courte: cg.version_courte || "",
+      version_longue: cg.version_longue || "",
+      version_premium: cg.version_premium || "",
+    });
+    if (cg.format_principal) setActiveAnnonceFormat(cg.format_principal);
+    setActiveTab("annonces");
+    toast.success(lang === "fr" ? "Annonce chargée" : "Listing loaded");
+  };
+
 
 
 
