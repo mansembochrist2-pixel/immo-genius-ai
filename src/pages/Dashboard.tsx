@@ -129,8 +129,8 @@ const Dashboard = () => {
             module="Actions recommandées"
             context="analyse de vos modules actifs"
             messages={[
-              "Lecture de votre vivier de piges enregistrées…",
-              "Croisement avec les opportunités du Radar…",
+              "Lecture des zones Radar enregistrées…",
+              "Croisement avec vos estimations et annonces…",
               "Pondération par score de pertinence métier…",
               "Identification des priorités à fort impact…",
               "Rédaction des actions stratégiques personnalisées…",
