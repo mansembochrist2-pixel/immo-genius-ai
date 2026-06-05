@@ -103,6 +103,7 @@ export type Database = {
           resultat: Json | null
           secteur: string | null
           sources_utilisees: string[] | null
+          titre: string | null
           user_id: string
         }
         Insert: {
@@ -112,6 +113,7 @@ export type Database = {
           resultat?: Json | null
           secteur?: string | null
           sources_utilisees?: string[] | null
+          titre?: string | null
           user_id: string
         }
         Update: {
@@ -121,6 +123,7 @@ export type Database = {
           resultat?: Json | null
           secteur?: string | null
           sources_utilisees?: string[] | null
+          titre?: string | null
           user_id?: string
         }
         Relationships: []
@@ -134,6 +137,7 @@ export type Database = {
           id: string
           prix: number | null
           surface: number | null
+          titre: string | null
           user_id: string
         }
         Insert: {
@@ -144,6 +148,7 @@ export type Database = {
           id?: string
           prix?: number | null
           surface?: number | null
+          titre?: string | null
           user_id: string
         }
         Update: {
@@ -154,6 +159,7 @@ export type Database = {
           id?: string
           prix?: number | null
           surface?: number | null
+          titre?: string | null
           user_id?: string
         }
         Relationships: []
@@ -341,6 +347,7 @@ export type Database = {
           narrative: Json
           objectif_client: string | null
           results: Json
+          titre: string | null
           type_bien: string | null
           updated_at: string
           user_id: string
@@ -353,6 +360,7 @@ export type Database = {
           narrative?: Json
           objectif_client?: string | null
           results?: Json
+          titre?: string | null
           type_bien?: string | null
           updated_at?: string
           user_id: string
@@ -365,7 +373,41 @@ export type Database = {
           narrative?: Json
           objectif_client?: string | null
           results?: Json
+          titre?: string | null
           type_bien?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mandats: {
+        Row: {
+          contenu: string
+          created_at: string
+          id: string
+          informations: string | null
+          titre: string | null
+          type_mandat: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contenu: string
+          created_at?: string
+          id?: string
+          informations?: string | null
+          titre?: string | null
+          type_mandat: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contenu?: string
+          created_at?: string
+          id?: string
+          informations?: string | null
+          titre?: string | null
+          type_mandat?: string
           updated_at?: string
           user_id?: string
         }
@@ -381,6 +423,7 @@ export type Database = {
           sources: Json | null
           statut: string | null
           titre: string
+          titre_custom: string | null
           type: string
           updated_at: string
           user_id: string
@@ -395,6 +438,7 @@ export type Database = {
           sources?: Json | null
           statut?: string | null
           titre: string
+          titre_custom?: string | null
           type?: string
           updated_at?: string
           user_id: string
@@ -409,6 +453,7 @@ export type Database = {
           sources?: Json | null
           statut?: string | null
           titre?: string
+          titre_custom?: string | null
           type?: string
           updated_at?: string
           user_id?: string
