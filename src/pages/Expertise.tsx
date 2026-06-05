@@ -34,6 +34,9 @@ import { PremiumKpis } from "@/components/valorisation/PremiumKpis";
 import { ConseilStrategique } from "@/components/valorisation/ConseilStrategique";
 import { StrategeIA } from "@/components/valorisation/StrategeIA";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
+import { SavedItemsPanel } from "@/components/SavedItemsPanel";
+import { useQueryClient } from "@tanstack/react-query";
+import { Save } from "lucide-react";
 
 const fmtEur = (n?: number) =>
   n == null || isNaN(n) ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`;
