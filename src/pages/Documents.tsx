@@ -91,6 +91,7 @@ const Studio = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
 
 
