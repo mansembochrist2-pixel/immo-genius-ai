@@ -29,6 +29,8 @@ import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import { preloadRoute } from "@/lib/routeLoader";
 import { Bot } from "lucide-react";
+import { SavedItemsPanel } from "@/components/SavedItemsPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 const EstimationIA = () => {
   const { user } = useAuth();
