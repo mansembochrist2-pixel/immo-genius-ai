@@ -360,15 +360,20 @@ const AnalyseView = ({ analyse, adresseSource, onClose }: { analyse: Analyse; ad
   return (
     <Card className="border-primary/30">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            {analyse.niveau_global || "Analyse de zone"}
+        <CardTitle className="flex items-center justify-between text-base gap-3">
+          <span className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">{analyse.niveau_global || "Analyse de zone"}</span>
             <InfoBadge text={EXPLAINERS.niveau_global} />
           </span>
-          {analyse.fraicheur_donnees && (
-            <Badge variant="outline" className="text-[10px]">{analyse.fraicheur_donnees}</Badge>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {analyse.fraicheur_donnees && (
+              <Badge variant="outline" className="text-[10px]">{analyse.fraicheur_donnees}</Badge>
+            )}
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClose} title="Fermer l'analyse">
+              <CloseIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
