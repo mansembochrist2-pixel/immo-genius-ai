@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings as SettingsIcon, User, Download, Shield, Trash2, Loader2, CreditCard, Sparkles, ExternalLink } from "lucide-react";
+import { Settings as SettingsIcon, User, Download, Shield, Trash2, Loader2, CreditCard, Sparkles, ExternalLink, FileText, BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -119,6 +120,7 @@ const Settings = () => {
           <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" /> {t("settings.profile")}</TabsTrigger>
           <TabsTrigger value="billing" className="gap-2"><CreditCard className="h-4 w-4" /> {lang === "fr" ? "Abonnement" : "Billing"}</TabsTrigger>
           <TabsTrigger value="rgpd" className="gap-2"><Shield className="h-4 w-4" /> {t("settings.rgpd")}</TabsTrigger>
+          <TabsTrigger value="legal" className="gap-2"><FileText className="h-4 w-4" /> {lang === "fr" ? "Légal" : "Legal"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -237,6 +239,35 @@ const Settings = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="legal">
+          <div className="space-y-3 max-w-lg">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-sans font-semibold flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-accent" /> {lang === "fr" ? "Documents légaux" : "Legal documents"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[
+                  { to: "/mentions-legales", label: lang === "fr" ? "Mentions légales" : "Legal notice" },
+                  { to: "/politique-confidentialite", label: lang === "fr" ? "Politique de confidentialité" : "Privacy policy" },
+                  { to: "/cgu", label: lang === "fr" ? "Conditions générales d'utilisation" : "Terms of use" },
+                  { to: "/legal", label: lang === "fr" ? "Centre RGPD" : "GDPR center" },
+                ].map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="flex items-center justify-between rounded-lg border border-border/40 bg-card/40 px-3 py-2.5 text-sm hover:border-primary/40 hover:text-primary transition-colors"
+                  >
+                    <span>{link.label}</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Link>
+                ))}
               </CardContent>
             </Card>
           </div>

@@ -12,9 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import {
-  MapPin, TrendingUp, AlertTriangle, Sparkles, Target, ArrowRight,
+  MapPin, TrendingUp, AlertTriangle, Sparkles, Target, X as CloseIcon,
   Radar as RadarIcon, Trash2, Play, Building2, Flame, Info, Mail,
-  Printer, Copy, Loader2, CheckCircle2, XCircle,
+  Printer, Copy, Loader2, CheckCircle2, XCircle, Search, Pencil,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
@@ -145,6 +145,7 @@ export const RadarContent = () => {
   const [analyse, setAnalyse] = useState<Analyse | null>(null);
   const [opportunites, setOpportunites] = useState<OpportuniteRow[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchSaved, setSearchSaved] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -154,7 +155,7 @@ export const RadarContent = () => {
         .select("id, titre, zone, score, statut, created_at, donnees")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
       if (!error && data) setOpportunites(data as OpportuniteRow[]);
     })();
   }, [user, refreshKey]);
@@ -170,8 +171,7 @@ export const RadarContent = () => {
       const previous = opportunites.find((o) => (o.zone || "").toLowerCase() === adresse.trim().toLowerCase());
       const { data, error } = await supabase.functions.invoke("analyze-zone", {
         body: {
-          adresse,
-          secteur,
+          adresse, secteur,
           previousAnalysis: previous?.donnees?.analyse ?? null,
           previousDate: previous?.created_at ?? null,
         },
@@ -195,11 +195,7 @@ export const RadarContent = () => {
       toast({ title: "Analyse terminée", description: "Zone enregistrée dans tes opportunités." });
     } catch (e: any) {
       console.error(e);
-      toast({
-        title: "Analyse impossible",
-        description: e?.message || "Le service IA est temporairement indisponible.",
-        variant: "destructive",
-      });
+      toast({ title: "Analyse impossible", description: e?.message || "Le service IA est temporairement indisponible.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -210,35 +206,29 @@ export const RadarContent = () => {
     setRefreshKey((k) => k + 1);
   };
 
-  const envoyerEnEstimation = (opp: OpportuniteRow) => {
-    sessionStorage.setItem(
-      "estimation_prefill_from_radar",
-      JSON.stringify({ adresse: opp.zone, titre: opp.titre }),
-    );
-    navigate("/valorisation");
+  const renommer = async (id: string, titre: string) => {
+    await supabase.from("opportunites").update({ titre }).eq("id", id);
+    setRefreshKey((k) => k + 1);
   };
+
+  const filteredOpps = opportunites.filter((o) => {
+    if (!searchSaved.trim()) return true;
+    const q = searchSaved.toLowerCase();
+    return (o.titre || "").toLowerCase().includes(q) || (o.zone || "").toLowerCase().includes(q);
+  });
 
   return (
     <TooltipProvider delayDuration={150}>
       <div className="space-y-6">
-        {/* Input bar */}
         <Card className="border-primary/20">
           <CardContent className="pt-6 space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RadarIcon className="h-4 w-4 text-primary" />
-              Analyse stratégique d'une zone de prospection
+              <RadarIcon className="h-4 w-4 text-primary" /> Analyse stratégique d'une zone de prospection
             </div>
             <div className="grid md:grid-cols-[2fr_1fr_auto] gap-3">
               <AddressAutocomplete value={adresse} onChange={setAdresse} placeholder="Adresse, quartier, ville..." />
-              <Input
-                placeholder="Cible (ex : appartements, maisons…)"
-                value={secteur}
-                onChange={(e) => setSecteur(e.target.value)}
-                disabled={loading}
-              />
-              <Button onClick={lancerAnalyse} disabled={loading} className="gap-2">
-                <Sparkles className="h-4 w-4" /> Analyser
-              </Button>
+              <Input placeholder="Cible (ex : appartements, maisons…)" value={secteur} onChange={(e) => setSecteur(e.target.value)} disabled={loading} />
+              <Button onClick={lancerAnalyse} disabled={loading} className="gap-2"><Sparkles className="h-4 w-4" /> Analyser</Button>
             </div>
           </CardContent>
         </Card>
@@ -257,33 +247,42 @@ export const RadarContent = () => {
           />
         )}
 
-        {analyse && !loading && <AnalyseView analyse={analyse} adresseSource={adresse} />}
+        {analyse && !loading && (
+          <AnalyseView analyse={analyse} adresseSource={adresse} onClose={() => setAnalyse(null)} />
+        )}
 
-        {/* Historique */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Target className="h-4 w-4 text-primary" /> Opportunités sauvegardées
-            </CardTitle>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Target className="h-4 w-4 text-primary" /> Zones sauvegardées
+              </CardTitle>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher une zone…"
+                  value={searchSaved}
+                  onChange={(e) => setSearchSaved(e.target.value)}
+                  className="pl-8 h-8 text-xs"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {opportunites.length === 0 ? (
               <p className="text-sm text-muted-foreground">Aucune analyse pour l'instant. Lance ta première analyse de zone ci-dessus.</p>
+            ) : filteredOpps.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun résultat pour « {searchSaved} ».</p>
             ) : (
               <div className="grid gap-3">
-                {opportunites.map((opp) => (
-                  <div
-                    key={opp.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border/70 hover:border-primary/30 bg-surface-1/40"
-                  >
+                {filteredOpps.map((opp) => (
+                  <div key={opp.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border/70 hover:border-primary/30 bg-surface-1/40">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
                         <p className="text-sm font-medium truncate">{opp.titre}</p>
                         {opp.score != null && (
-                          <Badge variant="outline" className={`ml-auto ${goodScoreColor(opp.score)}`}>
-                            {opp.score}/100
-                          </Badge>
+                          <Badge variant="outline" className={`ml-auto ${goodScoreColor(opp.score)}`}>{opp.score}/100</Badge>
                         )}
                       </div>
                       {opp.donnees?.analyse?.strategie && (
@@ -291,15 +290,37 @@ export const RadarContent = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button size="sm" variant="ghost" onClick={() => setAnalyse(opp.donnees?.analyse)} title="Rouvrir">
-                        <Play className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => envoyerEnEstimation(opp)} title="Lancer une estimation sur cette zone">
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => supprimer(opp.id)} title="Supprimer">
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="ghost" onClick={() => setAnalyse(opp.donnees?.analyse)}>
+                            <Play className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Rouvrir l'analyse</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              const t = prompt("Nouveau titre :", opp.titre);
+                              if (t && t.trim()) renommer(opp.id, t.trim());
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Renommer</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="ghost" onClick={() => supprimer(opp.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Supprimer</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 ))}
@@ -314,7 +335,7 @@ export const RadarContent = () => {
 
 // =========================================================================
 
-const AnalyseView = ({ analyse, adresseSource }: { analyse: Analyse; adresseSource: string }) => {
+const AnalyseView = ({ analyse, adresseSource, onClose }: { analyse: Analyse; adresseSource: string; onClose: () => void }) => {
   const opp = analyse.score_opportunite ?? 0;
   const risk = analyse.score_risque ?? 0;
   const isOpportunity = analyse.classification === "opportunite";
@@ -339,15 +360,20 @@ const AnalyseView = ({ analyse, adresseSource }: { analyse: Analyse; adresseSour
   return (
     <Card className="border-primary/30">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            {analyse.niveau_global || "Analyse de zone"}
+        <CardTitle className="flex items-center justify-between text-base gap-3">
+          <span className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <span className="truncate">{analyse.niveau_global || "Analyse de zone"}</span>
             <InfoBadge text={EXPLAINERS.niveau_global} />
           </span>
-          {analyse.fraicheur_donnees && (
-            <Badge variant="outline" className="text-[10px]">{analyse.fraicheur_donnees}</Badge>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {analyse.fraicheur_donnees && (
+              <Badge variant="outline" className="text-[10px]">{analyse.fraicheur_donnees}</Badge>
+            )}
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClose} title="Fermer l'analyse">
+              <CloseIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

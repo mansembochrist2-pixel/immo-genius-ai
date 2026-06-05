@@ -1,12 +1,24 @@
-import { ReactNode } from "react";
+import { ReactNode, createContext, useContext } from "react";
+import { Outlet } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import { Building2 } from "lucide-react";
 
-export const AppLayout = ({ children }: { children: ReactNode }) => {
-  return (
+/**
+ * AppLayout — stable shell that wraps every authenticated route.
+ *
+ * Mounted ONCE as a layout route in App.tsx via <Route element={<AppLayout/>}>.
+ * Pages may still wrap themselves in <AppLayout>{...}</AppLayout> for backwards
+ * compatibility: in that case we detect the existing shell via context and just
+ * pass children through, so the sidebar/header are not remounted on every
+ * navigation (which used to cause a visible double-flash between modules).
+ */
+const LayoutMountedContext = createContext(false);
+
+const Shell = ({ children }: { children: ReactNode }) => (
+  <LayoutMountedContext.Provider value={true}>
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background text-foreground relative">
         <div className="scene-grid" />
@@ -24,12 +36,21 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               </div>
             </div>
           </header>
-          <div key={typeof window !== "undefined" ? window.location.pathname : "page"} className="flex-1 p-6 lg:p-8 relative animate-page-in">
+          <div className="flex-1 p-6 lg:p-8 relative">
             {children}
           </div>
-
         </main>
       </div>
     </SidebarProvider>
-  );
+  </LayoutMountedContext.Provider>
+);
+
+export const AppLayout = ({ children }: { children?: ReactNode }) => {
+  const alreadyMounted = useContext(LayoutMountedContext);
+  // Used as a layout route: render Outlet inside the shell
+  if (!children) return <Shell><Outlet /></Shell>;
+  // Used as a wrapper inside a page: if the shell is already mounted by the
+  // layout route, just pass children through. Otherwise mount the shell.
+  if (alreadyMounted) return <>{children}</>;
+  return <Shell>{children}</Shell>;
 };
