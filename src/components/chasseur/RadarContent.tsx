@@ -878,3 +878,116 @@ const StrategicBlock = ({ title, content }: { title: string; content: string }) 
     <p className="text-sm leading-relaxed">{content}</p>
   </div>
 );
+
+// =========================================================================
+// Widget : Veille DPE — biens F/G du secteur + nouveaux depuis la dernière visite
+// =========================================================================
+const DpeSignalsWidget = ({
+  signals,
+  onCourrier,
+}: {
+  signals: DpeSignalsPayload;
+  onCourrier: (adresse: string) => void;
+}) => {
+  const [showAll, setShowAll] = useState(false);
+  const fmtDate = (d?: string) => {
+    if (!d) return "—";
+    try { return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }); }
+    catch { return d; }
+  };
+  const fmtEuro = (v?: number | null) =>
+    v == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+
+  const newItems = signals.new_items || [];
+  const allItems = signals.items || [];
+  const displayed = showAll ? allItems : (newItems.length > 0 ? newItems : allItems.slice(0, 5));
+  const isFirstVisit = !signals.previous_snapshot_date;
+
+  if (allItems.length === 0) {
+    return (
+      <div className="p-3 rounded-lg border border-border/70 bg-surface-1/40">
+        <div className="flex items-center gap-2 text-sm">
+          <Flame className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium">Veille DPE</span>
+          <Badge variant="outline" className="ml-auto text-[10px]">{signals.derniere_maj_source}</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Aucun bien classé F ou G recensé sur le code postal {signals.code_postal} dans la base ADEME.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+      <div className="flex items-center gap-2 flex-wrap mb-2">
+        <Flame className="h-4 w-4 text-destructive" />
+        <span className="text-sm font-semibold">
+          {isFirstVisit
+            ? `Veille DPE — ${allItems.length} bien${allItems.length > 1 ? "s" : ""} F/G sur ${signals.commune || signals.code_postal}`
+            : newItems.length > 0
+              ? `${newItems.length} nouveau${newItems.length > 1 ? "x" : ""} signal vendeur DPE depuis ${fmtDate(signals.previous_snapshot_date!)}`
+              : `Aucun nouveau DPE F/G depuis ${fmtDate(signals.previous_snapshot_date!)}`}
+        </span>
+        <Badge variant="outline" className="ml-auto text-[10px] border-destructive/40 text-destructive">
+          ADEME · maj {signals.derniere_maj_source}
+        </Badge>
+      </div>
+      <p className="text-[11px] text-muted-foreground mb-3">
+        Source : <a href={signals.url_source} target="_blank" rel="noopener noreferrer" className="underline">{signals.source}</a> ·
+        extraction {fmtDate(signals.date_extraction)}
+      </p>
+
+      <div className="space-y-2">
+        {displayed.map((it) => (
+          <div
+            key={it.id}
+            className={`flex items-center gap-3 p-2.5 rounded border ${it.is_new ? "border-accent/50 bg-accent/5" : "border-border/40 bg-background/60"}`}
+          >
+            <Badge
+              variant="outline"
+              className={`shrink-0 text-[10px] font-semibold ${it.classe === "G" ? "border-destructive/60 text-destructive" : "border-destructive/40 text-destructive/80"}`}
+            >
+              DPE {it.classe}
+            </Badge>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-medium truncate">{it.adresse}</p>
+                {it.is_new && !isFirstVisit && (
+                  <Badge className="text-[9px] bg-accent text-accent-foreground shrink-0">Nouveau</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5 flex-wrap">
+                {it.surface && <span>{Math.round(it.surface)} m²</span>}
+                <span>Diagnostic : {fmtDate(it.date_diagnostic)}</span>
+                {it.valeur_estimee != null && (
+                  <span className="text-foreground">≈ {fmtEuro(it.valeur_estimee)} (estim. DVF)</span>
+                )}
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 text-[11px] shrink-0"
+              onClick={() => onCourrier(it.adresse)}
+            >
+              <Mail className="h-3 w-3" /> Courrier
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      {allItems.length > displayed.length && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-3 w-full text-xs"
+          onClick={() => setShowAll(true)}
+        >
+          Voir les {allItems.length - displayed.length} autres biens F/G du secteur
+        </Button>
+      )}
+    </div>
+  );
+};
+
