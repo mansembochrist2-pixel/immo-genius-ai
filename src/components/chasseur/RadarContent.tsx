@@ -509,6 +509,13 @@ const AnalyseView = ({ analyse, adresseSource, onClose }: { analyse: Analyse; ad
           </div>
         )}
 
+        {/* === Veille DPE : Nouveaux signaux vendeurs F/G depuis la dernière visite === */}
+        {analyse.dpe_signals && (
+          <DpeSignalsWidget signals={analyse.dpe_signals} onCourrier={openCourrier} />
+        )}
+
+
+
         {/* Signaux vendeurs */}
         {analyse.signaux_vendeurs && analyse.signaux_vendeurs.length > 0 && (
           <div className="p-3 rounded-lg border border-primary/20 bg-surface-1/40">
