@@ -645,6 +645,7 @@ const Studio = () => {
                   <div className="flex gap-1 items-center">
                     <Badge variant="outline" className="text-[9px] mr-1">{lang === "fr" ? "Format actif" : "Active"} : {activeAnnonceFormat}</Badge>
                     <Button size="sm" variant="outline" onClick={() => copier(editableAnnonce[`version_${activeAnnonceFormat}`] || annonce[`version_${activeAnnonceFormat}`])} className="gap-1 text-xs"><Copy className="h-3 w-3" /> {t("docs.copy")}</Button>
+                    <Button size="sm" variant="default" onClick={sauvegarderAnnonce} className="gap-1 text-xs"><FileText className="h-3 w-3" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
