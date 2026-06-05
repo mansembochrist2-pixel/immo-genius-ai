@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, LogOut, Settings, Shield,
+  LayoutDashboard, LogOut, Settings,
   TrendingUp, HelpCircle, Radar as RadarIcon, Palette,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -23,9 +23,9 @@ export function AppSidebar() {
     { title: "Studio IA", url: "/studio", icon: Palette, hint: "Génération d'annonces et de mandats.", preload: preloadRoute.studio },
   ];
 
-  const legalItems = [
-    { title: "Légal & RGPD", url: "/legal", icon: Shield },
-  ];
+  // Legal moved to Settings (cleaner sidebar UX)
+
+
 
   return (
     <TooltipProvider delayDuration={300}>
