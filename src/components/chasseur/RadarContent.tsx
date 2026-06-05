@@ -60,6 +60,32 @@ interface Analyse {
   evolution_depuis_derniere?: string;
   dvf_raw?: any;
   dpe_degrades?: { nb_f: number; nb_g: number; sample?: string[]; total_echantillon?: number } | null;
+  dpe_signals?: DpeSignalsPayload | null;
+}
+
+interface DpeSignalItem {
+  id: string;
+  adresse: string;
+  code_postal: string;
+  commune?: string;
+  surface?: number;
+  classe: "F" | "G";
+  date_diagnostic?: string;
+  type_batiment?: string;
+  valeur_estimee?: number | null;
+  is_new?: boolean;
+}
+
+interface DpeSignalsPayload {
+  source: string;
+  url_source: string;
+  derniere_maj_source: string;
+  code_postal: string;
+  commune?: string;
+  items: DpeSignalItem[];
+  new_items: DpeSignalItem[];
+  previous_snapshot_date: string | null;
+  date_extraction: string;
 }
 
 interface OpportuniteRow {
