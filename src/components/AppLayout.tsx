@@ -1,11 +1,25 @@
 import { ReactNode } from "react";
+import { Outlet } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import { Building2 } from "lucide-react";
 
-export const AppLayout = ({ children }: { children: ReactNode }) => {
+/**
+ * AppLayout — stable shell that wraps every authenticated route.
+ *
+ * Usage:
+ *   <Route element={<AppLayout/>}>
+ *     <Route path="/dashboard" element={<Dashboard/>} />
+ *     ...
+ *   </Route>
+ *
+ * For backwards-compat, also accepts `children` so pages that still wrap
+ * themselves in <AppLayout> keep working without re-rendering the chrome twice
+ * (when used as a layout route, children is undefined and <Outlet/> renders).
+ */
+export const AppLayout = ({ children }: { children?: ReactNode }) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background text-foreground relative">
@@ -24,10 +38,9 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               </div>
             </div>
           </header>
-          <div key={typeof window !== "undefined" ? window.location.pathname : "page"} className="flex-1 p-6 lg:p-8 relative animate-page-in">
-            {children}
+          <div className="flex-1 p-6 lg:p-8 relative">
+            {children ?? <Outlet />}
           </div>
-
         </main>
       </div>
     </SidebarProvider>

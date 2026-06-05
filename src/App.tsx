@@ -10,6 +10,7 @@ import { CookieConsent } from "@/components/CookieConsent";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Component, Suspense, type ErrorInfo, type ReactNode } from "react";
 import { isChunkLoadError, lazyWithRetry, preloadAllRoutes, routeLoaders } from "@/lib/routeLoader";
+import { AppLayout } from "@/components/AppLayout";
 
 if (typeof window !== "undefined") preloadAllRoutes();
 
@@ -94,25 +95,28 @@ const App = () => (
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/aide" element={<FAQ />} />
 
-                  {/* Authenticated */}
-                  <Route path="/onboarding" element={guarded(<Onboarding />)} />
-                  <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={guarded(<Dashboard />)} />
-                  <Route path="/chasseur" element={guarded(<Chasseur />)} />
-                  <Route path="/radar" element={<Navigate to="/chasseur" replace />} />
-                  <Route path="/copilote" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/studio" element={guarded(<Documents />)} />
-                  <Route path="/documents" element={<Navigate to="/studio" replace />} />
-                  <Route path="/estimation" element={<Navigate to="/valorisation/estimation" replace />} />
-                  <Route path="/valorisation" element={<Navigate to="/valorisation/estimation" replace />} />
-                  <Route path="/valorisation/estimation" element={guarded(<EstimationIA />)} />
-                  <Route path="/valorisation/expertise" element={guarded(<Expertise />)} />
-                  <Route path="/expertise" element={<Navigate to="/valorisation/expertise" replace />} />
-                  <Route path="/sauvegardes" element={guarded(<Sauvegardes />)} />
-                  <Route path="/settings" element={guarded(<Settings />)} />
-                  <Route path="/inbox" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/agenda" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/clients" element={<Navigate to="/dashboard" replace />} />
+                  {/* Authenticated — shared stable AppLayout to avoid remount flash */}
+                  <Route element={guarded(<AppLayout />)}>
+                    <Route path="/onboarding" element={<Onboarding />} />
+                    <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/chasseur" element={<Chasseur />} />
+                    <Route path="/radar" element={<Navigate to="/chasseur" replace />} />
+                    <Route path="/copilote" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/studio" element={<Documents />} />
+                    <Route path="/documents" element={<Navigate to="/studio" replace />} />
+                    <Route path="/estimation" element={<Navigate to="/valorisation/estimation" replace />} />
+                    <Route path="/valorisation" element={<Navigate to="/valorisation/estimation" replace />} />
+                    <Route path="/valorisation/estimation" element={<EstimationIA />} />
+                    <Route path="/valorisation/expertise" element={<Expertise />} />
+                    <Route path="/expertise" element={<Navigate to="/valorisation/expertise" replace />} />
+                    <Route path="/sauvegardes" element={<Sauvegardes />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/inbox" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/agenda" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/clients" element={<Navigate to="/dashboard" replace />} />
+                  </Route>
+
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>
