@@ -15,17 +15,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "stripe-signature, content-type",
 };
 
+// Plan unique "ImmoGenius Pro" + variante "founder" (tarif à vie). Même quota IA.
 const PLAN_QUOTA: Record<string, number> = {
-  starter: 50,
-  pro: 150,
-  expert: 500,
+  pro: 120,
+  founder: 120,
 };
 
-// Map a Stripe price → plan code. Update this when you add Pro / Expert prices.
-function planFromPriceId(priceId?: string | null): "starter" | "pro" | "expert" {
-  if (!priceId) return "starter";
-  // For now there is a single launch price → Pro plan.
-  if (priceId === "price_1T0XIyRzj9nL3WboPqZRun7R") return "pro";
+const PRICE_PRO = "price_1Tf2FPRzj9nL3WboOW5Ct37a";
+const PRICE_FOUNDER = "price_1Tf2GYRzj9nL3Wbo9S7kmoA2";
+
+// Map a Stripe price → plan code.
+function planFromPriceId(priceId?: string | null): "pro" | "founder" {
+  if (priceId === PRICE_FOUNDER) return "founder";
   return "pro";
 }
 
@@ -76,8 +77,8 @@ serve(async (req) => {
     }
   }
 
-  async function applyPlan(userId: string, plan: "starter" | "pro" | "expert") {
-    const quota = PLAN_QUOTA[plan];
+  async function applyPlan(userId: string, plan: "pro" | "founder" | "free") {
+    const quota = PLAN_QUOTA[plan] ?? 0;
     const resetAt = new Date();
     resetAt.setUTCMonth(resetAt.getUTCMonth() + 1, 1);
     resetAt.setUTCHours(0, 0, 0, 0);
@@ -97,7 +98,10 @@ serve(async (req) => {
       case "checkout.session.completed": {
         const s = event.data.object as Stripe.Checkout.Session;
         const userId = await resolveUserId(s.customer as string, (s.metadata?.supabase_user_id ?? s.client_reference_id) as string | null);
-        if (userId) await applyPlan(userId, "pro");
+        if (userId) {
+          const variant = (s.metadata?.variant === "founder") ? "founder" : "pro";
+          await applyPlan(userId, variant);
+        }
         break;
       }
       case "customer.subscription.created":
@@ -110,14 +114,14 @@ serve(async (req) => {
           const priceId = sub.items?.data?.[0]?.price?.id;
           await applyPlan(userId, planFromPriceId(priceId));
         } else {
-          await applyPlan(userId, "starter");
+          await applyPlan(userId, "free");
         }
         break;
       }
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
         const userId = await resolveUserId(sub.customer as string, sub.metadata?.supabase_user_id ?? null);
-        if (userId) await applyPlan(userId, "starter");
+        if (userId) await applyPlan(userId, "free");
         break;
       }
       default:
