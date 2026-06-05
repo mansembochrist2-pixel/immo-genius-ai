@@ -12,9 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import {
-  MapPin, TrendingUp, AlertTriangle, Sparkles, Target, ArrowRight,
+  MapPin, TrendingUp, AlertTriangle, Sparkles, Target, X as CloseIcon,
   Radar as RadarIcon, Trash2, Play, Building2, Flame, Info, Mail,
-  Printer, Copy, Loader2, CheckCircle2, XCircle,
+  Printer, Copy, Loader2, CheckCircle2, XCircle, Search, Pencil,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
