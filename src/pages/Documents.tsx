@@ -23,6 +23,8 @@ import { streamChat } from "@/lib/ai-stream";
 import { exportTextToDocx } from "@/lib/docx-export";
 import { VoiceTextarea } from "@/components/VoiceTextarea";
 import { readTemplateFile } from "@/lib/template-reader";
+import { SavedItemsPanel } from "@/components/SavedItemsPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MANDAT_INFO_EXEMPLE = `══════ INFORMATIONS DU MANDANT (VENDEUR) ══════
 Nom et prénom : Jean DUPONT
