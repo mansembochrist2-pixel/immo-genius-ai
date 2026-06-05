@@ -389,12 +389,27 @@ const Studio = () => {
   return (
     <AppLayout>
       <div className="page-header">
-        <h1 className="page-title flex items-center gap-3">
-          <Palette className="h-7 w-7 text-primary" />
-          {t("docs.title")} <span className="gradient-text">{t("docs.ia")}</span>
-        </h1>
-        <p className="page-subtitle">{t("docs.subtitle")}</p>
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="page-title flex items-center gap-3">
+              <Palette className="h-7 w-7 text-primary" />
+              {t("docs.title")} <span className="gradient-text">{t("docs.ia")}</span>
+            </h1>
+            <p className="page-subtitle">{t("docs.subtitle")}</p>
+          </div>
+          <SavedItemsPanel
+            title={lang === "fr" ? "Mes annonces" : "My listings"}
+            table="annonces"
+            queryKey="saved-annonces-panel"
+            userId={user?.id}
+            defaultTitle={(r: any) => r.contenu_genere?.titre_accrocheur || r.adresse || "Annonce"}
+            subtitle={(r: any) => `${r.adresse || ""}${r.surface ? " · " + r.surface + " m²" : ""}`}
+            onLoad={loadSavedAnnonce}
+            triggerLabel={lang === "fr" ? "Mes annonces" : "Saved"}
+          />
+        </div>
       </div>
+
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-card/60">
