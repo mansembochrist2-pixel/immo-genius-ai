@@ -23,6 +23,8 @@ import { streamChat } from "@/lib/ai-stream";
 import { exportTextToDocx } from "@/lib/docx-export";
 import { VoiceTextarea } from "@/components/VoiceTextarea";
 import { readTemplateFile } from "@/lib/template-reader";
+import { SavedItemsPanel } from "@/components/SavedItemsPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MANDAT_INFO_EXEMPLE = `══════ INFORMATIONS DU MANDANT (VENDEUR) ══════
 Nom et prénom : Jean DUPONT
@@ -89,6 +91,7 @@ const Studio = () => {
   const { user } = useAuth();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
 
 
@@ -302,16 +305,46 @@ const Studio = () => {
       const { error } = await supabase.from("annonces").insert({
         user_id: user.id, adresse: annonceForm.adresse, prix: annonceForm.prix ? Number(annonceForm.prix) : null,
         surface: annonceForm.surface ? Number(annonceForm.surface) : null, description: annonceForm.description,
+        titre: annonce?.titre_accrocheur || annonceForm.adresse,
         contenu_genere: { ...merged, format_principal: formatChoisi, contenu_principal: contenuPrincipal, style_ton: annonceForm.style },
       });
       if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["saved-annonces-panel", user?.id] });
       toast.success(lang === "fr" ? `Annonce sauvegardée (${formatChoisi})` : `Listing saved (${formatChoisi})`, {
-        action: { label: lang === "fr" ? "Voir" : "View", onClick: () => window.location.assign("/sauvegardes") },
+        action: { label: lang === "fr" ? "Voir" : "View", onClick: () => navigate("/sauvegardes") },
       });
     } catch (err: any) {
       toast.error(err.message || "Erreur de sauvegarde");
     }
   };
+
+  const loadSavedAnnonce = (row: any) => {
+    const cg = row.contenu_genere || {};
+    setAnnonceForm({
+      adresse: row.adresse || "",
+      prix: row.prix != null ? String(row.prix) : "",
+      surface: row.surface != null ? String(row.surface) : "",
+      description: row.description || "",
+      style: cg.style_ton || "professionnel",
+    });
+    setAnnonce({
+      titre_accrocheur: row.titre || cg.titre_accrocheur,
+      version_courte: cg.version_courte || "",
+      version_longue: cg.version_longue || "",
+      version_premium: cg.version_premium || "",
+      phrases_accroche: cg.phrases_accroche || [],
+      hashtags: cg.hashtags || [],
+    });
+    setEditableAnnonce({
+      version_courte: cg.version_courte || "",
+      version_longue: cg.version_longue || "",
+      version_premium: cg.version_premium || "",
+    });
+    if (cg.format_principal) setActiveAnnonceFormat(cg.format_principal);
+    setActiveTab("annonces");
+    toast.success(lang === "fr" ? "Annonce chargée" : "Listing loaded");
+  };
+
 
 
 
@@ -356,12 +389,27 @@ const Studio = () => {
   return (
     <AppLayout>
       <div className="page-header">
-        <h1 className="page-title flex items-center gap-3">
-          <Palette className="h-7 w-7 text-primary" />
-          {t("docs.title")} <span className="gradient-text">{t("docs.ia")}</span>
-        </h1>
-        <p className="page-subtitle">{t("docs.subtitle")}</p>
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="page-title flex items-center gap-3">
+              <Palette className="h-7 w-7 text-primary" />
+              {t("docs.title")} <span className="gradient-text">{t("docs.ia")}</span>
+            </h1>
+            <p className="page-subtitle">{t("docs.subtitle")}</p>
+          </div>
+          <SavedItemsPanel
+            title={lang === "fr" ? "Mes annonces" : "My listings"}
+            table="annonces"
+            queryKey="saved-annonces-panel"
+            userId={user?.id}
+            defaultTitle={(r: any) => r.contenu_genere?.titre_accrocheur || r.adresse || "Annonce"}
+            subtitle={(r: any) => `${r.adresse || ""}${r.surface ? " · " + r.surface + " m²" : ""}`}
+            onLoad={loadSavedAnnonce}
+            triggerLabel={lang === "fr" ? "Mes annonces" : "Saved"}
+          />
+        </div>
       </div>
+
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-card/60">
@@ -597,6 +645,7 @@ const Studio = () => {
                   <div className="flex gap-1 items-center">
                     <Badge variant="outline" className="text-[9px] mr-1">{lang === "fr" ? "Format actif" : "Active"} : {activeAnnonceFormat}</Badge>
                     <Button size="sm" variant="outline" onClick={() => copier(editableAnnonce[`version_${activeAnnonceFormat}`] || annonce[`version_${activeAnnonceFormat}`])} className="gap-1 text-xs"><Copy className="h-3 w-3" /> {t("docs.copy")}</Button>
+                    <Button size="sm" variant="default" onClick={sauvegarderAnnonce} className="gap-1 text-xs"><FileText className="h-3 w-3" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">

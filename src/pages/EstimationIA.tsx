@@ -29,6 +29,8 @@ import { ValorisationTabs } from "@/components/valorisation/ValorisationTabs";
 import { AnalysisLoader } from "@/components/AnalysisLoader";
 import { preloadRoute } from "@/lib/routeLoader";
 import { Bot } from "lucide-react";
+import { SavedItemsPanel } from "@/components/SavedItemsPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 const EstimationIA = () => {
   const { user } = useAuth();
@@ -135,6 +137,8 @@ const EstimationIA = () => {
     }
   };
 
+  const queryClient = useQueryClient();
+
   const sauvegarderEstimation = async () => {
     if (!editableResult || !user) return;
     try {
@@ -142,9 +146,11 @@ const EstimationIA = () => {
         user_id: user.id,
         adresse: form.adresse,
         secteur: form.adresse,
-        resultat: { ...editableResult, form, dvfData },
+        titre: form.adresse,
+        resultat: { ...editableResult, form, dvfData, inseeData },
       });
       if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["saved-estimations-panel", user.id] });
       toast.success(lang === "fr" ? "Estimation sauvegardée" : "Estimation saved", {
         action: {
           label: lang === "fr" ? "Voir" : "View",
@@ -156,15 +162,44 @@ const EstimationIA = () => {
     }
   };
 
+  const loadSavedEstimation = (row: any) => {
+    const r = row.resultat || {};
+    if (r.form) setForm({ ...form, ...r.form });
+    if (r.dvfData) setDvfData(r.dvfData);
+    if (r.inseeData) setInseeData(r.inseeData);
+    const { form: _f, dvfData: _d, inseeData: _i, ...rest } = r;
+    setResult(rest);
+    setEditableResult(rest);
+    toast.success(lang === "fr" ? "Estimation chargée" : "Estimation loaded");
+  };
+
   return (
     <AppLayout>
       <div className="page-header">
-        <h1 className="page-title flex items-center gap-3">
-          <TrendingUp className="h-7 w-7 text-primary" />
-          <span className="gradient-text">Valorisation</span>
-        </h1>
-        <p className="page-subtitle">{lang === "fr" ? "Estimez la valeur de marché d'un bien, puis basculez en un clic vers l'analyse rentabilité & expertise patrimoniale." : "Estimate market value, then switch to full rentability & expertise analysis."}</p>
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="page-title flex items-center gap-3">
+              <TrendingUp className="h-7 w-7 text-primary" />
+              <span className="gradient-text">Valorisation</span>
+            </h1>
+            <p className="page-subtitle">{lang === "fr" ? "Estimez la valeur de marché d'un bien, puis basculez en un clic vers l'analyse rentabilité & expertise patrimoniale." : "Estimate market value, then switch to full rentability & expertise analysis."}</p>
+          </div>
+          <SavedItemsPanel
+            title={lang === "fr" ? "Mes estimations" : "My estimations"}
+            table="analyses_zone"
+            queryKey="saved-estimations-panel"
+            userId={user?.id}
+            defaultTitle={(r: any) => r.adresse || "Estimation"}
+            subtitle={(r: any) => {
+              const p = r.resultat?.prix_moyen;
+              return p ? `${Number(p).toLocaleString("fr-FR")} € · ${new Date(r.created_at).toLocaleDateString("fr-FR")}` : new Date(r.created_at).toLocaleDateString("fr-FR");
+            }}
+            onLoad={loadSavedEstimation}
+            triggerLabel={lang === "fr" ? "Mes estimations" : "Saved"}
+          />
+        </div>
       </div>
+
 
       <ValorisationTabs current="estimation" />
 
@@ -484,6 +519,7 @@ const EstimationIA = () => {
                 <BarChart3 className="h-4 w-4 mr-2" /> {lang === "fr" ? "Analyser la Rentabilité & Valorisation" : "Analyze Rentability & Valuation"}
               </Button>
               <Button variant="outline" className="flex-1 min-w-[160px]" onClick={downloadWord}><Download className="h-4 w-4 mr-2" /> {lang === "fr" ? "Télécharger en Word" : "Download as Word"}</Button>
+              <Button variant="outline" className="flex-1 min-w-[160px]" onClick={sauvegarderEstimation}><Save className="h-4 w-4 mr-2" /> {lang === "fr" ? "Sauvegarder" : "Save"}</Button>
               <Button variant="default" className="flex-1 min-w-[160px] bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => {
                 sessionStorage.setItem("annonce_prefill", JSON.stringify({
                   adresse: form.adresse,
