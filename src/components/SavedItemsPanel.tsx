@@ -61,7 +61,7 @@ export function SavedItemsPanel<T extends Row>({
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data || []) as T[];
+      return ((data as unknown) || []) as T[];
     },
     enabled: !!userId && open,
   });
