@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as _sb } from "@/integrations/supabase/client";
+
 
 type Lang = "fr" | "en";
 
