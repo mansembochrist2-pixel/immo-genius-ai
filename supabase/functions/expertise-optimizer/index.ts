@@ -75,10 +75,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
-    const callModel = async (model: string, withReasoning: boolean) => {
+    const callModel = async (model: string) => {
       const body: any = {
         model,
-        max_completion_tokens: 2500,
+        max_completion_tokens: 4000,
         messages: [
           { role: "system", content: SYSTEM },
           {
@@ -87,7 +87,6 @@ serve(async (req) => {
           },
         ],
       };
-      if (withReasoning) body.reasoning = { effort: "medium" };
       return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -95,11 +94,12 @@ serve(async (req) => {
       });
     };
 
-    let resp = await callModel("openai/gpt-5", true);
+    // Primary: Gemini 2.5 Pro (rapide, JSON fiable). Fallback: gpt-5-mini.
+    let resp = await callModel("google/gemini-2.5-pro");
     if (!resp.ok && resp.status !== 429 && resp.status !== 402) {
       const errText = await resp.text();
       console.error("Primary model failed:", resp.status, errText);
-      resp = await callModel("google/gemini-2.5-pro", false);
+      resp = await callModel("openai/gpt-5-mini");
     }
 
     if (!resp.ok) {
@@ -113,18 +113,31 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Crédits IA épuisés." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-      return new Response(JSON.stringify({ error: "Erreur du service IA", detail: errText }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Erreur du service IA", detail: errText.slice(0, 500) }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const data = await resp.json();
     let content: string = data.choices?.[0]?.message?.content || "";
     content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+    // Extrait le 1er objet JSON valide (au cas où le modèle ajoute du préambule)
+    const start = content.indexOf("{");
+    const end = content.lastIndexOf("}");
+    if (start === -1 || end === -1) {
+      console.error("No JSON braces in content:", content.slice(0, 300));
+      return new Response(JSON.stringify({ error: "Réponse IA vide ou invalide. Réessayez." }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const jsonStr = content.slice(start, end + 1);
     try {
-      return new Response(content, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    } catch {
-      return new Response(JSON.stringify({ error: "Format invalide", raw: content }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const parsed = JSON.parse(jsonStr);
+      return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } catch (e) {
+      console.error("JSON parse failed:", e, jsonStr.slice(0, 300));
+      return new Response(JSON.stringify({ error: "Format IA invalide", raw: jsonStr.slice(0, 500) }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
   } catch (e) {
