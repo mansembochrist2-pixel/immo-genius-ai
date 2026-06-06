@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyCoKh5IA4dUlYyg3eMkZgYFICn5UAWPtRw";
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
 
 interface AddressAutocompleteProps {
   value: string;
