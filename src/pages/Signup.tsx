@@ -21,10 +21,16 @@ const Signup = () => {
     if (!name || !email || !password) { toast.error("Veuillez remplir tous les champs"); return; }
     if (password.length < 6) { toast.error("Le mot de passe doit contenir au moins 6 caractères"); return; }
     setIsLoading(true);
-    const { error } = await signup(name, email, password);
+    const { error, needsConfirmation } = await signup(name, email, password);
     setIsLoading(false);
-    if (error) toast.error(error);
-    else { toast.success("Compte créé"); navigate("/onboarding"); }
+    if (error) { toast.error(error); return; }
+    if (needsConfirmation) {
+      toast.success("Vérifiez votre boîte mail pour confirmer votre adresse avant de vous connecter.", { duration: 9000 });
+      navigate("/login");
+    } else {
+      toast.success("Compte créé");
+      navigate("/onboarding");
+    }
   };
 
   return (

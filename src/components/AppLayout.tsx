@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext } from "react";
+import { ReactNode, Suspense, createContext, useContext } from "react";
 import { Outlet } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -9,11 +9,10 @@ import { Building2 } from "lucide-react";
 /**
  * AppLayout — stable shell that wraps every authenticated route.
  *
- * Mounted ONCE as a layout route in App.tsx via <Route element={<AppLayout/>}>.
- * Pages may still wrap themselves in <AppLayout>{...}</AppLayout> for backwards
- * compatibility: in that case we detect the existing shell via context and just
- * pass children through, so the sidebar/header are not remounted on every
- * navigation (which used to cause a visible double-flash between modules).
+ * IMPORTANT — Suspense lives INSIDE the shell, around the content area only.
+ * Without this, the outer <Suspense> in App.tsx unmounts the WHOLE app
+ * (sidebar + header + content) every time a lazy module chunk loads, which
+ * caused the visible double-flash when switching modules.
  */
 const LayoutMountedContext = createContext(false);
 
@@ -37,7 +36,7 @@ const Shell = ({ children }: { children: ReactNode }) => (
             </div>
           </header>
           <div className="flex-1 p-6 lg:p-8 relative">
-            {children}
+            <Suspense fallback={null}>{children}</Suspense>
           </div>
         </main>
       </div>
@@ -47,10 +46,9 @@ const Shell = ({ children }: { children: ReactNode }) => (
 
 export const AppLayout = ({ children }: { children?: ReactNode }) => {
   const alreadyMounted = useContext(LayoutMountedContext);
-  // Used as a layout route: render Outlet inside the shell
+  // Layout route: render Outlet inside the shell
   if (!children) return <Shell><Outlet /></Shell>;
-  // Used as a wrapper inside a page: if the shell is already mounted by the
-  // layout route, just pass children through. Otherwise mount the shell.
+  // Shell already mounted higher up: pass through (no nested Suspense)
   if (alreadyMounted) return <>{children}</>;
   return <Shell>{children}</Shell>;
 };
