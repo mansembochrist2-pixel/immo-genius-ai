@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase as _sb } from "@/integrations/supabase/client";
 
 type Lang = "fr" | "en";
 
@@ -233,7 +233,19 @@ export const useLanguage = () => useContext(LanguageContext);
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [lang, setLangState] = useState<Lang>("fr");
-  const { user } = useAuth();
+  const [user, setUser] = useState<{ id: string } | null>(null);
+
+  useEffect(() => {
+    // S'abonne à la session Supabase directement pour éviter une dépendance
+    // sur AuthProvider (qui pourrait ne pas être monté pendant certains HMR).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? { id: session.user.id } : null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
+      setUser(session?.user ? { id: session.user.id } : null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (user) {
