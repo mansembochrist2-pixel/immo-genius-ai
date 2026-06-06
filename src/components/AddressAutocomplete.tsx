@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyCoKh5IA4dUlYyg3eMkZgYFICn5UAWPtRw";
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
 
 interface AddressAutocompleteProps {
   value: string;
@@ -19,6 +19,9 @@ const loadCallbacks: (() => void)[] = [];
 
 function loadGoogleMaps(): Promise<void> {
   if (googleMapsLoaded) return Promise.resolve();
+  if (!GOOGLE_MAPS_API_KEY) {
+    return Promise.reject(new Error("Google Maps API key non configurée (VITE_GOOGLE_MAPS_API_KEY)"));
+  }
   return new Promise((resolve) => {
     if (googleMapsLoading) {
       loadCallbacks.push(resolve);
