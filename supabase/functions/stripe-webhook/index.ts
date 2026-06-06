@@ -15,10 +15,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "stripe-signature, content-type",
 };
 
-// Plan unique "ImmoGenius Pro" + variante "founder" (tarif à vie). Même quota IA.
+// Doit correspondre exactement aux valeurs définies dans check_and_consume_ai_credit (migration).
 const PLAN_QUOTA: Record<string, number> = {
-  pro: 120,
-  founder: 120,
+  pro: 150,
+  founder: 150,
+  free: 50,
 };
 
 const PRICE_PRO = "price_1Tf2FPRzj9nL3WboOW5Ct37a";

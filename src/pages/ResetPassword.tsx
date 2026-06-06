@@ -22,17 +22,17 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Supabase fires PASSWORD_RECOVERY when arriving from the email link.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || (session && window.location.hash.includes("type=recovery"))) {
+    // Supabase fires PASSWORD_RECOVERY uniquement depuis le lien email de récupération.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
         setReady(true);
       }
     });
-    // If the user simply navigates here without a recovery hash, allow them
-    // to use it only if they already have an active session.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+    // Vérifie aussi le hash URL au cas où l'event arrive avant l'écoute.
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery") && hash.includes("access_token=")) {
+      setReady(true);
+    }
     return () => subscription.unsubscribe();
   }, []);
 

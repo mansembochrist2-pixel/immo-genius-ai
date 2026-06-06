@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
-  signup: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
+  signup: (name: string, email: string, password: string) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
 }
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       setLoading(false);
       if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
-        setTimeout(() => { ensureProfileForSession(session).catch(() => {}); }, 0);
+        setTimeout(() => { ensureProfileForSession(session).catch((e) => console.error("Profile init failed:", e)); }, 0);
       }
     });
 
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session) ensureProfileForSession(session).catch(() => {});
+      if (session) ensureProfileForSession(session).catch((e) => console.error("Profile init failed:", e));
       setLoading(false);
     });
 
@@ -70,15 +70,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/onboarding`,
       },
     });
-    return { error: error?.message ?? null };
+    return {
+      error: error?.message ?? null,
+      needsEmailConfirmation: !error && !data.session,
+    };
   };
 
   const logout = async () => {

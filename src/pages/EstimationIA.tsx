@@ -67,13 +67,17 @@ const EstimationIA = () => {
     // 1. DVF d'abord (l'IA en a besoin)
     let dvf: any = null;
     try {
-      const { data } = await supabase.functions.invoke("dvf-lookup", {
+      const { data, error } = await supabase.functions.invoke("dvf-lookup", {
         body: { adresse: form.adresse, surface: form.surface ? Number(form.surface) : undefined, type_bien: form.type_bien },
       });
+      if (error) throw error;
       dvf = data;
       setDvfData(data);
     } catch (err) {
       console.error("DVF lookup failed", err);
+      toast.warning(lang === "fr"
+        ? "Données DVF indisponibles — l'estimation se basera sur les données IA uniquement."
+        : "DVF data unavailable — estimation will rely on AI data only.");
     } finally {
       setLoadingDvf(false);
     }
@@ -82,9 +86,10 @@ const EstimationIA = () => {
     let insee: any = null;
     try {
       const codeDept = dvf?.code_postal ? String(dvf.code_postal).slice(0, 2) : "";
-      const { data } = await supabase.functions.invoke("prix-marche-insee", {
+      const { data, error } = await supabase.functions.invoke("prix-marche-insee", {
         body: { code_departement: codeDept, commune: dvf?.ville },
       });
+      if (error) throw error;
       insee = data;
       setInseeData(data);
     } catch (err) {

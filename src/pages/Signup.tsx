@@ -1,30 +1,87 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Sparkles, Check, ArrowRight, Building2, ShieldCheck } from "lucide-react";
+import { Sparkles, Check, ArrowRight, Building2, ShieldCheck, Mail } from "lucide-react";
 import { BlueprintBuilding } from "@/components/landing/BlueprintBuilding";
+
+const EmailConfirmationScreen = ({ email }: { email: string }) => {
+  const [resending, setResending] = useState(false);
+
+  const resend = async () => {
+    setResending(true);
+    const { error } = await supabase.auth.resend({ type: "signup", email });
+    setResending(false);
+    if (error) toast.error(error.message);
+    else toast.success("Email renvoyé ! Vérifiez votre boîte de réception.");
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-6 relative overflow-hidden">
+      <div className="scene-grid" />
+      <div className="scene-mesh" />
+      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
+        <div className="rounded-2xl border border-border/70 bg-surface-1/80 backdrop-blur-2xl p-8 shadow-[var(--shadow-elevated)] text-center space-y-5">
+          <div className="h-14 w-14 rounded-2xl border border-primary/30 bg-primary/10 grid place-items-center mx-auto">
+            <Mail className="h-7 w-7 text-primary" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Vérifiez votre email</h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Un lien de confirmation a été envoyé à <span className="font-medium text-foreground">{email}</span>.
+              Cliquez sur ce lien pour activer votre compte.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-surface-2 p-4 text-left text-sm space-y-2">
+            <p className="text-muted-foreground">Vous ne le trouvez pas ?</p>
+            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+              <li>Vérifiez vos spams / courriers indésirables</li>
+              <li>Vérifiez que l'adresse est correcte</li>
+            </ul>
+          </div>
+          <Button variant="outline" className="w-full h-11" onClick={resend} disabled={resending}>
+            {resending ? "Envoi…" : "Renvoyer l'email de confirmation"}
+          </Button>
+          <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground block">
+            Retour à la connexion
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Signup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  if (confirmationSent) {
+    return <EmailConfirmationScreen email={email} />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) { toast.error("Veuillez remplir tous les champs"); return; }
     if (password.length < 6) { toast.error("Le mot de passe doit contenir au moins 6 caractères"); return; }
     setIsLoading(true);
-    const { error } = await signup(name, email, password);
+    const { error, needsEmailConfirmation } = await signup(name, email, password);
     setIsLoading(false);
-    if (error) toast.error(error);
-    else { toast.success("Compte créé"); navigate("/onboarding"); }
+    if (error) { toast.error(error); return; }
+    if (needsEmailConfirmation) {
+      setConfirmationSent(true);
+    } else {
+      toast.success("Compte créé");
+      navigate("/onboarding");
+    }
   };
 
   return (
