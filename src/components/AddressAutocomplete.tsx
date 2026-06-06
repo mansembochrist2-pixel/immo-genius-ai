@@ -19,6 +19,9 @@ const loadCallbacks: (() => void)[] = [];
 
 function loadGoogleMaps(): Promise<void> {
   if (googleMapsLoaded) return Promise.resolve();
+  if (!GOOGLE_MAPS_API_KEY) {
+    return Promise.reject(new Error("Google Maps API key non configurée (VITE_GOOGLE_MAPS_API_KEY)"));
+  }
   return new Promise((resolve) => {
     if (googleMapsLoading) {
       loadCallbacks.push(resolve);
